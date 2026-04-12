@@ -558,7 +558,7 @@ class MyPlugin(Star):
         url = build_tracker_url(platform, playsID)
         
         async with AsyncSession() as session:
-            response = await session.get(url, impersonate="edge101", timeout=15)
+            response = await session.get(url, impersonate="edge101", timeout=120)
         
         if response.status_code != 200:
             body = response.text[:500] if response.text else "无响应体"
