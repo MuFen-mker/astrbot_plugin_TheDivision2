@@ -65,7 +65,7 @@ TMPL = '''
         margin: 20px;
         border-radius: 5px;
         padding: 10px 20px 10px 10px;
-        height: 143px;
+        height: 136px;
     }
     .nameCard > div{
         background-color: rgb(56, 56, 56);
