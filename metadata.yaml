@@ -3,6 +3,6 @@ display_name: TheDivision2数据查询
 desc: 一个用于查询全境封锁2国际服玩家数据的插件。 
 version: v1.0.0 
 author: MOTH56 
-repo: https://github.com/MuFen-mker/AstrBot_TheDivision2.git 
+repo: https://github.com/MuFen-mker/astrbot_plugin_TheDivision2
 support_platforms:
   - qq_official
