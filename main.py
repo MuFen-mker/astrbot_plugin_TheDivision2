@@ -1,14 +1,22 @@
-import aiohttp
-import asyncio
 from astrbot.api.event import filter, AstrMessageEvent, MessageEventResult
 from astrbot.api.star import Context, Star, register
 from astrbot.api import logger 
-from curl_cffi.requests import AsyncSession
 from bs4 import BeautifulSoup
+from curl_cffi.requests import AsyncSession
+import asyncio
 import re
 
 TMPL = '''
-<div style="background-color: rgb(54, 54, 54);display: inline-block;">
+<style>
+    .set{
+        gap: 0px;
+    }
+    .set > div{
+        flex: 1;
+        text-align: center;
+    }
+</style>
+<div style="background-color: rgb(54, 54, 54);display: inline-block;transform: scale(2);transform-origin: top left;">
     <div style="background-color: rgb(22, 22, 22);display: inline-flex;margin: 20px;border-radius: 10px;padding: 10px 20px 10px 10px;height: 135px;">
         <img style="height: 100%;width: auto;border-radius: 10px;" src="{{avatarimg}}" alt="">
         <div style="display: flex; flex-direction: column;padding-left: 30px;">
@@ -23,7 +31,7 @@ TMPL = '''
             </div>
             <div style="width: 100%;display: flex;align-items: center;height: 30px;margin-top: 5px;">
                 <svg height="24" width="24" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" fill="#ffffff"><path d="M208,96a12,12,0,1,1,12,12A12,12,0,0,1,208,96ZM196,72a12,12,0,1,0-12-12A12,12,0,0,0,196,72Zm28.66,56a8,8,0,0,0-8.63,7.31A88.12,88.12,0,1,1,120.66,40,8,8,0,0,0,119.34,24,104.12,104.12,0,1,0,232,136.66,8,8,0,0,0,224.66,128ZM128,56a72,72,0,1,1-72,72A72.08,72.08,0,0,1,128,56Zm-8,72a8,8,0,0,0,8,8h48a8,8,0,0,0,0-16H136V80a8,8,0,0,0-16,0Zm40-80a12,12,0,1,0-12-12A12,12,0,0,0,160,48Z"/></svg>
-                <span style="color: white;margin-left: 15px;font-size: 20px;">1770小时</span>
+                <span style="color: white;margin-left: 15px;font-size: 20px;">{{gametime}}小时</span>
             </div>
         </div>
     </div>
@@ -37,8 +45,8 @@ TMPL = '''
         </div>
         <div style="background: rgb(255, 136, 0); width: 95px; height: 3px;"></div>
         <div style="background: rgb(105, 105, 105); width: 100%; height: 3px;"></div>
-        <div style="display: flex;margin-top: 10px; justify-content: center;">
-            <div style="display: flex; align-items: center;flex-direction: column;align-items: center;margin: auto 0;padding-right: 5px;border-right: 1px solid rgb(105, 105, 105);">
+        <div class="set" style="display: flex;margin-top: 10px; justify-content: center;">
+            <div style="display: flex; align-items: center;flex-direction: column;align-items: center;margin: auto 0;padding:0px 10px;border-right: 1px solid rgb(105, 105, 105);border-left: 1px solid rgb(105, 105, 105);">
                 <svg data-v-9ddc4550="" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 50 47" fill="#FFFFFF" style="height:30px; width: auto;"><g transform="matrix(1, 0, 0, 1, 0, 0)"><path d="M174.2,207.877l-21.981-15.97,9.167-28.214H174.2v4.037h-9.88l-7.355,22.635L174.2,202.886Zm4.038-40.147h9.881l7.354,22.635-17.235,12.522v4.991l21.981-15.97-9.167-28.214H178.242Zm-2.019,31.632,14.507-10.54-5.541-17.055H167.258l-5.541,17.055Z" transform="translate(-152.22 -163.69)"></path></g></svg>
                 <span style="color: white;white-space: nowrap;">功勋</span>
                 <span style="color: white;font-size: 22px;">{{CurrComm}}</span>
@@ -174,10 +182,10 @@ TMPL = '''
             </div>
             <div style="display: flex; align-items: center;flex-direction: column;align-items: center;margin: auto 0;padding: 0px 10px;border-right: 1px solid rgb(105, 105, 105);">
                 <svg style="height:30px; width: auto;" stroke="#ffffff" fill="#ffffff" height="24" width="24" xmlns="http://www.w3.org/2000/svg" id="mdi-head-remove-outline" viewBox="0 0 24 24"><path d="M13 3C16.9 3 20 6.1 20 10C20 12.8 18.4 15.2 16 16.3V21H9V18H8C6.9 18 6 17.1 6 16V13H4.5C4.1 13 3.8 12.5 4.1 12.2L6 9.7C6.2 5.9 9.2 3 13 3M13 1C8.4 1 4.6 4.4 4.1 8.9L2.5 11C1.9 11.7 1.8 12.7 2.2 13.6C2.6 14.3 3.2 14.8 4 15V16C4 17.9 5.3 19.4 7 19.9V23H18V17.5C20.5 15.9 22 13.1 22 10C22 5 18 1 13 1M16.5 6.9L14.4 9L16.5 11.1L15.1 12.5L13 10.4L10.9 12.5L9.5 11.1L11.6 9L9.5 6.9L10.9 5.5L13 7.6L15.1 5.5L16.5 6.9Z" /></svg>
-                <span style="color: white;white-space: nowrap;">{{Headshots}}</span>
-                <span style="color: white;font-size: 22px;">5365</span>
+                <span style="color: white;white-space: nowrap;">爆头数</span>
+                <span style="color: white;font-size: 22px;">{{Headshots}}</span>
             </div>
-            <div style="display: flex; align-items: center;flex-direction: column;align-items: center;margin: auto 0;padding-left: 5px;">
+            <div style="display: flex; align-items: center;flex-direction: column;align-items: center;margin: auto 0;padding:0px 10px;border-right: 1px solid rgb(105, 105, 105);">
                 <svg  xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="#FFFFFF" style="height:30px; width: auto;" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-circle-dollar-sign-icon lucide-circle-dollar-sign"><circle cx="12" cy="12" r="10"/><path d="M16 8h-6a2 2 0 1 0 0 4h4a2 2 0 1 1 0 4H8"/><path d="M12 18V6"/></svg>
                 <span style="color: white;white-space: nowrap;">E点数</span>
                 <span style="color: white;font-size: 22px;">{{ECreditBalance}}</span>
@@ -192,8 +200,8 @@ TMPL = '''
         </div>
         <div style="background: rgb(255, 136, 0); width: 103px; height: 3px;"></div>
         <div style="background: rgb(105, 105, 105); width: 100%; height: 3px;"></div>
-        <div style="display: flex; justify-content: center;margin-top: 10px;">
-            <div style="display: flex; align-items: center;flex-direction: column;align-items: center;margin: auto 0;padding-right: 5px;border-right: 1px solid rgb(105, 105, 105);">
+        <div class="set" style="display: flex; justify-content: center;margin-top: 10px;">
+            <div style="display: flex; align-items: center;flex-direction: column;align-items: center;margin: auto 0;padding:0px 10px;border-right: 1px solid rgb(105, 105, 105);border-left: 1px solid rgb(105, 105, 105);">
                 <svg xmlns="http://www.w3.org/2000/svg"width="24"height="24"viewBox="0 0 24 24"fill="none"stroke="#ffffff"stroke-width="2"stroke-linecap="round"stroke-linejoin="round"><path d="M7 11l5 -5l5 5" /><path d="M7 17l5 -5l5 5" /></svg>
                 <span style="color: white;white-space: nowrap;">PVE经验</span>
                 <span style="color: white;font-size: 22px;">{{PveXP}}</span>
@@ -235,7 +243,7 @@ TMPL = '''
                 <span style="color: white;white-space: nowrap;">真实之子击杀</span>
                 <span style="color: white;font-size: 22px;">{{TrueSonsKills}}</span>
             </div>
-            <div style="display: flex; align-items: center;flex-direction: column;align-items: center;margin: auto 0;padding-left: 5px;">
+            <div style="display: flex; align-items: center;flex-direction: column;align-items: center;margin: auto 0;padding:0px 10px;border-right: 1px solid rgb(105, 105, 105);">
                 <svg stroke="#ffffff" fill="#ffffff" id="icon" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 32 32"><title>skill-level</title><path d="M30,30H22V4h8Zm-6-2h4V6H24Z"/><path d="M20,30H12V12h8Zm-6-2h4V14H14Z"/><path d="M10,30H2V18h8ZM4,28H8V20H4Z"/></svg>
                 <span style="color: white;white-space: nowrap;">黯牙击杀</span>
                 <span style="color: white;font-size: 22px;">{{BlackTuskKills}}</span>
@@ -250,11 +258,11 @@ TMPL = '''
         </div>
         <div style="background: rgb(255, 136, 0); width: 103px; height: 3px;"></div>
         <div style="background: rgb(105, 105, 105); width: 100%; height: 3px;"></div>
-        <div style="display: flex; justify-content: center;margin-top: 10px;">
-            <div style="display: flex; align-items: center;flex-direction: column;align-items: center;margin: auto 0;padding: 0px 10px;border-right: 1px solid rgb(105, 105, 105)">
+        <div class="set" style="display: flex; justify-content: center;margin-top: 10px;">
+            <div style="display: flex; align-items: center;flex-direction: column;align-items: center;margin: auto 0;padding:0px 10px;border-right: 1px solid rgb(105, 105, 105);border-left: 1px solid rgb(105, 105, 105);">
                 <svg height="24" width="24" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" fill="#ffffff"><path d="M208,96a12,12,0,1,1,12,12A12,12,0,0,1,208,96ZM196,72a12,12,0,1,0-12-12A12,12,0,0,0,196,72Zm28.66,56a8,8,0,0,0-8.63,7.31A88.12,88.12,0,1,1,120.66,40,8,8,0,0,0,119.34,24,104.12,104.12,0,1,0,232,136.66,8,8,0,0,0,224.66,128ZM128,56a72,72,0,1,1-72,72A72.08,72.08,0,0,1,128,56Zm-8,72a8,8,0,0,0,8,8h48a8,8,0,0,0,0-16H136V80a8,8,0,0,0-16,0Zm40-80a12,12,0,1,0-12-12A12,12,0,0,0,160,48Z"/></svg>
                 <span style="color: white;white-space: nowrap;">暗区时长</span>
-                <span style="color: white;font-size: 22px;">{{dzPlaytime}}</span>
+                <span style="color: white;font-size: 22px;">{{dzPlaytime}}h</span>
             </div>
             <div style="display: flex; align-items: center;flex-direction: column;align-items: center;margin: auto 0;padding: 0px 10px;border-right: 1px solid rgb(105, 105, 105);">
                 <svg xmlns="http://www.w3.org/2000/svg"width="24"height="24"viewBox="0 0 24 24"fill="none"stroke="#ffffff"stroke-width="2"stroke-linecap="round"stroke-linejoin="round"><path d="M7 11l5 -5l5 5" /><path d="M7 17l5 -5l5 5" /></svg>
@@ -276,7 +284,7 @@ TMPL = '''
                 <span style="color: white;white-space: nowrap;">叛变时长</span>
                 <span style="color: white;font-size: 22px;">{{RogueTimePlayed}}</span>
             </div>
-            <div style="display: flex; align-items: center;flex-direction: column;align-items: center;margin: auto 0;padding-left: 5px;">
+            <div style="display: flex; align-items: center;flex-direction: column;align-items: center;margin: auto 0;padding:0px 10px;border-right: 1px solid rgb(105, 105, 105);">
                 <svg height="24" width="24" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" fill="#ffffff"><path d="M200,75.64V40a16,16,0,0,0-16-16H72A16,16,0,0,0,56,40V76a16.07,16.07,0,0,0,6.4,12.8L114.67,128,62.4,167.2A16.07,16.07,0,0,0,56,180v36a16,16,0,0,0,16,16H184a16,16,0,0,0,16-16V180.36a16.08,16.08,0,0,0-6.35-12.76L141.27,128l52.38-39.59A16.09,16.09,0,0,0,200,75.64ZM178.23,176H77.33L128,138ZM184,75.64,128,118,72,76V40H184Z"/></svg>
                 <span style="color: white;white-space: nowrap;">最长叛变时间</span>
                 <span style="color: white;font-size: 22px;">{{RogueLongestTimePlayed}}</span>
@@ -296,8 +304,8 @@ TMPL = '''
         </div>
         <div style="background: rgb(255, 136, 0); width: 145px; height: 3px;"></div>
         <div style="background: rgb(105, 105, 105); width: 100%; height: 3px;"></div>
-        <div style="display: flex; justify-content: center;margin-top: 10px;">
-            <div style="display: flex; align-items: center;flex-direction: column;align-items: center;margin: auto 0;padding: 0px 10px;border-right: 1px solid rgb(105, 105, 105)">
+        <div class="set" style="display: flex; justify-content: center;margin-top: 10px;">
+            <div style="display: flex; align-items: center;flex-direction: column;align-items: center;margin: auto 0;padding:0px 10px;border-right: 1px solid rgb(105, 105, 105);border-left: 1px solid rgb(105, 105, 105);">
                 <svg stroke="#ffffff" fill="#ffffff" id="icon" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 32 32"><title>skill-level</title><path d="M30,30H22V4h8Zm-6-2h4V6H24Z"/><path d="M20,30H12V12h8Zm-6-2h4V14H14Z"/><path d="M10,30H2V18h8ZM4,28H8V20H4Z"/></svg>
                 <span style="color: white;white-space: nowrap;">流血击杀</span>
                 <span style="color: white;font-size: 22px;">{{BleedingKills}}</span>
@@ -440,7 +448,7 @@ TMPL = '''
                 <span style="color: white;white-space: nowrap;">步枪击杀</span>
                 <span style="color: white;font-size: 22px;">{{RifleKills}}</span>
             </div>
-            <div style="display: flex; align-items: center;flex-direction: column;align-items: center;margin: auto 0;padding-left: 5px;">
+            <div style="display: flex; align-items: center;flex-direction: column;align-items: center;margin: auto 0;padding:0px 10px;border-right: 1px solid rgb(105, 105, 105);">
                 <svg xmlns="http://www.w3.org/2000/svg" xmlns:v="https://svgstorm.com" viewBox="0 0 128 128" width="30" height="30">
                 <g fill="None" fill-opacity="0.0" stroke="#000000" stroke-opacity="0.00" stroke-width="0.3"><path d=" M 0.00 128.00  L 128.00 128.00 L 128.00 0.00 L 0.00 0.00 L 0.00 128.00 M 78.00 44.00  C 69.67 44.00 61.33 44.00 53.00 44.00 C 52.48 35.30 53.55 20.00 65.03 19.03 C 76.50 18.05 79.64 35.40 78.00 44.00 M 79.00 93.00  C 70.00 93.00 61.00 93.00 52.00 93.00 C 49.56 82.07 52.08 77.04 51.00 65.00 C 49.92 52.96 52.50 48.88 65.00 49.00 C 77.50 49.12 81.11 51.55 80.00 64.00 C 78.89 76.45 81.48 81.67 79.00 93.00 M 80.00 98.00  C 82.08 105.91 74.53 103.93 69.00 104.00 C 63.47 104.07 56.65 103.95 51.00 104.00 C 48.92 96.09 56.47 98.07 62.00 98.00 C 67.53 97.93 74.35 98.05 80.00 98.00 Z"/>
                 </g>
@@ -480,17 +488,25 @@ class MyPlugin(Star):
         def build_tracker_url(platform: str, username: str) -> str:
             return f"https://tracker.gg/division-2/profile/{platform}/{username}/overview"
         url = build_tracker_url(platform, playsID)
-
+        
         async with AsyncSession() as session:
-            resp = await session.get(url, impersonate="chrome120")
-        if resp.status_code != 200:
-            yield event.plain_result("网络错误，请稍后重试！")
-            return
-        html_text = resp.text                     
-        soup = BeautifulSoup(html_text, "html.parser")
+            response = await session.get(url, impersonate="edge101", timeout=15)
+        
+        if response.status_code != 200:
+            body = response.text[:500] if response.text else "无响应体"
+            yield event.plain_result(
+                f"网络错误，请稍后重试！\n"
+                f"状态码：{response.status_code}\n"
+                f"URL：{url}\n"
+                f"响应体：\n{body}"
+            )
+            return               
+        soup = BeautifulSoup(response.text, 'html.parser')
         #===================
         #头像
         avatarimg = soup.find("img", class_="user-avatar__image")
+        avatar_url = avatarimg.get('src') if avatarimg else None
+        logger.info(f"avatar_url type: {type(avatar_url)}, value: {avatar_url}")
         #等级
         level_span = soup.find('span', title='Player Level')
         Level = level_span.find_next_sibling('span').find('span', class_='value').get_text(strip=True) if level_span else None
@@ -498,13 +514,7 @@ class MyPlugin(Star):
         dz_span = soup.find('span', title='DZ Level')
         DZLevel = dz_span.find_next_sibling('span').find('span', class_='value').get_text(strip=True) if dz_span else None
         #游戏时长
-        h2 = soup.find('h2', string='Lifetime Overview')
-        if h2:
-            playtime_span = h2.find_next('span', class_='playtime')
-            if playtime_span:
-                text = playtime_span.get_text(strip=True)
-                match = re.search(r'(\d+)', text)
-                gametime = int(match.group(1)) if match else None
+        gametime = int(re.search(r'(\d+(?:,\d+)*)', soup.find('h2', string='Lifetime Overview').find_parent('div', class_='details').find('div', class_='title-stats').find('span', class_='playtime').get_text(strip=True)).group(1).replace(',', ''))
         #功勋
         CurrComm = soup.find('span', class_='name', title='Curr Comm. Score').find_parent('div', class_='numbers').find('span', class_='value').get_text(strip=True)
         CurrComm = int(CurrComm.replace(',', '')) if CurrComm else None
@@ -530,8 +540,7 @@ class MyPlugin(Star):
         PveXP = soup.find('span', class_='name', title='PvE XP').find_parent('div', class_='numbers').find('span', class_='value').get_text(strip=True)
         PveXP = int(PveXP.replace(',', '')) if PveXP else None
         #具名击杀
-        NamedKills = soup.find('span', class_='name', title='Named Kills').find_parent('div', class_='numbers').find('span', class_='value').get_text(strip=True)
-        NamedKills = int(NamedKills.replace(',', '')) if NamedKills else None
+        NamedKills = int(soup.find('h2', string='PvE').find_parent('div', class_='card').find('span', class_='name', title='Named Kills').find_parent('div', class_='numbers').find('span', class_='value').get_text(strip=True).replace(',', ''))
         #鬣狗击杀
         HyenaKills = soup.find('span', class_='name', title='Hyena Kills').find_parent('div', class_='numbers').find('span', class_='value').get_text(strip=True)
         HyenaKills = int(HyenaKills.replace(',', '')) if HyenaKills else None
@@ -542,8 +551,7 @@ class MyPlugin(Star):
         TrueSonsKills = soup.find('span', class_='name', title='TrueSons Kills').find_parent('div', class_='numbers').find('span', class_='value').get_text(strip=True)
         TrueSonsKills = int(TrueSonsKills.replace(',', '')) if TrueSonsKills else None
         #黯牙击杀
-        BlackTuskKills = soup.find('span', class_='name', title='BlackTusk Kills').find_parent('div', class_='numbers').find('span', class_='value').get_text(strip=True)
-        BlackTuskKills = int(BlackTuskKills.replace(',', '')) if BlackTuskKills else None
+        BlackTuskKills = int(soup.find('h2', string='PvE').find_parent('div', class_='card').find('span', class_='name', title='BlackTusk Kills').find_parent('div', class_='numbers').find('span', class_='value').get_text(strip=True).replace(',', ''))
         #暗区时长
         h2 = soup.find('h2', string='Dark Zone')
         if h2:
@@ -562,11 +570,9 @@ class MyPlugin(Star):
         RoguesKilled = soup.find('span', class_='name', title='Rogues Killed').find_parent('div', class_='numbers').find('span', class_='value').get_text(strip=True)
         RoguesKilled = int(RoguesKilled.replace(',', '')) if RoguesKilled else None
         #叛变时长
-        RogueTimePlayed = soup.find('span', class_='name', title='Rogues Killed').find_parent('div', class_='numbers').find('span', class_='value').get_text(strip=True)
-        RogueTimePlayed = int(RogueTimePlayed.replace(',', '')) if RogueTimePlayed else None
+        RogueTimePlayed = soup.find('span', class_='name', title='Rogue Time Played').find_parent('div', class_='numbers').find('span', class_='value').get_text(strip=True)
         #最长叛变时间
-        RogueLongestTimePlayed = soup.find('span', class_='name', title='Rogues Killed').find_parent('div', class_='numbers').find('span', class_='value').get_text(strip=True)
-        RogueLongestTimePlayed = int(RogueLongestTimePlayed.replace(',', '')) if RogueLongestTimePlayed else None
+        RogueLongestTimePlayed = soup.find('span', class_='name', title='Rogue Longest Time Played').find_parent('div', class_='numbers').find('span', class_='value').get_text(strip=True)
         #流血击杀
         BleedingKills = soup.find('td', string='Bleeding Kills').find_next_sibling('td').get_text(strip=True)
         BleedingKills = int(BleedingKills.replace(',', '')) if BleedingKills else None
@@ -589,9 +595,15 @@ class MyPlugin(Star):
         PistolKills = soup.find('td', string='Pistol Kills').find_next_sibling('td').get_text(strip=True)
         PistolKills = int(PistolKills.replace(',', '')) if PistolKills else None
 
+        options = {
+            "type": "png", 
+            "full_page":True,
+            "scale":"css",
+            "omit_background": True
+        }
         imgurl = await self.html_render(TMPL, {
             "playername": playsID,
-            "avatarimg": avatarimg,
+            "avatarimg": avatar_url,
             "Level": Level,
             "DZLevel": DZLevel,
             "gametime": gametime,
@@ -621,7 +633,7 @@ class MyPlugin(Star):
             "ShotgunKills":ShotgunKills,
             "RifleKills":RifleKills,
             "PistolKills":PistolKills
-            })
+            }, options=options)
         yield event.image_result(imgurl)  
 
     async def terminate(self):
