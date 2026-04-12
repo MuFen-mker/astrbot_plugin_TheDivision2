@@ -25,6 +25,12 @@ TMPL = '''
     .set > div > svg{
         height:24px; width: auto;
     }
+    .set > div > span{
+        color: white;
+        white-space: nowrap;
+        font-size: 15px;
+        padding-top: 5px;
+    }
     .title{
         display: flex;
         padding-bottom: 2px;
@@ -68,7 +74,7 @@ TMPL = '''
         border-radius: 5px;
     }
 </style>
-<div style="text-align: center;background-color: rgb(41, 41, 41);display: inline-block;transform: scale(2);transform-origin: top left;">
+<div style="text-align: center;background-color: rgb(41, 41, 41);display: inline-block;transform: scale(2.5);transform-origin: top left;">
     <div class="nameCard">
         <img style="height: 100%;width: auto;border-radius: 5px;" src="{{avatarimg}}" alt="">
         <div style="display: flex; flex-direction: column;">
@@ -100,23 +106,23 @@ TMPL = '''
         <div class="set" style="display: flex;margin-top: 10px; justify-content: center;">
             <div>
                 <svg data-v-9ddc4550="" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 50 47" fill="#FFFFFF"><g transform="matrix(1, 0, 0, 1, 0, 0)"><path d="M174.2,207.877l-21.981-15.97,9.167-28.214H174.2v4.037h-9.88l-7.355,22.635L174.2,202.886Zm4.038-40.147h9.881l7.354,22.635-17.235,12.522v4.991l21.981-15.97-9.167-28.214H178.242Zm-2.019,31.632,14.507-10.54-5.541-17.055H167.258l-5.541,17.055Z" transform="translate(-152.22 -163.69)"></path></g></svg>
-                <span style="color: white;white-space: nowrap;">功勋</span>
-                <span style="color: white;font-size: 22px;">{{CurrComm}}</span>
+                <span>功勋</span>
+                <span>{{CurrComm}}</span>
             </div>
             <div>
                 <svg  xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-package-icon lucide-package"><path d="M11 21.73a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73z"/><path d="M12 22V12"/><polyline points="3.29 7 12 12 20.71 7"/><path d="m7.5 4.27 9 5.15"/></svg>
-                <span style="color: white;white-space: nowrap;">拾取物品</span>
-                <span style="color: white;font-size: 22px;">{{ItemsLooted}}</span>
+                <span>拾取物品</span>
+                <span>{{ItemsLooted}}</span>
             </div>
             <div>
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" class="icon" fill="#FFFFFF"><path d="M10682,14307v-2.05a14.009,14.009,0,0,1-12.952-12.951H10667v-2h2.05a13.943,13.943,0,0,1,1.027-4.4l1.846.772a11.819,11.819,0,0,0-.873,3.623h1.95v2h-1.95a12.012,12.012,0,0,0,10.952,10.951V14301h2v1.95a12,12,0,0,0,10.947-10.951H10693v-2h1.95a12,12,0,0,0-10.947-10.948v1.95h-2v-1.953a11.932,11.932,0,0,0-3.745.926l-.794-1.838a13.928,13.928,0,0,1,4.539-1.088V14275h2v2.054a14,14,0,0,1,12.947,12.948h2.05v2h-2.05a14,14,0,0,1-12.947,12.951v2.05Zm5-8v-4a4,4,0,0,0-8,0v4h-2v-4a6,6,0,0,1,3.109-5.253,4,4,0,1,1,5.784,0A5.99,5.99,0,0,1,10689,14295v4Zm-6-12a2,2,0,1,0,2-2A2,2,0,0,0,10681,14287Zm-9.942-3.311a14.1,14.1,0,0,1,1.264-1.742l1.526,1.293a12.317,12.317,0,0,0-1.085,1.494Zm2.775-3.275a14.341,14.341,0,0,1,1.727-1.278l1.066,1.7a12.269,12.269,0,0,0-1.482,1.095Z" transform="translate(-10666.999 -14274.998)"></path></svg>
-                <span style="color: white;white-space: nowrap;">玩家击杀</span>
-                <span style="color: white;font-size: 22px;">{{PvpKills}}</span>
+                <span>玩家击杀</span>
+                <span>{{PvpKills}}</span>
             </div>
             <div>
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-bot-icon lucide-bot"><path d="M12 8V4H8"/><rect width="16" height="12" x="4" y="8" rx="2"/><path d="M2 14h2"/><path d="M20 14h2"/><path d="M15 13v2"/><path d="M9 13v2"/></svg>
-                <span style="color: white;white-space: nowrap;">NPC击杀</span>
-                <span style="color: white;font-size: 22px;">{{NpcKills}}</span>
+                <span>NPC击杀</span>
+                <span>{{NpcKills}}</span>
             </div>
             <div>
                 <svg xmlns="http://www.w3.org/2000/svg" xmlns:v="https://svgstorm.com" viewBox="0 0 128 128"><g fill="None" fill-opacity="0.0" stroke="#000000" stroke-opacity="0.00" stroke-width="0.3"><path d=" M 0.00 128.00  L 128.00 128.00 L 128.00 0.00 L 0.00 0.00 L 0.00 128.00 M 73.00 19.00  C 73.04 27.93 60.26 23.04 53.00 24.00 C 45.74 24.96 35.53 23.28 28.00 24.00 C 28.14 13.19 39.06 17.71 46.01 18.99 C 52.96 20.27 65.54 18.05 73.00 19.00 M 100.00 53.00  C 99.61 53.81 100.31 55.15 100.00 56.00 C 93.50 56.66 85.67 54.68 80.00 57.00 C 80.58 58.29 80.08 61.57 80.00 63.00 C 79.83 65.99 80.33 67.14 78.00 69.00 C 77.44 69.45 75.15 69.07 76.00 71.00 C 76.35 71.05 76.95 71.65 77.00 72.00 C 77.98 72.15 79.02 71.88 80.00 72.00 C 78.96 75.65 82.25 82.73 78.00 84.00 C 77.42 84.65 76.50 85.43 76.00 86.00 C 73.22 89.15 74.07 94.43 74.00 99.00 C 65.60 100.89 70.13 89.80 69.00 85.00 C 70.00 84.89 71.73 85.47 72.00 84.00 C 68.62 84.00 69.77 84.80 68.00 86.00 C 67.25 86.51 66.57 89.51 64.00 88.00 C 64.00 81.33 64.00 74.67 64.00 68.00 C 63.91 66.99 64.04 63.74 64.00 63.00 C 63.92 61.38 62.47 60.01 63.00 58.00 C 63.09 57.65 63.74 57.25 64.00 57.00 C 62.17 53.36 51.35 57.08 47.00 56.00 C 42.65 54.92 32.85 56.81 28.00 56.00 C 27.72 54.72 28.76 52.50 27.00 52.00 C 27.43 56.62 19.53 56.60 17.75 61.75 C 15.97 66.90 7.93 64.82 13.75 60.75 C 19.58 56.68 17.97 52.75 24.00 51.00 C 24.00 46.00 24.00 41.00 24.00 36.00 C 25.61 36.01 28.43 35.41 28.00 38.00 C 36.64 43.58 45.01 44.09 56.00 43.00 C 53.10 37.54 59.72 36.56 64.00 36.00 C 61.38 45.87 71.48 42.55 78.00 43.00 C 84.52 43.45 92.75 41.99 99.00 44.00 C 99.66 32.87 83.14 34.93 75.00 35.00 C 74.95 28.46 72.80 16.64 82.00 17.00 C 91.20 17.37 98.02 16.72 107.00 17.00 C 107.00 26.33 107.00 35.67 107.00 45.00 C 98.60 40.38 101.50 48.70 100.00 53.00 M 109.00 45.00  C 109.00 35.67 109.00 26.33 109.00 17.00 C 115.74 16.16 114.09 26.30 114.00 31.00 C 113.91 35.70 116.23 45.94 109.00 45.00 M 73.00 26.00  C 72.10 30.47 75.64 39.80 69.00 40.00 C 67.66 31.70 50.13 33.67 45.00 38.00 C 43.28 35.84 39.10 36.72 40.00 33.00 C 36.71 33.62 34.23 36.08 30.00 35.00 C 31.09 31.39 26.91 29.64 28.00 26.00 C 43.00 26.00 58.00 26.00 73.00 26.00 M 36.00 72.00  C 36.59 75.96 33.91 84.20 40.00 84.00 C 38.99 87.05 41.60 90.97 40.00 93.00 C 39.95 95.67 40.04 98.33 40.00 101.00 C 34.77 101.38 35.37 93.53 36.00 91.00 C 35.33 86.98 32.17 80.25 28.00 80.00 C 28.60 76.74 27.17 74.09 27.00 71.00 C 28.94 70.38 30.13 72.20 32.00 72.00 C 29.06 69.82 32.04 66.71 32.00 64.00 C 42.25 64.78 48.43 53.92 59.00 58.00 C 59.27 60.77 61.22 63.07 61.00 66.00 C 57.94 64.73 55.29 62.55 52.00 62.00 C 51.91 65.11 46.09 63.24 48.00 68.00 C 45.14 67.65 42.61 68.27 40.00 69.00 C 40.98 71.91 38.15 72.31 36.00 72.00 M 108.00 89.00  C 106.66 93.89 110.34 100.96 103.00 101.00 C 103.04 96.91 102.59 92.75 104.00 89.00 C 105.24 82.92 110.14 78.03 106.00 72.00 C 104.57 71.10 101.57 72.68 100.00 72.00 C 102.17 66.79 94.84 69.57 96.00 65.00 C 94.42 64.15 91.76 64.38 92.00 62.00 C 88.12 62.54 84.87 64.97 81.00 66.00 C 81.61 63.22 83.07 60.72 84.00 58.00 C 95.00 53.38 101.83 65.95 112.00 64.00 C 113.66 67.50 109.81 73.36 116.00 71.00 C 115.28 77.76 110.25 82.57 108.00 89.00 M 76.00 112.00  C 69.92 113.63 67.21 110.09 64.00 107.00 C 65.19 102.63 67.14 99.50 73.00 100.00 C 78.86 100.51 75.86 107.53 76.00 112.00 Z"/></g>
@@ -229,18 +235,18 @@ TMPL = '''
                     <path d=" M 76.00 112.00  C 75.86 107.53 78.86 100.51 73.00 100.00 C 67.14 99.50 65.19 102.63 64.00 107.00 C 67.21 110.09 69.92 113.63 76.00 112.00 Z"/>
                     </g>
                     </svg>
-                <span style="color: white;white-space: nowrap;">技能击杀</span>
-                <span style="color: white;font-size: 22px;">{{SkillKills}}</span>
+                <span >技能击杀</span>
+                <span >{{SkillKills}}</span>
             </div>
             <div>
                 <svg  stroke="#ffffff" fill="#ffffff"xmlns="http://www.w3.org/2000/svg" id="mdi-head-remove-outline" viewBox="0 0 24 24"><path d="M13 3C16.9 3 20 6.1 20 10C20 12.8 18.4 15.2 16 16.3V21H9V18H8C6.9 18 6 17.1 6 16V13H4.5C4.1 13 3.8 12.5 4.1 12.2L6 9.7C6.2 5.9 9.2 3 13 3M13 1C8.4 1 4.6 4.4 4.1 8.9L2.5 11C1.9 11.7 1.8 12.7 2.2 13.6C2.6 14.3 3.2 14.8 4 15V16C4 17.9 5.3 19.4 7 19.9V23H18V17.5C20.5 15.9 22 13.1 22 10C22 5 18 1 13 1M16.5 6.9L14.4 9L16.5 11.1L15.1 12.5L13 10.4L10.9 12.5L9.5 11.1L11.6 9L9.5 6.9L10.9 5.5L13 7.6L15.1 5.5L16.5 6.9Z" /></svg>
-                <span style="color: white;white-space: nowrap;">爆头数</span>
-                <span style="color: white;font-size: 22px;">{{Headshots}}</span>
+                <span>爆头数</span>
+                <span>{{Headshots}}</span>
             </div>
             <div>
                 <svg  xmlns="http://www.w3.org/2000/svg"  viewBox="0 0 24 24" fill="none"  stroke="#FFFFFF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-circle-dollar-sign-icon lucide-circle-dollar-sign"><circle cx="12" cy="12" r="10"/><path d="M16 8h-6a2 2 0 1 0 0 4h4a2 2 0 1 1 0 4H8"/><path d="M12 18V6"/></svg>
-                <span style="color: white;white-space: nowrap;">E点数</span>
-                <span style="color: white;font-size: 22px;">{{ECreditBalance}}</span>
+                <span>E点数</span>
+                <span>{{ECreditBalance}}</span>
             </div>
         </div>
     </div>
@@ -255,8 +261,8 @@ TMPL = '''
         <div class="set" style="display: flex; justify-content: center;margin-top: 10px;">
             <div>
                 <svg xmlns="http://www.w3.org/2000/svg"viewBox="0 0 24 24"fill="none"stroke="#ffffff"stroke-width="2"stroke-linecap="round"stroke-linejoin="round"><path d="M7 11l5 -5l5 5" /><path d="M7 17l5 -5l5 5" /></svg>
-                <span style="color: white;white-space: nowrap;">PVE经验</span>
-                <span style="color: white;font-size: 22px;">{{PveXP}}</span>
+                <span>PVE经验</span>
+                <span>{{PveXP}}</span>
             </div>
             <div>
                 <svg
@@ -277,28 +283,28 @@ TMPL = '''
                     <path d="M19 11c-1.333 -1.333 -2.667 -2 -4 -2" />
                     <path d="M12 4m-2 0a2 2 0 1 0 4 0a2 2 0 1 0 -4 0" />
                 </svg>
-                <span style="color: white;white-space: nowrap;">具名击杀</span>
-                <span style="color: white;font-size: 22px;">{{NamedKills}}</span>
+                <span>具名击杀</span>
+                <span>{{NamedKills}}</span>
             </div>
             <div>
                 <svg stroke="#ffffff" fill="#ffffff" id="icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><title>skill-level</title><path d="M30,30H22V4h8Zm-6-2h4V6H24Z"/><path d="M20,30H12V12h8Zm-6-2h4V14H14Z"/><path d="M10,30H2V18h8ZM4,28H8V20H4Z"/></svg>
-                <span style="color: white;white-space: nowrap;">鬣狗击杀</span>
-                <span style="color: white;font-size: 22px;">{{HyenaKills}}</span>
+                <span>鬣狗击杀</span>
+                <span>{{HyenaKills}}</span>
             </div>
             <div>
                 <svg stroke="#ffffff" fill="#ffffff" id="icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><title>skill-level</title><path d="M30,30H22V4h8Zm-6-2h4V6H24Z"/><path d="M20,30H12V12h8Zm-6-2h4V14H14Z"/><path d="M10,30H2V18h8ZM4,28H8V20H4Z"/></svg>
-                <span style="color: white;white-space: nowrap;">流亡者击杀</span>
-                <span style="color: white;font-size: 22px;">{{OutCastsKills}}</span>
+                <span>流亡者击杀</span>
+                <span>{{OutCastsKills}}</span>
             </div>
             <div>
                 <svg stroke="#ffffff" fill="#ffffff" id="icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><title>skill-level</title><path d="M30,30H22V4h8Zm-6-2h4V6H24Z"/><path d="M20,30H12V12h8Zm-6-2h4V14H14Z"/><path d="M10,30H2V18h8ZM4,28H8V20H4Z"/></svg>
-                <span style="color: white;white-space: nowrap;">真实之子击杀</span>
-                <span style="color: white;font-size: 22px;">{{TrueSonsKills}}</span>
+                <span>真实之子击杀</span>
+                <span>{{TrueSonsKills}}</span>
             </div>
             <div>
                 <svg stroke="#ffffff" fill="#ffffff" id="icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><title>skill-level</title><path d="M30,30H22V4h8Zm-6-2h4V6H24Z"/><path d="M20,30H12V12h8Zm-6-2h4V14H14Z"/><path d="M10,30H2V18h8ZM4,28H8V20H4Z"/></svg>
-                <span style="color: white;white-space: nowrap;">黯牙击杀</span>
-                <span style="color: white;font-size: 22px;">{{BlackTuskKills}}</span>
+                <span>黯牙击杀</span>
+                <span>{{BlackTuskKills}}</span>
             </div>
         </div>
     </div>
@@ -313,33 +319,33 @@ TMPL = '''
         <div class="set" style="display: flex; justify-content: center;margin-top: 10px;">
             <div>
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" fill="#ffffff"><path d="M208,96a12,12,0,1,1,12,12A12,12,0,0,1,208,96ZM196,72a12,12,0,1,0-12-12A12,12,0,0,0,196,72Zm28.66,56a8,8,0,0,0-8.63,7.31A88.12,88.12,0,1,1,120.66,40,8,8,0,0,0,119.34,24,104.12,104.12,0,1,0,232,136.66,8,8,0,0,0,224.66,128ZM128,56a72,72,0,1,1-72,72A72.08,72.08,0,0,1,128,56Zm-8,72a8,8,0,0,0,8,8h48a8,8,0,0,0,0-16H136V80a8,8,0,0,0-16,0Zm40-80a12,12,0,1,0-12-12A12,12,0,0,0,160,48Z"/></svg>
-                <span style="color: white;white-space: nowrap;">暗区时长</span>
-                <span style="color: white;font-size: 22px;">{{dzPlaytime}}h</span>
+                <span>暗区时长</span>
+                <span>{{dzPlaytime}}h</span>
             </div>
             <div>
                 <svg xmlns="http://www.w3.org/2000/svg"viewBox="0 0 24 24"fill="none"stroke="#ffffff"stroke-width="2"stroke-linecap="round"stroke-linejoin="round"><path d="M7 11l5 -5l5 5" /><path d="M7 17l5 -5l5 5" /></svg>
-                <span style="color: white;white-space: nowrap;">暗区经验</span>
-                <span style="color: white;font-size: 22px;">{{DzXp}}</span>
+                <span>暗区经验</span>
+                <span>{{DzXp}}</span>
             </div>
             <div>
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" fill="#ffffff"><path d="M201.54,54.46A104,104,0,0,0,54.46,201.54,104,104,0,0,0,201.54,54.46ZM190.23,190.23a88,88,0,1,1,0-124.46A88.11,88.11,0,0,1,190.23,190.23Zm-24.57-27.89a8,8,0,0,1-11.32,11.32L128,147.31l-26.34,26.35a8,8,0,0,1-11.32-11.32l32-32a8,8,0,0,1,11.32,0Zm0-56a8,8,0,0,1-11.32,11.32L128,91.31l-26.34,26.35a8,8,0,0,1-11.32-11.32l32-32a8,8,0,0,1,11.32,0Z"/></svg>                
-                <span style="color: white;white-space: nowrap;">冲突战等级</span>
-                <span style="color: white;font-size: 22px;">{{conflict_span}}</span>
+                <span>冲突战等级</span>
+                <span>{{conflict_span}}</span>
             </div>
             <div>
                 <svg stroke="#ffffff" fill="#ffffff" id="icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><title>skill-level</title><path d="M30,30H22V4h8Zm-6-2h4V6H24Z"/><path d="M20,30H12V12h8Zm-6-2h4V14H14Z"/><path d="M10,30H2V18h8ZM4,28H8V20H4Z"/></svg>
-                <span style="color: white;white-space: nowrap;">叛变特工击杀</span>
-                <span style="color: white;font-size: 22px;">{{RoguesKilled}}</span>
+                <span>叛变特工击杀</span>
+                <span>{{RoguesKilled}}</span>
             </div>
             <div>
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" fill="#ffffff"><path d="M200,75.64V40a16,16,0,0,0-16-16H72A16,16,0,0,0,56,40V76a16.07,16.07,0,0,0,6.4,12.8L114.67,128,62.4,167.2A16.07,16.07,0,0,0,56,180v36a16,16,0,0,0,16,16H184a16,16,0,0,0,16-16V180.36a16.09,16.09,0,0,0-6.35-12.77L141.27,128l52.38-39.59A16.09,16.09,0,0,0,200,75.64ZM184,40V64H72V40Zm0,176H72V180l56-42,56,42.35Z"/></svg>
-                <span style="color: white;white-space: nowrap;">叛变时长</span>
-                <span style="color: white;font-size: 22px;">{{RogueTimePlayed}}</span>
+                <span>叛变时长</span>
+                <span>{{RogueTimePlayed}}</span>
             </div>
             <div>
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" fill="#ffffff"><path d="M200,75.64V40a16,16,0,0,0-16-16H72A16,16,0,0,0,56,40V76a16.07,16.07,0,0,0,6.4,12.8L114.67,128,62.4,167.2A16.07,16.07,0,0,0,56,180v36a16,16,0,0,0,16,16H184a16,16,0,0,0,16-16V180.36a16.08,16.08,0,0,0-6.35-12.76L141.27,128l52.38-39.59A16.09,16.09,0,0,0,200,75.64ZM178.23,176H77.33L128,138ZM184,75.64,128,118,72,76V40H184Z"/></svg>
-                <span style="color: white;white-space: nowrap;">最长叛变时间</span>
-                <span style="color: white;font-size: 22px;">{{RogueLongestTimePlayed}}</span>
+                <span>最长叛变时间</span>
+                <span>{{RogueLongestTimePlayed}}</span>
             </div>
         </div>
     </div>
@@ -359,18 +365,18 @@ TMPL = '''
         <div class="set" style="display: flex; justify-content: center;margin-top: 10px;">
             <div>
                 <svg stroke="#ffffff" fill="#ffffff" id="icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><title>skill-level</title><path d="M30,30H22V4h8Zm-6-2h4V6H24Z"/><path d="M20,30H12V12h8Zm-6-2h4V14H14Z"/><path d="M10,30H2V18h8ZM4,28H8V20H4Z"/></svg>
-                <span style="color: white;white-space: nowrap;">流血击杀</span>
-                <span style="color: white;font-size: 22px;">{{BleedingKills}}</span>
+                <span>流血击杀</span>
+                <span>{{BleedingKills}}</span>
             </div>
             <div>
                 <svg stroke="#ffffff" fill="#ffffff" id="icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><title>skill-level</title><path d="M30,30H22V4h8Zm-6-2h4V6H24Z"/><path d="M20,30H12V12h8Zm-6-2h4V14H14Z"/><path d="M10,30H2V18h8ZM4,28H8V20H4Z"/></svg>                
-                <span style="color: white;white-space: nowrap;">燃烧击杀</span>
-                <span style="color: white;font-size: 22px;">{{BurningKills}}</span>
+                <span>燃烧击杀</span>
+                <span>{{BurningKills}}</span>
             </div>
             <div>
                 <svg stroke="#ffffff" fill="#ffffff" id="icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><title>skill-level</title><path d="M30,30H22V4h8Zm-6-2h4V6H24Z"/><path d="M20,30H12V12h8Zm-6-2h4V14H14Z"/><path d="M10,30H2V18h8ZM4,28H8V20H4Z"/></svg>                
-                <span style="color: white;white-space: nowrap;">爆头击杀</span>
-                <span style="color: white;font-size: 22px;">{{HeadshotKills}}</span>
+                <span>爆头击杀</span>
+                <span>{{HeadshotKills}}</span>
             </div>
             <div>
                 <svg xmlns="http://www.w3.org/2000/svg" xmlns:v="https://svgstorm.com" viewBox="0 0 128 128">
@@ -425,8 +431,8 @@ TMPL = '''
                 <path d=" M 110.00 101.00  C 102.80 103.22 85.67 95.56 87.00 107.00 C 94.20 104.78 111.33 112.44 110.00 101.00 Z"/>
                 </g>
                 </svg>
-                <span style="color: white;white-space: nowrap;">冲锋枪击杀</span>
-                <span style="color: white;font-size: 22px;">{{SMGKills}}</span>
+                <span>冲锋枪击杀</span>
+                <span>{{SMGKills}}</span>
             </div>
             <div>
                 <svg xmlns="http://www.w3.org/2000/svg" xmlns:v="https://svgstorm.com" viewBox="0 0 128 128">
@@ -456,8 +462,8 @@ TMPL = '''
                 <path d=" M 105.00 89.00  C 94.67 89.00 84.33 89.00 74.00 89.00 C 73.62 93.82 74.50 100.35 74.00 105.00 C 73.50 109.65 76.50 117.81 70.00 117.00 C 70.00 120.00 70.00 123.00 70.00 126.00 C 83.00 126.00 96.00 126.00 109.00 126.00 C 108.55 122.60 110.92 115.39 105.00 117.00 C 105.00 107.67 105.00 98.33 105.00 89.00 Z"/>
                 </g>
                 </svg>
-                <span style="color: white;white-space: nowrap;">霰弹枪击杀</span>
-                <span style="color: white;font-size: 22px;">{{ShotgunKills}}</span>
+                <span>霰弹枪击杀</span>
+                <span>{{ShotgunKills}}</span>
             </div>
             <div>
                 <svg xmlns="http://www.w3.org/2000/svg" xmlns:v="https://svgstorm.com" viewBox="0 0 128 128">
@@ -497,8 +503,8 @@ TMPL = '''
                 <path d=" M 38.00 99.00  C 32.00 98.22 35.21 106.43 39.25 107.75 C 43.29 109.07 43.47 115.61 48.30 116.64 C 53.13 117.68 50.68 109.17 46.75 108.25 C 42.82 107.32 41.38 99.44 38.00 99.00 Z"/>
                 </g>
                 </svg>
-                <span style="color: white;white-space: nowrap;">步枪击杀</span>
-                <span style="color: white;font-size: 22px;">{{RifleKills}}</span>
+                <span>步枪击杀</span>
+                <span>{{RifleKills}}</span>
             </div>
             <div>
                 <svg xmlns="http://www.w3.org/2000/svg" xmlns:v="https://svgstorm.com" viewBox="0 0 128 128">
@@ -523,8 +529,8 @@ TMPL = '''
                 <path d=" M 80.00 98.00  C 74.35 98.05 67.53 97.93 62.00 98.00 C 56.47 98.07 48.92 96.09 51.00 104.00 C 56.65 103.95 63.47 104.07 69.00 104.00 C 74.53 103.93 82.08 105.91 80.00 98.00 Z"/>
                 </g>
                 </svg>
-                <span style="color: white;white-space: nowrap;">手枪击杀</span>
-                <span style="color: white;font-size: 22px;">{{PistolKills}}</span>
+                <span>手枪击杀</span>
+                <span>{{PistolKills}}</span>
             </div>
         </div>
     </div>
