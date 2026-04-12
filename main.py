@@ -78,7 +78,7 @@ TMPL = '''
     <div class="nameCard">
         <img style="height: 100%;width: auto;border-radius: 5px;" src="{{avatarimg}}" alt="">
         <div style="display: flex; flex-direction: column;">
-            <span style="font-size: 28px; color: rgb(255, 255, 255); height: auto; width: auto; display: inline;">{{playername}}</span>
+            <span style="font-size: 28px; color: rgb(255, 255, 255); height: auto; width: auto; display: inline;margin-top:10px">{{playername}}</span>
             <div style="width: 100%;display: flex;align-items: center;">
                 <div style="height: 75%;width: 5px; background-color: rgb(255, 136, 0);"></div>
                 <span style="color: rgb(255, 255, 255);display: inline;margin-left: 10px;font-size: 20px;align-items: center;">{{Level}}</span>
