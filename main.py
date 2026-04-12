@@ -8,6 +8,16 @@ import re
 
 TMPL = '''
 <style>
+    @font-face {
+        font-family: 'fzcy';
+        src: url('./font.ttf') format('truetype');
+        /* 如果是 woff2 格式：format('woff2') */
+        font-weight: normal;
+        font-style: normal;
+    }
+    body {
+        font-family: 'fzcy', sans-serif;
+    }
     .set{
         gap: 10px;
     }
