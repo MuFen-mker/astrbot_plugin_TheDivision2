@@ -9,65 +9,117 @@ import re
 TMPL = '''
 <style>
     .set{
-        gap: 0px;
+        gap: 10px;
     }
     .set > div{
         flex: 1;
         text-align: center;
+        background-color: rgb(56, 56, 56);
+        display: flex;
+        align-items: center;
+        flex-direction: column;
+        margin: auto 0;
+        padding:10px 10px;
+        border-radius: 5px;
+    }
+    .set > div > svg{
+        height:24px; width: auto;
+    }
+    .title{
+        display: flex;
+        padding-bottom: 2px;
+        align-items: center;
+    }
+    .title > span{
+        color: rgb(255, 255, 255);font-size: 30px;
+    }
+    .card{
+        background-color: rgb(78, 78, 78);
+        margin: 20px;
+        border-radius: 5px;
+        padding:10px;
+        height: auto;
+        display: flex;
+        flex-direction: column;
+    }
+    .line_1{
+        background: rgb(255, 136, 0); 
+        width: 25%; 
+        height: 3px;
+        box-shadow: 1px -1px 1px 1px#1d1d1d6c;
+    }
+    .line_2{
+        background: rgb(153, 150, 150); 
+        width: 100%; 
+        height: 3px;
+    }
+    .nameCard{
+        background-color: rgb(78, 78, 78);
+        display: inline-flex;
+        margin: 20px;
+        border-radius: 5px;
+        padding: 10px 20px 10px 10px;
+        height: 170px;
+    }
+    .nameCard > div{
+        background-color: rgb(56, 56, 56);
+        margin-left: 30px;
+        padding: 0 20px;
+        border-radius: 5px;
     }
 </style>
-<div style="background-color: rgb(54, 54, 54);display: inline-block;transform: scale(2);transform-origin: top left;">
-    <div style="background-color: rgb(22, 22, 22);display: inline-flex;margin: 20px;border-radius: 10px;padding: 10px 20px 10px 10px;height: 135px;">
-        <img style="height: 100%;width: auto;border-radius: 10px;" src="{{avatarimg}}" alt="">
-        <div style="display: flex; flex-direction: column;padding-left: 30px;">
+<div style="text-align: center;background-color: rgb(41, 41, 41);display: inline-block;transform: scale(2);transform-origin: top left;">
+    <div class="nameCard">
+        <img style="height: 100%;width: auto;border-radius: 5px;" src="{{avatarimg}}" alt="">
+        <div style="display: flex; flex-direction: column;">
             <span style="font-size: 28px; color: rgb(255, 255, 255); height: auto; width: auto; display: inline;">{{playername}}</span>
             <div style="width: 100%;display: flex;align-items: center;">
                 <div style="height: 75%;width: 5px; background-color: rgb(255, 136, 0);"></div>
-                <span style="color: rgb(255, 136, 0);display: inline;margin-left: 10px;font-size: 20px;align-items: center;">{{Level}}</span>
+                <span style="color: rgb(255, 255, 255);display: inline;margin-left: 10px;font-size: 20px;align-items: center;">{{Level}}</span>
             </div>
             <div style="width: 100%;display: flex;align-items: center;">
                 <div style="height: 75%;width: 5px; background-color: rgb(132, 0, 255);"></div>
-                <span style="color: rgb(132, 0, 255);display: inline;margin-left: 10px;font-size: 20px;align-items: center;">{{DZLevel}}</span>
+                <span style="color: rgb(255, 255, 255);display: inline;margin-left: 10px;font-size: 20px;align-items: center;">{{DZLevel}}</span>
             </div>
             <div style="width: 100%;display: flex;align-items: center;height: 30px;margin-top: 5px;">
                 <svg height="24" width="24" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" fill="#ffffff"><path d="M208,96a12,12,0,1,1,12,12A12,12,0,0,1,208,96ZM196,72a12,12,0,1,0-12-12A12,12,0,0,0,196,72Zm28.66,56a8,8,0,0,0-8.63,7.31A88.12,88.12,0,1,1,120.66,40,8,8,0,0,0,119.34,24,104.12,104.12,0,1,0,232,136.66,8,8,0,0,0,224.66,128ZM128,56a72,72,0,1,1-72,72A72.08,72.08,0,0,1,128,56Zm-8,72a8,8,0,0,0,8,8h48a8,8,0,0,0,0-16H136V80a8,8,0,0,0-16,0Zm40-80a12,12,0,1,0-12-12A12,12,0,0,0,160,48Z"/></svg>
-                <span style="color: white;margin-left: 15px;font-size: 20px;">{{gametime}}小时</span>
+                <span style="color: white;margin-left: 5px;font-size: 20px;">{{gametime}}小时</span>
             </div>
         </div>
     </div>
 
-    <div style="background-color: rgb(22, 22, 22);margin: 20px;border-radius: 10px;padding:10px;height: auto;display: flex; flex-direction: column;">
-        <div style="display: flex; padding-bottom: 2px;align-items: center">
-            <svg fill="#FFFFFF" style="height:35px; width: auto;" viewBox="0 0 24 24"  xmlns="http://www.w3.org/2000/svg">
+    <div class="card">
+        <div class="title">
+            <svg fill="none" style="height:35px; width: auto;" viewBox="0 0 24 24"  xmlns="http://www.w3.org/2000/svg">
             <path d="M13.75 2C14.9409 2 15.9156 2.92516 15.9948 4.09595L16 4.25C16 4.16531 15.9953 4.0817 15.9862 3.99944L17.75 4C18.9926 4 20 5.00736 20 6.25V19.75C20 20.9926 18.9926 22 17.75 22H6.25C5.00736 22 4 20.9926 4 19.75V6.25C4 5.00736 5.00736 4 6.25 4L8.01379 3.99944C8.00733 4.05774 8.0031 4.11671 8.00119 4.17626L8 4.25C8 3.00736 9.00736 2 10.25 2H13.75ZM13.75 6.5H10.25C9.45595 6.5 8.75797 6.08867 8.35751 5.46746L8.37902 5.5002L6.25 5.5C5.83579 5.5 5.5 5.83579 5.5 6.25V19.75C5.5 20.1642 5.83579 20.5 6.25 20.5H17.75C18.1642 20.5 18.5 20.1642 18.5 19.75V6.25C18.5 5.83579 18.1642 5.5 17.75 5.5L15.621 5.5002L15.6425 5.46746C15.242 6.08867 14.5441 6.5 13.75 6.5ZM13.75 3.5H10.25C9.83579 3.5 9.5 3.83579 9.5 4.25C9.5 4.66421 9.83579 5 10.25 5H13.75C14.1642 5 14.5 4.66421 14.5 4.25C14.5 3.83579 14.1642 3.5 13.75 3.5ZM8 14.5H12C12.4142 14.5 12.75 14.1642 12.75 13.75C12.75 13.3358 12.4142 13 12 13H8C7.58579 13 7.25 13.3358 7.25 13.75C7.25 14.1642 7.58579 14.5 8 14.5ZM8 10.5H16C16.4142 10.5 16.75 10.1642 16.75 9.75C16.75 9.33579 16.4142 9 16 9H8C7.58579 9 7.25 9.33579 7.25 9.75C7.25 10.1642 7.58579 10.5 8 10.5ZM8 18.5H14C14.4142 18.5 14.75 18.1642 14.75 17.75C14.75 17.3358 14.4142 17 14 17H8C7.58579 17 7.25 17.3358 7.25 17.75C7.25 18.1642 7.58579 18.5 8 18.5Z" fill="#ffffff"/>
             </svg>
-            <span style="color: white;font-size: 30px;">概览</span>
+            <span>概览</span>
         </div>
-        <div style="background: rgb(255, 136, 0); width: 95px; height: 3px;"></div>
-        <div style="background: rgb(105, 105, 105); width: 100%; height: 3px;"></div>
+        <div class="line_1"></div>
+        <div class="line_2"></div>
         <div class="set" style="display: flex;margin-top: 10px; justify-content: center;">
-            <div style="display: flex; align-items: center;flex-direction: column;align-items: center;margin: auto 0;padding:0px 10px;border-right: 1px solid rgb(105, 105, 105);border-left: 1px solid rgb(105, 105, 105);">
-                <svg data-v-9ddc4550="" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 50 47" fill="#FFFFFF" style="height:30px; width: auto;"><g transform="matrix(1, 0, 0, 1, 0, 0)"><path d="M174.2,207.877l-21.981-15.97,9.167-28.214H174.2v4.037h-9.88l-7.355,22.635L174.2,202.886Zm4.038-40.147h9.881l7.354,22.635-17.235,12.522v4.991l21.981-15.97-9.167-28.214H178.242Zm-2.019,31.632,14.507-10.54-5.541-17.055H167.258l-5.541,17.055Z" transform="translate(-152.22 -163.69)"></path></g></svg>
+            <div>
+                <svg data-v-9ddc4550="" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 50 47" fill="#FFFFFF"><g transform="matrix(1, 0, 0, 1, 0, 0)"><path d="M174.2,207.877l-21.981-15.97,9.167-28.214H174.2v4.037h-9.88l-7.355,22.635L174.2,202.886Zm4.038-40.147h9.881l7.354,22.635-17.235,12.522v4.991l21.981-15.97-9.167-28.214H178.242Zm-2.019,31.632,14.507-10.54-5.541-17.055H167.258l-5.541,17.055Z" transform="translate(-152.22 -163.69)"></path></g></svg>
                 <span style="color: white;white-space: nowrap;">功勋</span>
                 <span style="color: white;font-size: 22px;">{{CurrComm}}</span>
             </div>
-            <div style="display: flex; align-items: center;flex-direction: column;align-items: center;margin: auto 0;padding: 0px 10px;border-right: 1px solid rgb(105, 105, 105);">
-                <svg style="height:30px; width: auto;" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="#FFFFFF" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-package-icon lucide-package"><path d="M11 21.73a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73z"/><path d="M12 22V12"/><polyline points="3.29 7 12 12 20.71 7"/><path d="m7.5 4.27 9 5.15"/></svg>
+            <div>
+                <svg  xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-package-icon lucide-package"><path d="M11 21.73a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73z"/><path d="M12 22V12"/><polyline points="3.29 7 12 12 20.71 7"/><path d="m7.5 4.27 9 5.15"/></svg>
                 <span style="color: white;white-space: nowrap;">拾取物品</span>
                 <span style="color: white;font-size: 22px;">{{ItemsLooted}}</span>
             </div>
-            <div style="display: flex; align-items: center;flex-direction: column;align-items: center;margin: auto 0;padding: 0px 10px;border-right: 1px solid rgb(105, 105, 105);">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" class="icon" fill="#FFFFFF" style="height:30px; width: auto;"><path d="M10682,14307v-2.05a14.009,14.009,0,0,1-12.952-12.951H10667v-2h2.05a13.943,13.943,0,0,1,1.027-4.4l1.846.772a11.819,11.819,0,0,0-.873,3.623h1.95v2h-1.95a12.012,12.012,0,0,0,10.952,10.951V14301h2v1.95a12,12,0,0,0,10.947-10.951H10693v-2h1.95a12,12,0,0,0-10.947-10.948v1.95h-2v-1.953a11.932,11.932,0,0,0-3.745.926l-.794-1.838a13.928,13.928,0,0,1,4.539-1.088V14275h2v2.054a14,14,0,0,1,12.947,12.948h2.05v2h-2.05a14,14,0,0,1-12.947,12.951v2.05Zm5-8v-4a4,4,0,0,0-8,0v4h-2v-4a6,6,0,0,1,3.109-5.253,4,4,0,1,1,5.784,0A5.99,5.99,0,0,1,10689,14295v4Zm-6-12a2,2,0,1,0,2-2A2,2,0,0,0,10681,14287Zm-9.942-3.311a14.1,14.1,0,0,1,1.264-1.742l1.526,1.293a12.317,12.317,0,0,0-1.085,1.494Zm2.775-3.275a14.341,14.341,0,0,1,1.727-1.278l1.066,1.7a12.269,12.269,0,0,0-1.482,1.095Z" transform="translate(-10666.999 -14274.998)"></path></svg>
+            <div>
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" class="icon" fill="#FFFFFF"><path d="M10682,14307v-2.05a14.009,14.009,0,0,1-12.952-12.951H10667v-2h2.05a13.943,13.943,0,0,1,1.027-4.4l1.846.772a11.819,11.819,0,0,0-.873,3.623h1.95v2h-1.95a12.012,12.012,0,0,0,10.952,10.951V14301h2v1.95a12,12,0,0,0,10.947-10.951H10693v-2h1.95a12,12,0,0,0-10.947-10.948v1.95h-2v-1.953a11.932,11.932,0,0,0-3.745.926l-.794-1.838a13.928,13.928,0,0,1,4.539-1.088V14275h2v2.054a14,14,0,0,1,12.947,12.948h2.05v2h-2.05a14,14,0,0,1-12.947,12.951v2.05Zm5-8v-4a4,4,0,0,0-8,0v4h-2v-4a6,6,0,0,1,3.109-5.253,4,4,0,1,1,5.784,0A5.99,5.99,0,0,1,10689,14295v4Zm-6-12a2,2,0,1,0,2-2A2,2,0,0,0,10681,14287Zm-9.942-3.311a14.1,14.1,0,0,1,1.264-1.742l1.526,1.293a12.317,12.317,0,0,0-1.085,1.494Zm2.775-3.275a14.341,14.341,0,0,1,1.727-1.278l1.066,1.7a12.269,12.269,0,0,0-1.482,1.095Z" transform="translate(-10666.999 -14274.998)"></path></svg>
                 <span style="color: white;white-space: nowrap;">玩家击杀</span>
                 <span style="color: white;font-size: 22px;">{{PvpKills}}</span>
             </div>
-            <div style="display: flex; align-items: center;flex-direction: column;align-items: center;margin: auto 0;padding: 0px 10px;border-right: 1px solid rgb(105, 105, 105);">
-                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="#FFFFFF" style="height:30px; width: auto;" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-bot-icon lucide-bot"><path d="M12 8V4H8"/><rect width="16" height="12" x="4" y="8" rx="2"/><path d="M2 14h2"/><path d="M20 14h2"/><path d="M15 13v2"/><path d="M9 13v2"/></svg>
+            <div>
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-bot-icon lucide-bot"><path d="M12 8V4H8"/><rect width="16" height="12" x="4" y="8" rx="2"/><path d="M2 14h2"/><path d="M20 14h2"/><path d="M15 13v2"/><path d="M9 13v2"/></svg>
                 <span style="color: white;white-space: nowrap;">NPC击杀</span>
                 <span style="color: white;font-size: 22px;">{{NpcKills}}</span>
             </div>
-            <div style="display: flex; align-items: center;flex-direction: column;align-items: center;margin: auto 0;padding: 0px 10px;border-right: 1px solid rgb(105, 105, 105);">
-                <svg xmlns="http://www.w3.org/2000/svg" xmlns:v="https://svgstorm.com" viewBox="0 0 128 128" style="width:30 ; height:auto"><g fill="None" fill-opacity="0.0" stroke="#000000" stroke-opacity="0.00" stroke-width="0.3"><path d=" M 0.00 128.00  L 128.00 128.00 L 128.00 0.00 L 0.00 0.00 L 0.00 128.00 M 73.00 19.00  C 73.04 27.93 60.26 23.04 53.00 24.00 C 45.74 24.96 35.53 23.28 28.00 24.00 C 28.14 13.19 39.06 17.71 46.01 18.99 C 52.96 20.27 65.54 18.05 73.00 19.00 M 100.00 53.00  C 99.61 53.81 100.31 55.15 100.00 56.00 C 93.50 56.66 85.67 54.68 80.00 57.00 C 80.58 58.29 80.08 61.57 80.00 63.00 C 79.83 65.99 80.33 67.14 78.00 69.00 C 77.44 69.45 75.15 69.07 76.00 71.00 C 76.35 71.05 76.95 71.65 77.00 72.00 C 77.98 72.15 79.02 71.88 80.00 72.00 C 78.96 75.65 82.25 82.73 78.00 84.00 C 77.42 84.65 76.50 85.43 76.00 86.00 C 73.22 89.15 74.07 94.43 74.00 99.00 C 65.60 100.89 70.13 89.80 69.00 85.00 C 70.00 84.89 71.73 85.47 72.00 84.00 C 68.62 84.00 69.77 84.80 68.00 86.00 C 67.25 86.51 66.57 89.51 64.00 88.00 C 64.00 81.33 64.00 74.67 64.00 68.00 C 63.91 66.99 64.04 63.74 64.00 63.00 C 63.92 61.38 62.47 60.01 63.00 58.00 C 63.09 57.65 63.74 57.25 64.00 57.00 C 62.17 53.36 51.35 57.08 47.00 56.00 C 42.65 54.92 32.85 56.81 28.00 56.00 C 27.72 54.72 28.76 52.50 27.00 52.00 C 27.43 56.62 19.53 56.60 17.75 61.75 C 15.97 66.90 7.93 64.82 13.75 60.75 C 19.58 56.68 17.97 52.75 24.00 51.00 C 24.00 46.00 24.00 41.00 24.00 36.00 C 25.61 36.01 28.43 35.41 28.00 38.00 C 36.64 43.58 45.01 44.09 56.00 43.00 C 53.10 37.54 59.72 36.56 64.00 36.00 C 61.38 45.87 71.48 42.55 78.00 43.00 C 84.52 43.45 92.75 41.99 99.00 44.00 C 99.66 32.87 83.14 34.93 75.00 35.00 C 74.95 28.46 72.80 16.64 82.00 17.00 C 91.20 17.37 98.02 16.72 107.00 17.00 C 107.00 26.33 107.00 35.67 107.00 45.00 C 98.60 40.38 101.50 48.70 100.00 53.00 M 109.00 45.00  C 109.00 35.67 109.00 26.33 109.00 17.00 C 115.74 16.16 114.09 26.30 114.00 31.00 C 113.91 35.70 116.23 45.94 109.00 45.00 M 73.00 26.00  C 72.10 30.47 75.64 39.80 69.00 40.00 C 67.66 31.70 50.13 33.67 45.00 38.00 C 43.28 35.84 39.10 36.72 40.00 33.00 C 36.71 33.62 34.23 36.08 30.00 35.00 C 31.09 31.39 26.91 29.64 28.00 26.00 C 43.00 26.00 58.00 26.00 73.00 26.00 M 36.00 72.00  C 36.59 75.96 33.91 84.20 40.00 84.00 C 38.99 87.05 41.60 90.97 40.00 93.00 C 39.95 95.67 40.04 98.33 40.00 101.00 C 34.77 101.38 35.37 93.53 36.00 91.00 C 35.33 86.98 32.17 80.25 28.00 80.00 C 28.60 76.74 27.17 74.09 27.00 71.00 C 28.94 70.38 30.13 72.20 32.00 72.00 C 29.06 69.82 32.04 66.71 32.00 64.00 C 42.25 64.78 48.43 53.92 59.00 58.00 C 59.27 60.77 61.22 63.07 61.00 66.00 C 57.94 64.73 55.29 62.55 52.00 62.00 C 51.91 65.11 46.09 63.24 48.00 68.00 C 45.14 67.65 42.61 68.27 40.00 69.00 C 40.98 71.91 38.15 72.31 36.00 72.00 M 108.00 89.00  C 106.66 93.89 110.34 100.96 103.00 101.00 C 103.04 96.91 102.59 92.75 104.00 89.00 C 105.24 82.92 110.14 78.03 106.00 72.00 C 104.57 71.10 101.57 72.68 100.00 72.00 C 102.17 66.79 94.84 69.57 96.00 65.00 C 94.42 64.15 91.76 64.38 92.00 62.00 C 88.12 62.54 84.87 64.97 81.00 66.00 C 81.61 63.22 83.07 60.72 84.00 58.00 C 95.00 53.38 101.83 65.95 112.00 64.00 C 113.66 67.50 109.81 73.36 116.00 71.00 C 115.28 77.76 110.25 82.57 108.00 89.00 M 76.00 112.00  C 69.92 113.63 67.21 110.09 64.00 107.00 C 65.19 102.63 67.14 99.50 73.00 100.00 C 78.86 100.51 75.86 107.53 76.00 112.00 Z"/></g>
+            <div>
+                <svg xmlns="http://www.w3.org/2000/svg" xmlns:v="https://svgstorm.com" viewBox="0 0 128 128"><g fill="None" fill-opacity="0.0" stroke="#000000" stroke-opacity="0.00" stroke-width="0.3"><path d=" M 0.00 128.00  L 128.00 128.00 L 128.00 0.00 L 0.00 0.00 L 0.00 128.00 M 73.00 19.00  C 73.04 27.93 60.26 23.04 53.00 24.00 C 45.74 24.96 35.53 23.28 28.00 24.00 C 28.14 13.19 39.06 17.71 46.01 18.99 C 52.96 20.27 65.54 18.05 73.00 19.00 M 100.00 53.00  C 99.61 53.81 100.31 55.15 100.00 56.00 C 93.50 56.66 85.67 54.68 80.00 57.00 C 80.58 58.29 80.08 61.57 80.00 63.00 C 79.83 65.99 80.33 67.14 78.00 69.00 C 77.44 69.45 75.15 69.07 76.00 71.00 C 76.35 71.05 76.95 71.65 77.00 72.00 C 77.98 72.15 79.02 71.88 80.00 72.00 C 78.96 75.65 82.25 82.73 78.00 84.00 C 77.42 84.65 76.50 85.43 76.00 86.00 C 73.22 89.15 74.07 94.43 74.00 99.00 C 65.60 100.89 70.13 89.80 69.00 85.00 C 70.00 84.89 71.73 85.47 72.00 84.00 C 68.62 84.00 69.77 84.80 68.00 86.00 C 67.25 86.51 66.57 89.51 64.00 88.00 C 64.00 81.33 64.00 74.67 64.00 68.00 C 63.91 66.99 64.04 63.74 64.00 63.00 C 63.92 61.38 62.47 60.01 63.00 58.00 C 63.09 57.65 63.74 57.25 64.00 57.00 C 62.17 53.36 51.35 57.08 47.00 56.00 C 42.65 54.92 32.85 56.81 28.00 56.00 C 27.72 54.72 28.76 52.50 27.00 52.00 C 27.43 56.62 19.53 56.60 17.75 61.75 C 15.97 66.90 7.93 64.82 13.75 60.75 C 19.58 56.68 17.97 52.75 24.00 51.00 C 24.00 46.00 24.00 41.00 24.00 36.00 C 25.61 36.01 28.43 35.41 28.00 38.00 C 36.64 43.58 45.01 44.09 56.00 43.00 C 53.10 37.54 59.72 36.56 64.00 36.00 C 61.38 45.87 71.48 42.55 78.00 43.00 C 84.52 43.45 92.75 41.99 99.00 44.00 C 99.66 32.87 83.14 34.93 75.00 35.00 C 74.95 28.46 72.80 16.64 82.00 17.00 C 91.20 17.37 98.02 16.72 107.00 17.00 C 107.00 26.33 107.00 35.67 107.00 45.00 C 98.60 40.38 101.50 48.70 100.00 53.00 M 109.00 45.00  C 109.00 35.67 109.00 26.33 109.00 17.00 C 115.74 16.16 114.09 26.30 114.00 31.00 C 113.91 35.70 116.23 45.94 109.00 45.00 M 73.00 26.00  C 72.10 30.47 75.64 39.80 69.00 40.00 C 67.66 31.70 50.13 33.67 45.00 38.00 C 43.28 35.84 39.10 36.72 40.00 33.00 C 36.71 33.62 34.23 36.08 30.00 35.00 C 31.09 31.39 26.91 29.64 28.00 26.00 C 43.00 26.00 58.00 26.00 73.00 26.00 M 36.00 72.00  C 36.59 75.96 33.91 84.20 40.00 84.00 C 38.99 87.05 41.60 90.97 40.00 93.00 C 39.95 95.67 40.04 98.33 40.00 101.00 C 34.77 101.38 35.37 93.53 36.00 91.00 C 35.33 86.98 32.17 80.25 28.00 80.00 C 28.60 76.74 27.17 74.09 27.00 71.00 C 28.94 70.38 30.13 72.20 32.00 72.00 C 29.06 69.82 32.04 66.71 32.00 64.00 C 42.25 64.78 48.43 53.92 59.00 58.00 C 59.27 60.77 61.22 63.07 61.00 66.00 C 57.94 64.73 55.29 62.55 52.00 62.00 C 51.91 65.11 46.09 63.24 48.00 68.00 C 45.14 67.65 42.61 68.27 40.00 69.00 C 40.98 71.91 38.15 72.31 36.00 72.00 M 108.00 89.00  C 106.66 93.89 110.34 100.96 103.00 101.00 C 103.04 96.91 102.59 92.75 104.00 89.00 C 105.24 82.92 110.14 78.03 106.00 72.00 C 104.57 71.10 101.57 72.68 100.00 72.00 C 102.17 66.79 94.84 69.57 96.00 65.00 C 94.42 64.15 91.76 64.38 92.00 62.00 C 88.12 62.54 84.87 64.97 81.00 66.00 C 81.61 63.22 83.07 60.72 84.00 58.00 C 95.00 53.38 101.83 65.95 112.00 64.00 C 113.66 67.50 109.81 73.36 116.00 71.00 C 115.28 77.76 110.25 82.57 108.00 89.00 M 76.00 112.00  C 69.92 113.63 67.21 110.09 64.00 107.00 C 65.19 102.63 67.14 99.50 73.00 100.00 C 78.86 100.51 75.86 107.53 76.00 112.00 Z"/></g>
                     <g fill="None" fill-opacity="0.0" stroke="#FFFFFF" stroke-opacity="0.91" stroke-width="0.3"><path d=" M 73.00 19.00  C 65.54 18.05 52.96 20.27 46.01 18.99 C 39.06 17.71 28.14 13.19 28.00 24.00 C 35.53 23.28 45.74 24.96 53.00 24.00 C 60.26 23.04 73.04 27.93 73.00 19.00 Z"/>
                     </g>
                     <g fill="None" fill-opacity="0.0" stroke="#FEFEFE" stroke-opacity="0.97" stroke-width="0.3"><path d=" M 28.00 38.00  C 27.00 38.03 26.00 37.98 25.00 38.00 C 25.00 41.67 25.00 45.33 25.00 49.00 C 28.76 48.12 28.60 50.15 29.00 53.00 C 52.67 53.00 76.33 53.00 100.00 53.00 C 101.50 48.70 98.60 40.38 107.00 45.00 C 107.00 35.67 107.00 26.33 107.00 17.00 C 98.02 16.72 91.20 17.37 82.00 17.00 C 72.80 16.64 74.95 28.46 75.00 35.00 C 83.14 34.93 99.66 32.87 99.00 44.00 C 92.75 41.99 84.52 43.45 78.00 43.00 C 71.48 42.55 61.38 45.87 64.00 36.00 C 59.72 36.56 53.10 37.54 56.00 43.00 C 45.01 44.09 36.64 43.58 28.00 38.00 Z"/>
@@ -180,33 +232,33 @@ TMPL = '''
                 <span style="color: white;white-space: nowrap;">技能击杀</span>
                 <span style="color: white;font-size: 22px;">{{SkillKills}}</span>
             </div>
-            <div style="display: flex; align-items: center;flex-direction: column;align-items: center;margin: auto 0;padding: 0px 10px;border-right: 1px solid rgb(105, 105, 105);">
-                <svg style="height:30px; width: auto;" stroke="#ffffff" fill="#ffffff" height="24" width="24" xmlns="http://www.w3.org/2000/svg" id="mdi-head-remove-outline" viewBox="0 0 24 24"><path d="M13 3C16.9 3 20 6.1 20 10C20 12.8 18.4 15.2 16 16.3V21H9V18H8C6.9 18 6 17.1 6 16V13H4.5C4.1 13 3.8 12.5 4.1 12.2L6 9.7C6.2 5.9 9.2 3 13 3M13 1C8.4 1 4.6 4.4 4.1 8.9L2.5 11C1.9 11.7 1.8 12.7 2.2 13.6C2.6 14.3 3.2 14.8 4 15V16C4 17.9 5.3 19.4 7 19.9V23H18V17.5C20.5 15.9 22 13.1 22 10C22 5 18 1 13 1M16.5 6.9L14.4 9L16.5 11.1L15.1 12.5L13 10.4L10.9 12.5L9.5 11.1L11.6 9L9.5 6.9L10.9 5.5L13 7.6L15.1 5.5L16.5 6.9Z" /></svg>
+            <div>
+                <svg  stroke="#ffffff" fill="#ffffff"xmlns="http://www.w3.org/2000/svg" id="mdi-head-remove-outline" viewBox="0 0 24 24"><path d="M13 3C16.9 3 20 6.1 20 10C20 12.8 18.4 15.2 16 16.3V21H9V18H8C6.9 18 6 17.1 6 16V13H4.5C4.1 13 3.8 12.5 4.1 12.2L6 9.7C6.2 5.9 9.2 3 13 3M13 1C8.4 1 4.6 4.4 4.1 8.9L2.5 11C1.9 11.7 1.8 12.7 2.2 13.6C2.6 14.3 3.2 14.8 4 15V16C4 17.9 5.3 19.4 7 19.9V23H18V17.5C20.5 15.9 22 13.1 22 10C22 5 18 1 13 1M16.5 6.9L14.4 9L16.5 11.1L15.1 12.5L13 10.4L10.9 12.5L9.5 11.1L11.6 9L9.5 6.9L10.9 5.5L13 7.6L15.1 5.5L16.5 6.9Z" /></svg>
                 <span style="color: white;white-space: nowrap;">爆头数</span>
                 <span style="color: white;font-size: 22px;">{{Headshots}}</span>
             </div>
-            <div style="display: flex; align-items: center;flex-direction: column;align-items: center;margin: auto 0;padding:0px 10px;border-right: 1px solid rgb(105, 105, 105);">
-                <svg  xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="#FFFFFF" style="height:30px; width: auto;" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-circle-dollar-sign-icon lucide-circle-dollar-sign"><circle cx="12" cy="12" r="10"/><path d="M16 8h-6a2 2 0 1 0 0 4h4a2 2 0 1 1 0 4H8"/><path d="M12 18V6"/></svg>
+            <div>
+                <svg  xmlns="http://www.w3.org/2000/svg"  viewBox="0 0 24 24" fill="none"  stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-circle-dollar-sign-icon lucide-circle-dollar-sign"><circle cx="12" cy="12" r="10"/><path d="M16 8h-6a2 2 0 1 0 0 4h4a2 2 0 1 1 0 4H8"/><path d="M12 18V6"/></svg>
                 <span style="color: white;white-space: nowrap;">E点数</span>
                 <span style="color: white;font-size: 22px;">{{ECreditBalance}}</span>
             </div>
         </div>
     </div>
 
-    <div style="background-color: rgb(22, 22, 22);margin: 20px;border-radius: 10px;padding:10px;height: auto;display: flex; flex-direction: column;">
-        <div style="display: flex; padding-bottom: 2px;align-items: center">
+    <div class="card">
+        <div class="title">
             <svg fill="#FFFFFF" style="height:35px; width: auto;" data-v-8519dedb="" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 27 30" class="icon"><g transform="matrix(1, 0, 0, 1, 0, 0)"><path d="M1068.647,1717.859l-12.124,7v14l12.124,7,12.124-7v-14Zm9.324,19.383-9.324,5.384-9.324-5.384v-10.767l9.324-5.383,9.324,5.383Zm-9.324-14.534-7.924,4.575v9.15l7.924,4.575,7.924-4.575v-9.15Zm6.524,12.917-6.524,3.767-6.524-3.767v-7.534l6.524-3.767,6.524,3.767Z" transform="translate(-1056.52 -1717.86)"></path></g></svg>
-            <span style="color: white;font-size: 30px;">PVE</span>
+            <span>PVE</span>
         </div>
-        <div style="background: rgb(255, 136, 0); width: 103px; height: 3px;"></div>
-        <div style="background: rgb(105, 105, 105); width: 100%; height: 3px;"></div>
+        <div class="line_1"></div>
+        <div class="line_2"></div>
         <div class="set" style="display: flex; justify-content: center;margin-top: 10px;">
-            <div style="display: flex; align-items: center;flex-direction: column;align-items: center;margin: auto 0;padding:0px 10px;border-right: 1px solid rgb(105, 105, 105);border-left: 1px solid rgb(105, 105, 105);">
-                <svg xmlns="http://www.w3.org/2000/svg"width="24"height="24"viewBox="0 0 24 24"fill="none"stroke="#ffffff"stroke-width="2"stroke-linecap="round"stroke-linejoin="round"><path d="M7 11l5 -5l5 5" /><path d="M7 17l5 -5l5 5" /></svg>
+            <div>
+                <svg xmlns="http://www.w3.org/2000/svg"viewBox="0 0 24 24"fill="none"stroke="#ffffff"stroke-width="2"stroke-linecap="round"stroke-linejoin="round"><path d="M7 11l5 -5l5 5" /><path d="M7 17l5 -5l5 5" /></svg>
                 <span style="color: white;white-space: nowrap;">PVE经验</span>
                 <span style="color: white;font-size: 22px;">{{PveXP}}</span>
             </div>
-            <div style="display: flex; align-items: center;flex-direction: column;align-items: center;margin: auto 0;padding: 0px 10px;border-right: 1px solid rgb(105, 105, 105);">
+            <div>
                 <svg
                     xmlns="http://www.w3.org/2000/svg"
                     width="24"
@@ -228,100 +280,100 @@ TMPL = '''
                 <span style="color: white;white-space: nowrap;">具名击杀</span>
                 <span style="color: white;font-size: 22px;">{{NamedKills}}</span>
             </div>
-            <div style="display: flex; align-items: center;flex-direction: column;align-items: center;margin: auto 0;padding: 0px 10px;border-right: 1px solid rgb(105, 105, 105);">
-                <svg stroke="#ffffff" fill="#ffffff" id="icon" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 32 32"><title>skill-level</title><path d="M30,30H22V4h8Zm-6-2h4V6H24Z"/><path d="M20,30H12V12h8Zm-6-2h4V14H14Z"/><path d="M10,30H2V18h8ZM4,28H8V20H4Z"/></svg>
+            <div>
+                <svg stroke="#ffffff" fill="#ffffff" id="icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><title>skill-level</title><path d="M30,30H22V4h8Zm-6-2h4V6H24Z"/><path d="M20,30H12V12h8Zm-6-2h4V14H14Z"/><path d="M10,30H2V18h8ZM4,28H8V20H4Z"/></svg>
                 <span style="color: white;white-space: nowrap;">鬣狗击杀</span>
                 <span style="color: white;font-size: 22px;">{{HyenaKills}}</span>
             </div>
-            <div style="display: flex; align-items: center;flex-direction: column;align-items: center;margin: auto 0;padding: 0px 10px;border-right: 1px solid rgb(105, 105, 105);">
-                <svg stroke="#ffffff" fill="#ffffff" id="icon" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 32 32"><title>skill-level</title><path d="M30,30H22V4h8Zm-6-2h4V6H24Z"/><path d="M20,30H12V12h8Zm-6-2h4V14H14Z"/><path d="M10,30H2V18h8ZM4,28H8V20H4Z"/></svg>
+            <div>
+                <svg stroke="#ffffff" fill="#ffffff" id="icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><title>skill-level</title><path d="M30,30H22V4h8Zm-6-2h4V6H24Z"/><path d="M20,30H12V12h8Zm-6-2h4V14H14Z"/><path d="M10,30H2V18h8ZM4,28H8V20H4Z"/></svg>
                 <span style="color: white;white-space: nowrap;">流亡者击杀</span>
                 <span style="color: white;font-size: 22px;">{{OutCastsKills}}</span>
             </div>
-            <div style="display: flex; align-items: center;flex-direction: column;align-items: center;margin: auto 0;padding: 0px 10px;border-right: 1px solid rgb(105, 105, 105);">
-                <svg stroke="#ffffff" fill="#ffffff" id="icon" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 32 32"><title>skill-level</title><path d="M30,30H22V4h8Zm-6-2h4V6H24Z"/><path d="M20,30H12V12h8Zm-6-2h4V14H14Z"/><path d="M10,30H2V18h8ZM4,28H8V20H4Z"/></svg>
+            <div>
+                <svg stroke="#ffffff" fill="#ffffff" id="icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><title>skill-level</title><path d="M30,30H22V4h8Zm-6-2h4V6H24Z"/><path d="M20,30H12V12h8Zm-6-2h4V14H14Z"/><path d="M10,30H2V18h8ZM4,28H8V20H4Z"/></svg>
                 <span style="color: white;white-space: nowrap;">真实之子击杀</span>
                 <span style="color: white;font-size: 22px;">{{TrueSonsKills}}</span>
             </div>
-            <div style="display: flex; align-items: center;flex-direction: column;align-items: center;margin: auto 0;padding:0px 10px;border-right: 1px solid rgb(105, 105, 105);">
-                <svg stroke="#ffffff" fill="#ffffff" id="icon" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 32 32"><title>skill-level</title><path d="M30,30H22V4h8Zm-6-2h4V6H24Z"/><path d="M20,30H12V12h8Zm-6-2h4V14H14Z"/><path d="M10,30H2V18h8ZM4,28H8V20H4Z"/></svg>
+            <div>
+                <svg stroke="#ffffff" fill="#ffffff" id="icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><title>skill-level</title><path d="M30,30H22V4h8Zm-6-2h4V6H24Z"/><path d="M20,30H12V12h8Zm-6-2h4V14H14Z"/><path d="M10,30H2V18h8ZM4,28H8V20H4Z"/></svg>
                 <span style="color: white;white-space: nowrap;">黯牙击杀</span>
                 <span style="color: white;font-size: 22px;">{{BlackTuskKills}}</span>
             </div>
         </div>
     </div>
 
-    <div style="background-color: rgb(22, 22, 22);margin: 20px;border-radius: 10px;padding:10px;height: auto;display: flex; flex-direction: column;">
-        <div style="display: flex; padding-bottom: 2px;align-items: center">
+    <div class="card">
+        <div class="title">
             <svg fill="#FFFFFF" style="height:35px; width: auto;" data-v-9ddc4550="" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 50 48"><g transform="matrix(1, 0, 0, 1, 0, 0)"><path d="M185.465,204.8a4.178,4.178,0,0,0,1.01,1.449,3.969,3.969,0,0,1-2.472-.5l.957,2.2a14.714,14.714,0,0,1-3.209.5h-.009a14.714,14.714,0,0,1-3.209-.5l.957-2.2a3.969,3.969,0,0,1-2.472.5,4.181,4.181,0,0,0,1.01-1.449s-5.048,1.638-7.193-2.52a4.469,4.469,0,0,0,3.407.252,4.963,4.963,0,0,0-2.587-1.26,7.619,7.619,0,0,1-2.713-1.008s2.208,0,.946-.819-3.66-1.323-3.975-4.158a3.105,3.105,0,0,0,1.893,1.1,8.014,8.014,0,0,1,2.713,1.291,17.512,17.512,0,0,0-2.713-2.583,6.047,6.047,0,0,1-2.587-4.724c0,.063,1.577,2.079,2.524,1.827s-1.136-2.016-1.577-2.583a4.585,4.585,0,0,1,.5-5.291,4.917,4.917,0,0,0,1.514,3.905c1.83,1.889,11.168,12.031,11.61,12.409s.946.315,1.01-1.071h1.884c.063,1.386.568,1.449,1.01,1.071s9.78-10.52,11.61-12.409a4.917,4.917,0,0,0,1.514-3.905,4.585,4.585,0,0,1,.5,5.291c-.442.567-2.524,2.331-1.577,2.583s2.524-1.764,2.524-1.827a6.048,6.048,0,0,1-2.587,4.724,17.528,17.528,0,0,0-2.713,2.583,8.013,8.013,0,0,1,2.713-1.291,3.105,3.105,0,0,0,1.893-1.1c-.316,2.835-2.713,3.339-3.975,4.158s.946.819.946.819a7.619,7.619,0,0,1-2.713,1.008,4.963,4.963,0,0,0-2.587,1.26,4.469,4.469,0,0,0,3.407-.252C190.513,206.437,185.465,204.8,185.465,204.8Zm3.47-18.267s1.01,1.575.189,1.575-1.956-1.7-1.956-1.7,2.145-7.307,2.271-7.307a9.868,9.868,0,0,0-7.688-3.527h-.009a9.868,9.868,0,0,0-7.688,3.527c.126,0,2.271,7.307,2.271,7.307s-1.136,1.7-1.956,1.7.189-1.575.189-1.575-1.7,1.26-1.514,2.9a7.531,7.531,0,0,0,.442,2.142,10.972,10.972,0,0,0,2.713,2.772c1.388.819,3.149,1.764,3.149,1.764l2.4-2.2,2.4,2.2s1.761-.945,3.15-1.764a10.976,10.976,0,0,0,2.713-2.772,7.542,7.542,0,0,0,.441-2.142C190.639,187.792,188.935,186.532,188.935,186.532Zm-11.545,6.855c-2.216-.263-3.147-3.769-3.147-3.769l6.878,2.583C180.048,193.146,179.606,193.65,177.391,193.387Zm8.712,0c-2.216.263-2.657-.241-3.73-1.186l6.878-2.583S188.319,193.125,186.1,193.387ZM163.9,208.407l1.332,1.329,4.218-3.942a17.03,17.03,0,0,1-1.661-2.043l-3.888,3.882Zm34.371,1.329,1.332-1.329v-.774l-3.894-3.887a17.042,17.042,0,0,1-1.661,2.044Zm-26.91-2.21c-.114.744-.272,1.77-.458,2.942-.434,2.744-.631,3.59-1.073,3.212s-2.114-2.079-2.114-2.079v-2.142l2.6-2.805c-.162-.147-.32-.3-.476-.453l-4.628,4.325-1.514-1.512-1,.949s6.814,5.606,7.508,6.173,1.325,0,1.578-2.016c.2-1.619.69-4.579.874-5.68Q171.984,208.014,171.357,207.526Zm26.924,3-4.633-4.329c-.156.154-.314.3-.476.453l2.609,2.81V211.6s-1.672,1.7-2.114,2.079-.639-.469-1.073-3.212c-.186-1.176-.345-2.2-.459-2.949q-.627.488-1.3.916c.183,1.1.672,4.064.875,5.686.252,2.016.883,2.583,1.578,2.016s7.508-6.173,7.508-6.173l-1-.949Zm3.881-35.358.244.243,3.342-3.337-1.16-1.158-3.342,3.337.243.243-.551.55-1.716-1.713a1.112,1.112,0,0,0-1.571,0l-.967.966-1.9-1.9-.758.757,1.9,1.9-4.941,4.933a17.073,17.073,0,0,1,4.454,4.22l7.339-7.327-1.167-1.164Zm-3.818-.879,1.056,1.055-.848.846-1.057-1.055Zm-1.262,1.26,1.056,1.055-.848.846-1.057-1.055Zm-1.262,1.26,1.056,1.055-.848.846-1.057-1.055Zm-2.11,2.106.848-.846,1.056,1.055-.848.846Zm6.863-3.38-5.718,5.709a.284.284,0,0,1-.4-.4l5.718-5.709a.284.284,0,1,1,.4.4Zm-32.521,8.669a17.068,17.068,0,0,1,4.456-4.218l-4.938-4.93,1.9-1.9-.758-.757-1.9,1.9-.967-.966a1.112,1.112,0,0,0-1.571,0l-1.716,1.713-.551-.55.243-.243-3.342-3.337-1.16,1.158,3.343,3.337.243-.243.551.55-1.167,1.164Zm1.733-5.289-1.056,1.055-.848-.846,1.057-1.055Zm-2.109-2.106.848.846-1.056,1.055-.848-.846Zm-.414-.413-1.057,1.055-.848-.846,1.056-1.055Zm-2.11-2.106.848.846-1.056,1.055-.848-.846Zm-2.23.844a.285.285,0,0,1,.4,0l5.718,5.709a.284.284,0,0,1-.4.4l-5.718-5.709A.284.284,0,0,1,162.921,175.134ZM195.2,201.2a5.9,5.9,0,0,1-.774.43,14.726,14.726,0,0,1-25.363-.006,5.943,5.943,0,0,1-.761-.425l-1.042-.715a15.816,15.816,0,0,0,28.968.009Zm-21.768-20.454a15.928,15.928,0,0,0-5.307,5.415,4.4,4.4,0,0,0,.659,1.033,14.821,14.821,0,0,1,4.981-5.377C173.639,181.419,173.527,181.056,173.428,180.746Zm16.635,0c-.1.31-.211.673-.333,1.071a14.824,14.824,0,0,1,4.977,5.378,4.392,4.392,0,0,0,.66-1.031A15.927,15.927,0,0,0,190.064,180.751Z" transform="translate(-157.75 -170.92)"></path></g></svg>
-            <span style="color: white;font-size: 30px;">PVP</span>
+            <span>PVP</span>
         </div>
-        <div style="background: rgb(255, 136, 0); width: 103px; height: 3px;"></div>
-        <div style="background: rgb(105, 105, 105); width: 100%; height: 3px;"></div>
+        <div class="line_1"></div>
+        <div class="line_2"></div>
         <div class="set" style="display: flex; justify-content: center;margin-top: 10px;">
-            <div style="display: flex; align-items: center;flex-direction: column;align-items: center;margin: auto 0;padding:0px 10px;border-right: 1px solid rgb(105, 105, 105);border-left: 1px solid rgb(105, 105, 105);">
-                <svg height="24" width="24" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" fill="#ffffff"><path d="M208,96a12,12,0,1,1,12,12A12,12,0,0,1,208,96ZM196,72a12,12,0,1,0-12-12A12,12,0,0,0,196,72Zm28.66,56a8,8,0,0,0-8.63,7.31A88.12,88.12,0,1,1,120.66,40,8,8,0,0,0,119.34,24,104.12,104.12,0,1,0,232,136.66,8,8,0,0,0,224.66,128ZM128,56a72,72,0,1,1-72,72A72.08,72.08,0,0,1,128,56Zm-8,72a8,8,0,0,0,8,8h48a8,8,0,0,0,0-16H136V80a8,8,0,0,0-16,0Zm40-80a12,12,0,1,0-12-12A12,12,0,0,0,160,48Z"/></svg>
+            <div>
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" fill="#ffffff"><path d="M208,96a12,12,0,1,1,12,12A12,12,0,0,1,208,96ZM196,72a12,12,0,1,0-12-12A12,12,0,0,0,196,72Zm28.66,56a8,8,0,0,0-8.63,7.31A88.12,88.12,0,1,1,120.66,40,8,8,0,0,0,119.34,24,104.12,104.12,0,1,0,232,136.66,8,8,0,0,0,224.66,128ZM128,56a72,72,0,1,1-72,72A72.08,72.08,0,0,1,128,56Zm-8,72a8,8,0,0,0,8,8h48a8,8,0,0,0,0-16H136V80a8,8,0,0,0-16,0Zm40-80a12,12,0,1,0-12-12A12,12,0,0,0,160,48Z"/></svg>
                 <span style="color: white;white-space: nowrap;">暗区时长</span>
                 <span style="color: white;font-size: 22px;">{{dzPlaytime}}h</span>
             </div>
-            <div style="display: flex; align-items: center;flex-direction: column;align-items: center;margin: auto 0;padding: 0px 10px;border-right: 1px solid rgb(105, 105, 105);">
-                <svg xmlns="http://www.w3.org/2000/svg"width="24"height="24"viewBox="0 0 24 24"fill="none"stroke="#ffffff"stroke-width="2"stroke-linecap="round"stroke-linejoin="round"><path d="M7 11l5 -5l5 5" /><path d="M7 17l5 -5l5 5" /></svg>
+            <div>
+                <svg xmlns="http://www.w3.org/2000/svg"viewBox="0 0 24 24"fill="none"stroke="#ffffff"stroke-width="2"stroke-linecap="round"stroke-linejoin="round"><path d="M7 11l5 -5l5 5" /><path d="M7 17l5 -5l5 5" /></svg>
                 <span style="color: white;white-space: nowrap;">暗区经验</span>
                 <span style="color: white;font-size: 22px;">{{DzXp}}</span>
             </div>
-            <div style="display: flex; align-items: center;flex-direction: column;align-items: center;margin: auto 0;padding: 0px 10px;border-right: 1px solid rgb(105, 105, 105);">
-                <svg height="24" width="24" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" fill="#ffffff"><path d="M201.54,54.46A104,104,0,0,0,54.46,201.54,104,104,0,0,0,201.54,54.46ZM190.23,190.23a88,88,0,1,1,0-124.46A88.11,88.11,0,0,1,190.23,190.23Zm-24.57-27.89a8,8,0,0,1-11.32,11.32L128,147.31l-26.34,26.35a8,8,0,0,1-11.32-11.32l32-32a8,8,0,0,1,11.32,0Zm0-56a8,8,0,0,1-11.32,11.32L128,91.31l-26.34,26.35a8,8,0,0,1-11.32-11.32l32-32a8,8,0,0,1,11.32,0Z"/></svg>                
+            <div>
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" fill="#ffffff"><path d="M201.54,54.46A104,104,0,0,0,54.46,201.54,104,104,0,0,0,201.54,54.46ZM190.23,190.23a88,88,0,1,1,0-124.46A88.11,88.11,0,0,1,190.23,190.23Zm-24.57-27.89a8,8,0,0,1-11.32,11.32L128,147.31l-26.34,26.35a8,8,0,0,1-11.32-11.32l32-32a8,8,0,0,1,11.32,0Zm0-56a8,8,0,0,1-11.32,11.32L128,91.31l-26.34,26.35a8,8,0,0,1-11.32-11.32l32-32a8,8,0,0,1,11.32,0Z"/></svg>                
                 <span style="color: white;white-space: nowrap;">冲突战等级</span>
                 <span style="color: white;font-size: 22px;">{{conflict_span}}</span>
             </div>
-            <div style="display: flex; align-items: center;flex-direction: column;align-items: center;margin: auto 0;padding: 0px 10px;border-right: 1px solid rgb(105, 105, 105);">
-                <svg stroke="#ffffff" fill="#ffffff" id="icon" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 32 32"><title>skill-level</title><path d="M30,30H22V4h8Zm-6-2h4V6H24Z"/><path d="M20,30H12V12h8Zm-6-2h4V14H14Z"/><path d="M10,30H2V18h8ZM4,28H8V20H4Z"/></svg>
+            <div>
+                <svg stroke="#ffffff" fill="#ffffff" id="icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><title>skill-level</title><path d="M30,30H22V4h8Zm-6-2h4V6H24Z"/><path d="M20,30H12V12h8Zm-6-2h4V14H14Z"/><path d="M10,30H2V18h8ZM4,28H8V20H4Z"/></svg>
                 <span style="color: white;white-space: nowrap;">叛变特工击杀</span>
                 <span style="color: white;font-size: 22px;">{{RoguesKilled}}</span>
             </div>
-            <div style="display: flex; align-items: center;flex-direction: column;align-items: center;margin: auto 0;padding: 0px 10px;border-right: 1px solid rgb(105, 105, 105);">
-                <svg height="24" width="24" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" fill="#ffffff"><path d="M200,75.64V40a16,16,0,0,0-16-16H72A16,16,0,0,0,56,40V76a16.07,16.07,0,0,0,6.4,12.8L114.67,128,62.4,167.2A16.07,16.07,0,0,0,56,180v36a16,16,0,0,0,16,16H184a16,16,0,0,0,16-16V180.36a16.09,16.09,0,0,0-6.35-12.77L141.27,128l52.38-39.59A16.09,16.09,0,0,0,200,75.64ZM184,40V64H72V40Zm0,176H72V180l56-42,56,42.35Z"/></svg>
+            <div>
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" fill="#ffffff"><path d="M200,75.64V40a16,16,0,0,0-16-16H72A16,16,0,0,0,56,40V76a16.07,16.07,0,0,0,6.4,12.8L114.67,128,62.4,167.2A16.07,16.07,0,0,0,56,180v36a16,16,0,0,0,16,16H184a16,16,0,0,0,16-16V180.36a16.09,16.09,0,0,0-6.35-12.77L141.27,128l52.38-39.59A16.09,16.09,0,0,0,200,75.64ZM184,40V64H72V40Zm0,176H72V180l56-42,56,42.35Z"/></svg>
                 <span style="color: white;white-space: nowrap;">叛变时长</span>
                 <span style="color: white;font-size: 22px;">{{RogueTimePlayed}}</span>
             </div>
-            <div style="display: flex; align-items: center;flex-direction: column;align-items: center;margin: auto 0;padding:0px 10px;border-right: 1px solid rgb(105, 105, 105);">
-                <svg height="24" width="24" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" fill="#ffffff"><path d="M200,75.64V40a16,16,0,0,0-16-16H72A16,16,0,0,0,56,40V76a16.07,16.07,0,0,0,6.4,12.8L114.67,128,62.4,167.2A16.07,16.07,0,0,0,56,180v36a16,16,0,0,0,16,16H184a16,16,0,0,0,16-16V180.36a16.08,16.08,0,0,0-6.35-12.76L141.27,128l52.38-39.59A16.09,16.09,0,0,0,200,75.64ZM178.23,176H77.33L128,138ZM184,75.64,128,118,72,76V40H184Z"/></svg>
+            <div>
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" fill="#ffffff"><path d="M200,75.64V40a16,16,0,0,0-16-16H72A16,16,0,0,0,56,40V76a16.07,16.07,0,0,0,6.4,12.8L114.67,128,62.4,167.2A16.07,16.07,0,0,0,56,180v36a16,16,0,0,0,16,16H184a16,16,0,0,0,16-16V180.36a16.08,16.08,0,0,0-6.35-12.76L141.27,128l52.38-39.59A16.09,16.09,0,0,0,200,75.64ZM178.23,176H77.33L128,138ZM184,75.64,128,118,72,76V40H184Z"/></svg>
                 <span style="color: white;white-space: nowrap;">最长叛变时间</span>
                 <span style="color: white;font-size: 22px;">{{RogueLongestTimePlayed}}</span>
             </div>
         </div>
     </div>
 
-    <div style="background-color: rgb(22, 22, 22);margin: 20px;border-radius: 10px;padding:10px;height: auto;display: flex; flex-direction: column;">
-        <div style="display: flex; padding-bottom: 2px;align-items: center">
+    <div class="card">
+        <div class="title">
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
             <path d="M10.3882 10.5688L8.79732 17.2511C8.75319 17.4365 8.73112 17.5292 8.71527 17.6205C8.61639 18.1898 8.68403 18.7755 8.91005 19.3073C8.9463 19.3926 8.9889 19.4778 9.07412 19.6482C9.1303 19.7606 9.15839 19.8168 9.17103 19.8601C9.25397 20.1449 9.07232 20.4388 8.78058 20.4919C8.73614 20.5 8.67371 20.5 8.54885 20.5C7.40755 20.5 5.5236 20.5 4.52785 20.5C3.36423 20.5 2.78242 20.5 2.48609 20.1181C2.18976 19.7361 2.33087 19.1681 2.61309 18.032L3.96647 12.5841C4.22077 11.5604 3.45143 10.5688 2.40292 10.5688C2.18039 10.5688 2 10.3872 2 10.1633V7.58942C2 5.12449 2.51119 4.61005 4.96053 4.61005H18.1677C18.7887 4.61005 19.257 4.46352 19.7632 4.1239C20.3544 3.72724 21.0829 3.00608 21.6191 4.00889C22.1576 5.0161 22.187 9.24315 21.3033 10.1325C20.8698 10.5688 20.172 10.5688 18.7764 10.5688H10.3882ZM10.3882 10.5688H8.90791" stroke="#ffffff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
             <path d="M9 14.5H9.87689C10.8276 14.5 11.303 14.5 11.7196 14.4102C12.9146 14.1527 13.9263 13.3628 14.466 12.2659C14.6541 11.8835 14.7694 11.4224 15 10.5" stroke="#ffffff" stroke-width="1.5"/>
             <path d="M2 7.5H4.02786C5.23068 7.5 5.83209 7.5 6.31539 7.2013C6.7987 6.9026 7.06766 6.36469 7.60557 5.28885L8 4.5" stroke="#ffffff" stroke-width="1.5"/>
             <path d="M22 7.5L19 7.5" stroke="#ffffff" stroke-width="1.5" stroke-linecap="round"/>
             </svg>
-            <span style="color: white;font-size: 30px;">击杀数据</span>
+            <span>击杀数据</span>
         </div>
-        <div style="background: rgb(255, 136, 0); width: 145px; height: 3px;"></div>
-        <div style="background: rgb(105, 105, 105); width: 100%; height: 3px;"></div>
+        <div class="line_1"></div>
+        <div class="line_2"></div>
         <div class="set" style="display: flex; justify-content: center;margin-top: 10px;">
-            <div style="display: flex; align-items: center;flex-direction: column;align-items: center;margin: auto 0;padding:0px 10px;border-right: 1px solid rgb(105, 105, 105);border-left: 1px solid rgb(105, 105, 105);">
-                <svg stroke="#ffffff" fill="#ffffff" id="icon" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 32 32"><title>skill-level</title><path d="M30,30H22V4h8Zm-6-2h4V6H24Z"/><path d="M20,30H12V12h8Zm-6-2h4V14H14Z"/><path d="M10,30H2V18h8ZM4,28H8V20H4Z"/></svg>
+            <div>
+                <svg stroke="#ffffff" fill="#ffffff" id="icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><title>skill-level</title><path d="M30,30H22V4h8Zm-6-2h4V6H24Z"/><path d="M20,30H12V12h8Zm-6-2h4V14H14Z"/><path d="M10,30H2V18h8ZM4,28H8V20H4Z"/></svg>
                 <span style="color: white;white-space: nowrap;">流血击杀</span>
                 <span style="color: white;font-size: 22px;">{{BleedingKills}}</span>
             </div>
-            <div style="display: flex; align-items: center;flex-direction: column;align-items: center;margin: auto 0;padding: 0px 10px;border-right: 1px solid rgb(105, 105, 105);">
-                <svg stroke="#ffffff" fill="#ffffff" id="icon" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 32 32"><title>skill-level</title><path d="M30,30H22V4h8Zm-6-2h4V6H24Z"/><path d="M20,30H12V12h8Zm-6-2h4V14H14Z"/><path d="M10,30H2V18h8ZM4,28H8V20H4Z"/></svg>                
+            <div>
+                <svg stroke="#ffffff" fill="#ffffff" id="icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><title>skill-level</title><path d="M30,30H22V4h8Zm-6-2h4V6H24Z"/><path d="M20,30H12V12h8Zm-6-2h4V14H14Z"/><path d="M10,30H2V18h8ZM4,28H8V20H4Z"/></svg>                
                 <span style="color: white;white-space: nowrap;">燃烧击杀</span>
                 <span style="color: white;font-size: 22px;">{{BurningKills}}</span>
             </div>
-            <div style="display: flex; align-items: center;flex-direction: column;align-items: center;margin: auto 0;padding: 0px 10px;border-right: 1px solid rgb(105, 105, 105);">
-                <svg stroke="#ffffff" fill="#ffffff" id="icon" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 32 32"><title>skill-level</title><path d="M30,30H22V4h8Zm-6-2h4V6H24Z"/><path d="M20,30H12V12h8Zm-6-2h4V14H14Z"/><path d="M10,30H2V18h8ZM4,28H8V20H4Z"/></svg>                
+            <div>
+                <svg stroke="#ffffff" fill="#ffffff" id="icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><title>skill-level</title><path d="M30,30H22V4h8Zm-6-2h4V6H24Z"/><path d="M20,30H12V12h8Zm-6-2h4V14H14Z"/><path d="M10,30H2V18h8ZM4,28H8V20H4Z"/></svg>                
                 <span style="color: white;white-space: nowrap;">爆头击杀</span>
                 <span style="color: white;font-size: 22px;">{{HeadshotKills}}</span>
             </div>
-            <div style="display: flex; align-items: center;flex-direction: column;align-items: center;margin: auto 0;padding: 0px 10px;border-right: 1px solid rgb(105, 105, 105);">
-                <svg xmlns="http://www.w3.org/2000/svg" xmlns:v="https://svgstorm.com" viewBox="0 0 128 128" width="30" height="30">
+            <div>
+                <svg xmlns="http://www.w3.org/2000/svg" xmlns:v="https://svgstorm.com" viewBox="0 0 128 128">
                 <g fill="None" fill-opacity="0.0" stroke="#000000" stroke-opacity="0.00" stroke-width="0.3"><path d=" M 0.00 128.00  L 128.00 128.00 L 128.00 0.00 L 0.00 0.00 L 0.00 128.00 M 44.00 43.00  C 37.00 43.00 30.00 43.00 23.00 43.00 C 22.80 35.63 21.99 16.59 33.03 16.03 C 44.06 15.47 44.94 35.46 44.00 43.00 M 77.00 43.00  C 69.67 43.00 62.33 43.00 55.00 43.00 C 54.26 35.04 54.59 16.71 66.08 16.08 C 77.56 15.44 77.57 35.44 77.00 43.00 M 109.00 43.00  C 102.00 43.00 95.00 43.00 88.00 43.00 C 87.84 35.67 86.93 16.46 98.03 16.03 C 109.12 15.59 109.88 35.36 109.00 43.00 M 44.00 47.00  C 47.50 49.47 44.14 58.84 45.00 63.00 C 45.86 67.16 44.60 76.71 45.00 81.00 C 45.40 85.29 46.44 95.77 40.99 94.99 C 35.54 94.21 27.72 96.94 23.33 94.67 C 18.94 92.40 23.06 83.14 22.00 79.00 C 20.94 74.86 22.55 65.11 22.00 61.00 C 21.45 56.89 20.76 45.75 26.01 47.01 C 31.26 48.26 39.93 44.12 44.00 47.00 M 77.00 47.00  C 80.75 49.65 76.84 59.68 78.00 64.00 C 79.16 68.32 77.19 77.44 78.00 82.00 C 78.81 86.56 78.85 96.52 73.00 95.00 C 67.14 93.47 59.87 97.47 55.33 94.67 C 50.79 91.87 55.31 82.48 54.00 78.00 C 52.69 73.52 54.89 64.49 54.00 60.00 C 53.11 55.51 53.20 45.12 59.00 47.00 C 64.81 48.88 72.43 43.77 77.00 47.00 M 109.00 47.00  C 112.50 49.47 109.14 58.84 110.00 63.00 C 110.86 67.16 109.60 76.71 110.00 81.00 C 110.40 85.29 111.44 95.77 105.99 94.99 C 100.54 94.21 92.72 96.94 88.33 94.67 C 83.94 92.40 88.06 83.14 87.00 79.00 C 85.94 74.86 87.55 65.11 87.00 61.00 C 86.45 56.89 85.76 45.75 91.01 47.01 C 96.26 48.26 104.93 44.12 109.00 47.00 M 45.00 101.00  C 46.33 112.44 29.20 104.78 22.00 107.00 C 20.67 95.56 37.80 103.22 45.00 101.00 M 78.00 101.00  C 79.11 112.59 61.45 104.68 54.00 107.00 C 52.89 95.41 70.55 103.32 78.00 101.00 M 110.00 101.00  C 111.33 112.44 94.20 104.78 87.00 107.00 C 85.67 95.56 102.80 103.22 110.00 101.00 Z"/>
                 </g>
                 <g fill="None" fill-opacity="0.0" stroke="#FFFFFF" stroke-opacity="0.95" stroke-width="0.3"><path d=" M 44.00 43.00  C 44.94 35.46 44.06 15.47 33.03 16.03 C 21.99 16.59 22.80 35.63 23.00 43.00 C 30.00 43.00 37.00 43.00 44.00 43.00 Z"/>
@@ -376,8 +428,8 @@ TMPL = '''
                 <span style="color: white;white-space: nowrap;">冲锋枪击杀</span>
                 <span style="color: white;font-size: 22px;">{{SMGKills}}</span>
             </div>
-            <div style="display: flex; align-items: center;flex-direction: column;align-items: center;margin: auto 0;padding: 0px 10px;border-right: 1px solid rgb(105, 105, 105);">
-                <svg xmlns="http://www.w3.org/2000/svg" xmlns:v="https://svgstorm.com" viewBox="0 0 128 128" width="30" height="30">
+            <div>
+                <svg xmlns="http://www.w3.org/2000/svg" xmlns:v="https://svgstorm.com" viewBox="0 0 128 128">
                 <g fill="None" fill-opacity="0.0" stroke="#000000" stroke-opacity="0.00" stroke-width="0.3"><path d=" M 0.00 128.00  L 128.00 128.00 L 128.00 0.00 L 0.00 0.00 L 0.00 128.00 M 54.00 2.00  C 54.00 29.33 54.00 56.67 54.00 84.00 C 43.67 84.00 33.33 84.00 23.00 84.00 C 23.00 56.67 23.00 29.33 23.00 2.00 C 33.33 2.00 43.67 2.00 54.00 2.00 M 105.00 2.00  C 105.00 29.33 105.00 56.67 105.00 84.00 C 94.67 84.00 84.33 84.00 74.00 84.00 C 74.00 56.67 74.00 29.33 74.00 2.00 C 84.33 2.00 94.67 2.00 105.00 2.00 M 54.00 89.00  C 54.00 98.33 54.00 107.67 54.00 117.00 C 59.92 115.39 57.55 122.60 58.00 126.00 C 45.00 126.00 32.00 126.00 19.00 126.00 C 19.00 123.00 19.00 120.00 19.00 117.00 C 25.50 117.81 22.50 109.65 23.00 105.00 C 23.50 100.35 22.62 93.82 23.00 89.00 C 33.33 89.00 43.67 89.00 54.00 89.00 M 105.00 89.00  C 105.00 98.33 105.00 107.67 105.00 117.00 C 110.92 115.39 108.55 122.60 109.00 126.00 C 96.00 126.00 83.00 126.00 70.00 126.00 C 70.00 123.00 70.00 120.00 70.00 117.00 C 76.50 117.81 73.50 109.65 74.00 105.00 C 74.50 100.35 73.62 93.82 74.00 89.00 C 84.33 89.00 94.67 89.00 105.00 89.00 Z"/>
                 </g>
                 <g fill="None" fill-opacity="0.0" stroke="#FFFFFF" stroke-opacity="1.00" stroke-width="0.3"><path d=" M 54.00 2.00  C 43.67 2.00 33.33 2.00 23.00 2.00 C 23.00 29.33 23.00 56.67 23.00 84.00 C 33.33 84.00 43.67 84.00 54.00 84.00 C 54.00 56.67 54.00 29.33 54.00 2.00 Z"/>
@@ -407,8 +459,8 @@ TMPL = '''
                 <span style="color: white;white-space: nowrap;">霰弹枪击杀</span>
                 <span style="color: white;font-size: 22px;">{{ShotgunKills}}</span>
             </div>
-            <div style="display: flex; align-items: center;flex-direction: column;align-items: center;margin: auto 0;padding: 0px 10px;border-right: 1px solid rgb(105, 105, 105);">
-                <svg xmlns="http://www.w3.org/2000/svg" xmlns:v="https://svgstorm.com" viewBox="0 0 128 128" width="30" height="30">
+            <div>
+                <svg xmlns="http://www.w3.org/2000/svg" xmlns:v="https://svgstorm.com" viewBox="0 0 128 128">
                 <g fill="None" fill-opacity="0.0" stroke="#000000" stroke-opacity="0.00" stroke-width="0.3"><path d=" M 0.00 128.00  L 128.00 128.00 L 128.00 0.00 L 0.00 0.00 L 0.00 128.00 M 81.00 39.00  C 75.67 37.28 72.82 30.81 68.00 28.00 C 72.09 20.47 75.09 19.62 82.70 14.70 C 90.30 9.77 97.55 14.08 92.69 22.69 C 87.84 31.31 87.48 32.36 81.00 39.00 M 66.00 29.00  C 69.52 33.32 73.70 37.56 78.00 41.00 C 63.77 57.66 49.32 76.71 31.00 89.00 C 27.15 84.35 22.63 79.78 18.00 76.00 C 30.35 57.71 49.31 43.09 66.00 29.00 M 103.00 61.00  C 94.29 57.69 88.29 48.00 95.08 43.08 C 101.87 38.16 115.94 29.41 117.00 39.00 C 118.06 48.59 106.57 53.79 103.00 61.00 M 88.00 51.00  C 98.06 58.10 99.42 64.45 91.75 71.75 C 84.09 79.06 82.26 86.75 73.75 92.75 C 65.25 98.75 62.50 107.54 53.00 111.00 C 45.99 104.38 36.63 96.73 45.75 89.75 C 54.87 82.78 57.62 76.62 65.75 69.75 C 73.89 62.88 79.82 56.84 88.00 51.00 M 16.00 77.00  C 19.38 77.44 20.82 85.32 24.75 86.25 C 28.68 87.17 31.13 95.68 26.30 94.64 C 21.47 93.61 21.29 87.07 17.25 85.75 C 13.21 84.43 10.00 76.22 16.00 77.00 M 38.00 99.00  C 41.38 99.44 42.82 107.32 46.75 108.25 C 50.68 109.17 53.13 117.68 48.30 116.64 C 43.47 115.61 43.29 109.07 39.25 107.75 C 35.21 106.43 32.00 98.22 38.00 99.00 Z"/>
                 </g>
                 <g fill="None" fill-opacity="0.0" stroke="#FFFFFF" stroke-opacity="0.90" stroke-width="0.3"><path d=" M 81.00 39.00  C 87.48 32.36 87.84 31.31 92.69 22.69 C 97.55 14.08 90.30 9.77 82.70 14.70 C 75.09 19.62 72.09 20.47 68.00 28.00 C 72.82 30.81 75.67 37.28 81.00 39.00 Z"/>
@@ -448,8 +500,8 @@ TMPL = '''
                 <span style="color: white;white-space: nowrap;">步枪击杀</span>
                 <span style="color: white;font-size: 22px;">{{RifleKills}}</span>
             </div>
-            <div style="display: flex; align-items: center;flex-direction: column;align-items: center;margin: auto 0;padding:0px 10px;border-right: 1px solid rgb(105, 105, 105);">
-                <svg xmlns="http://www.w3.org/2000/svg" xmlns:v="https://svgstorm.com" viewBox="0 0 128 128" width="30" height="30">
+            <div>
+                <svg xmlns="http://www.w3.org/2000/svg" xmlns:v="https://svgstorm.com" viewBox="0 0 128 128">
                 <g fill="None" fill-opacity="0.0" stroke="#000000" stroke-opacity="0.00" stroke-width="0.3"><path d=" M 0.00 128.00  L 128.00 128.00 L 128.00 0.00 L 0.00 0.00 L 0.00 128.00 M 78.00 44.00  C 69.67 44.00 61.33 44.00 53.00 44.00 C 52.48 35.30 53.55 20.00 65.03 19.03 C 76.50 18.05 79.64 35.40 78.00 44.00 M 79.00 93.00  C 70.00 93.00 61.00 93.00 52.00 93.00 C 49.56 82.07 52.08 77.04 51.00 65.00 C 49.92 52.96 52.50 48.88 65.00 49.00 C 77.50 49.12 81.11 51.55 80.00 64.00 C 78.89 76.45 81.48 81.67 79.00 93.00 M 80.00 98.00  C 82.08 105.91 74.53 103.93 69.00 104.00 C 63.47 104.07 56.65 103.95 51.00 104.00 C 48.92 96.09 56.47 98.07 62.00 98.00 C 67.53 97.93 74.35 98.05 80.00 98.00 Z"/>
                 </g>
                 <g fill="None" fill-opacity="0.0" stroke="#FFFFFF" stroke-opacity="0.94" stroke-width="0.3"><path d=" M 78.00 44.00  C 79.64 35.40 76.50 18.05 65.03 19.03 C 53.55 20.00 52.48 35.30 53.00 44.00 C 61.33 44.00 69.67 44.00 78.00 44.00 Z"/>
