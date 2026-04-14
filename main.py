@@ -966,9 +966,10 @@ class MyPlugin(Star):
 
         # 调用文转图服务（修复 options）
         options = {
-            "type": "jpeg",
-            "quality": 70,
-            "scale": 0.8
+            "type": "png", 
+            "full_page":True,
+            "scale":"css",
+            "omit_background": True
         }
         try:
             img_url = await self.html_render(html, {}, options=options)
