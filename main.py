@@ -964,15 +964,8 @@ class MyPlugin(Star):
         template = Template(template_str)
         html = template.render(data=translated_data, vendor_name_map=vendor_name_map)
 
-        # 调用文转图服务（修复 options）
-        options = {
-            "type": "png", 
-            "full_page":True,
-            "scale":"css",
-            "omit_background": True
-        }
         try:
-            img_url = await self.html_render(html, {}, options=options)
+            img_url = await self.html_render(html, {})
             yield event.image_result(img_url)
         except Exception as e:
             logger.error(f"图片渲染失败: {e}")
