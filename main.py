@@ -10,11 +10,6 @@ import json
 import aiohttp
 import os
 from jinja2 import Template
-from astrbot.core.utils.astrbot_path import get_astrbot_data_path
-from pathlib import Path
-from PIL import Image
-import io
-import base64
 
 TMPL = '''
 <style>
@@ -961,52 +956,8 @@ class MyPlugin(Star):
         template = Template(template_str)
         html = template.render(data=translated_data, vendor_name_map=vendor_name_map)
 
-        # 6. 调用文转图服务
-        try:
-            img_url = await self.html_render(html, {})
-        except Exception as e:
-            logger.error(f"图片渲染失败: {e}")
-            yield event.plain_result("生成图片失败，请稍后重试")
-            return
-
-        # 7. 下载并压缩图片，转为 Base64
-        try:
-            async with aiohttp.ClientSession() as session:
-                async with session.get(img_url) as resp:
-                    if resp.status != 200:
-                        yield event.plain_result("图片下载失败")
-                        return
-                    img_data = await resp.read()
-
-            # 压缩图片（使用 PIL）
-            from PIL import Image
-            import io
-            import base64
-
-            img = Image.open(io.BytesIO(img_data))
-            # 限制最大宽度 800 像素，保持比例
-            if img.width > 800:
-                ratio = 800 / img.width
-                new_size = (800, int(img.height * ratio))
-                img = img.resize(new_size, Image.LANCZOS)
-            # 转换为 RGB（防止 RGBA 问题），保存为 JPEG 质量 60
-            output = io.BytesIO()
-            img.convert("RGB").save(output, format="JPEG", quality=60)
-            compressed_data = output.getvalue()
-            logger.info(f"压缩后图片大小: {len(compressed_data) / 1024:.1f} KB")
-
-            # 转为 Base64
-            b64_str = base64.b64encode(compressed_data).decode()
-            img_base64 = f"base64://{b64_str}"
-            yield event.image_result(img_base64)
-
-        except ImportError:
-            logger.warning("Pillow 未安装，尝试直接发送 Base64（可能过大）")
-            b64_str = base64.b64encode(img_data).decode()
-            yield event.image_result(f"base64://{b64_str}")
-        except Exception as e:
-            logger.error(f"处理图片异常: {e}")
-            yield event.plain_result("图片处理失败，请稍后重试")
-
+        img_url = await self.html_render(html, {})
+        yield event.image_result(img_url) 
+    
     async def terminate(self):
         pass

@@ -1,5 +1,4 @@
 aiohttp
 jinja2
-Pillow
 beautifulsoup4
 curl_cffi
