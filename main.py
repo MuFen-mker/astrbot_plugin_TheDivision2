@@ -720,7 +720,7 @@ class MyPlugin(Star):
                     if resp.status != 200:
                         yield event.plain_result(f"获取数据失败，状态码：{resp.status}")
                         return
-                    data = await resp.json()
+                    data = await resp.json(content_type=None)
         except Exception as e:
             logger.error(f"请求异常：{e}")
             yield event.plain_result("网络错误，请稍后重试")
