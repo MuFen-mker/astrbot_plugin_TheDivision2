@@ -11,6 +11,8 @@ import aiohttp
 import os
 import os
 from jinja2 import Template
+from astrbot.core.utils.astrbot_path import get_astrbot_data_path
+from pathlib import Path
 
 TMPL = '''
 <style>
@@ -972,7 +974,35 @@ class MyPlugin(Star):
         except Exception as e:
             logger.error(f"图片渲染失败: {e}")
             yield event.plain_result("生成图片失败，请稍后重试")
+        #下载图片到本地插件数据目录
+        from astrbot.core.utils.astrbot_path import get_astrbot_data_path
+        from pathlib import Path
+        import aiohttp
 
+        # 获取插件数据目录
+        plugin_data_dir = get_astrbot_data_path() / "plugin_data" / self.name
+        plugin_data_dir.mkdir(parents=True, exist_ok=True)
+        # 本地保存路径
+        local_img_path = plugin_data_dir / f"weekly_vendor_{int(time.time())}.jpg"
+
+        try:
+            async with aiohttp.ClientSession() as session:
+                async with session.get(img_url) as resp:
+                    if resp.status == 200:
+                        with open(local_img_path, "wb") as f:
+                            f.write(await resp.read())
+                        logger.info(f"图片已保存到本地: {local_img_path}")
+                    else:
+                        logger.error(f"下载图片失败，状态码：{resp.status}")
+                        yield event.plain_result("图片下载失败，请稍后重试")
+                        return
+        except Exception as e:
+            logger.error(f"下载图片异常: {e}")
+            yield event.plain_result("图片下载失败，请稍后重试")
+            return
+
+        # 发送本地图片
+        yield event.image_result(str(local_img_path))
 
     async def terminate(self):
         pass
