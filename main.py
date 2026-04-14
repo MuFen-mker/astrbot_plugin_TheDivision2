@@ -5,13 +5,18 @@ from bs4 import BeautifulSoup
 from curl_cffi.requests import AsyncSession
 import asyncio
 import re
+import time
+import json
+import aiohttp
+import os
+import os
+from jinja2 import Template
 
 TMPL = '''
 <style>
     @font-face {
         font-family: 'fzcy';
         src: url('./font.ttf') format('truetype');
-        /* 如果是 woff2 格式：format('woff2') */
         font-weight: normal;
         font-style: normal;
     }
@@ -562,11 +567,12 @@ class MyPlugin(Star):
         
         if response.status_code != 200:
             body = response.text[:500] if response.text else "无响应体"
+            logger.error(f"请求异常：{response.status_code}\n"
+                         f"URL:{url}\n"
+                         f"响应体：\n{body}"
+                         )
             yield event.plain_result(
-                f"网络错误，请稍后重试！\n"
-                f"状态码：{response.status_code}\n"
-                f"URL：{url}\n"
-                f"响应体：\n{body}"
+                f"网络错误，请稍后重试！"
             )
             return               
         soup = BeautifulSoup(response.text, 'html.parser')
@@ -703,6 +709,262 @@ class MyPlugin(Star):
             "PistolKills":PistolKills
             }, options=options)
         yield event.image_result(imgurl)  
+
+    @filter.command("周商")
+    async def weekly_vendor(self, event: AstrMessageEvent):
+        # 1. 获取原始 JSON 数据
+        url = "https://raw.githubusercontent.com/MuFen-mker/astrbot_plugin_TheDivision2_DataAPI/refs/heads/main/all_vendors.json"
+        try:
+            async with aiohttp.ClientSession() as session:
+                async with session.get(url, timeout=10) as resp:
+                    if resp.status != 200:
+                        yield event.plain_result(f"获取数据失败，状态码：{resp.status}")
+                        return
+                    data = await resp.json()
+        except Exception as e:
+            logger.error(f"请求异常：{e}")
+            yield event.plain_result("网络错误，请稍后重试")
+            return
+
+        # 2. 加载翻译文件
+        trans_path = os.path.join(os.path.dirname(__file__), "translations.json")
+        try:
+            with open(trans_path, "r", encoding="utf-8") as f:
+                groups = json.load(f)
+        except Exception as e:
+            logger.error(f"加载翻译文件失败：{e}")
+            yield event.plain_result("翻译文件加载失败")
+            return
+
+        trans_map = {}
+        predefined_id = {}
+        attr_max_map = {}
+        vendor_name_map = {}
+        for group_name, items in groups.items():
+            if group_name == "merchant" and isinstance(items, list):
+                for item in items:
+                    if "en" in item and "zh" in item:
+                        vendor_name_map[item["en"]] = item["zh"]
+
+        for group_name, items in groups.items():
+            if isinstance(items, list):
+                for item in items:
+                    if "en" in item and "zh" in item:
+                        trans_map[item["en"]] = item["zh"]
+                        if group_name == "attributes" and "max" in item:
+                            key_clean = re.sub(r'\s+', '', item["zh"])
+                            attr_max_map[key_clean] = item["max"]
+                        if group_name == "talents" and "id" in item:
+                            predefined_id[item["en"]] = item["id"]
+
+        USE_PREDEFINED_MAX_FOR = ["暴击机率","暴击伤害","爆头伤害","武器控制力","危害防护","爆炸抗性","装甲回复","技能加速","技能伤害","状态效果","修复技能","武器伤害","技能分阶","装甲"]
+        USE_PREDEFINED_MAX_FOR_CLEAN = [re.sub(r'\s+', '', name) for name in USE_PREDEFINED_MAX_FOR]
+
+        SPECIAL_ATTRIBUTE2_MAX = {
+            "生命值伤害": 21,
+            "暴击机率": 21,
+            "对装甲的伤害": 12,
+            "暴击伤害": 17,
+            "爆头伤害": 111,
+            "对离开掩体目标的伤害": 12
+        }
+
+        SPECIAL_ATTRIBUTE3_MAX = {
+            "生命值伤害": 10,
+            "暴击机率": 9.5,
+            "对装甲的伤害": 6,
+            "暴击伤害": 10,
+            "爆头伤害": 10,
+            "对离开掩体目标的伤害": 10
+        }
+
+        def translate_value(obj, context=None):
+            if isinstance(obj, str):
+                result = obj
+                for en_word in sorted(trans_map.keys(), key=len, reverse=True):
+                    if en_word in result:
+                        result = result.replace(en_word, trans_map[en_word])
+                return result
+            elif isinstance(obj, list):
+                return [translate_value(item, context) for item in obj]
+            elif isinstance(obj, dict):
+                new_dict = {}
+                current_context = context
+                for k, v in obj.items():
+                    if k == 'gears':
+                        sub_context = 'gears'
+                    elif k == 'weapons':
+                        sub_context = 'weapons'
+                    else:
+                        sub_context = current_context
+                    new_dict[k] = translate_value(v, sub_context)
+
+                    if k == "talent":
+                        original = v
+                        translated = new_dict[k]
+                        if original in predefined_id:
+                            raw_id = predefined_id[original]
+                        elif "Perfect" in original or "Perfectly" in original:
+                            id_candidate = re.sub(r'^完美\s*', '', translated)
+                            raw_id = id_candidate if id_candidate else translated
+                        else:
+                            raw_id = translated
+                        new_dict["id"] = raw_id.replace(' ', '_')
+
+                    if k in ['Core', 'attribute1', 'attribute2', 'attribute3', 'attributes']:
+                        translated_val = new_dict[k]
+                        num_match = re.search(r'([\d,]+(?:\.\d+)?)', translated_val)
+                        if num_match:
+                            raw_num = num_match.group(1).replace(',', '')
+                            try:
+                                extracted_num = float(raw_num)
+                            except ValueError:
+                                extracted_num = 0
+                        else:
+                            extracted_num = 0
+
+                        # 提取属性名称（先尝试百分号后，否则提取整个字符串中的中英文词）
+                        attr_name_clean = None
+                        attr_match = re.search(r'\d+(?:\.\d+)?%\s*(.+)', translated_val)
+                        if attr_match:
+                            attr_name = attr_match.group(1).strip()
+                            attr_name_clean = re.sub(r'\s+', '', attr_name)
+                        else:
+                            # 匹配非数字、非逗号、非空格、非百分号的连续字符（可能包含空格，后续移除）
+                            name_match = re.search(r'[^\d,\s%]+(?:\s+[^\d,\s%]+)*', translated_val)
+                            if name_match:
+                                attr_name = name_match.group(0).strip()
+                                attr_name_clean = re.sub(r'\s+', '', attr_name)
+
+                        if attr_name_clean:
+                            use_predefined = False
+                            if current_context == 'gears':
+                                if attr_name_clean in USE_PREDEFINED_MAX_FOR_CLEAN:
+                                    use_predefined = True
+                            else:
+                                use_predefined = True
+
+                            if current_context == 'weapons' and k == 'attribute2':
+                                is_pistol = False
+                                if 'attribute1' in new_dict and "手枪伤害" in new_dict['attribute1']:
+                                    is_pistol = True
+                                if is_pistol:
+                                    rule_map = SPECIAL_ATTRIBUTE3_MAX
+                                else:
+                                    rule_map = SPECIAL_ATTRIBUTE2_MAX
+                                if attr_name_clean in rule_map:
+                                    value_num = max(extracted_num, rule_map[attr_name_clean])
+                                elif use_predefined and attr_name_clean in attr_max_map:
+                                    value_num = max(extracted_num, attr_max_map[attr_name_clean])
+                                else:
+                                    value_num = extracted_num
+                            elif current_context == 'weapons' and k == 'attribute3':
+                                if attr_name_clean in SPECIAL_ATTRIBUTE3_MAX:
+                                    value_num = max(extracted_num, SPECIAL_ATTRIBUTE3_MAX[attr_name_clean])
+                                elif use_predefined and attr_name_clean in attr_max_map:
+                                    value_num = max(extracted_num, attr_max_map[attr_name_clean])
+                                else:
+                                    value_num = extracted_num
+                            else:
+                                if use_predefined and attr_name_clean in attr_max_map:
+                                    value_num = max(extracted_num, attr_max_map[attr_name_clean])
+                                else:
+                                    value_num = extracted_num
+                        else:
+                            value_num = extracted_num
+                        new_dict[f"{k}_max"] = value_num
+                return new_dict
+            else:
+                return obj
+    
+        translated_data = translate_value(data)
+
+        def extract_number(s):
+            match = re.search(r'([\d,]+(?:\.\d+)?)', s)
+            if match:
+                return float(match.group(1).replace(',', ''))
+            return 0
+
+        def get_attribute_color(attr_str):
+            if any(kw in attr_str for kw in ['装甲回复', '危害防护', '爆炸抗性', '生命值']):
+                return '#289eff'
+            elif any(kw in attr_str for kw in ['爆头伤害', '暴击机率', '暴击伤害', '生命值伤害', '对装甲的伤害', '对离开掩体目标的伤害', '武器伤害', '手枪伤害', '武器控制力', '准确度', '稳定度', '弹药容量']):
+                return '#ff4242'
+            elif any(kw in attr_str for kw in ['技能加速', '技能伤害', '修复技能', '技能持续时间']):
+                return '#f6ff42'
+            else:
+                return '#fba000'
+
+        for vendor_data in translated_data.values():
+            # 处理护甲
+            for gear in vendor_data.get('gears', []):
+                # Core
+                gear['Core_value'] = extract_number(gear['Core'])
+                if '装甲' in gear['Core']:
+                    gear['gradient_color'] = '#289eff'
+                    gear['Core_color'] = '#289eff'
+                elif '武器伤害' in gear['Core']:
+                    gear['gradient_color'] = '#ff2e2e'
+                    gear['Core_color'] = '#ff2e2e'
+                elif '技能分阶' in gear['Core']:
+                    gear['gradient_color'] = '#f18600'
+                    gear['Core_color'] = '#f18600'
+                else:
+                    gear['gradient_color'] = '#289eff'
+                    gear['Core_color'] = '#289eff'
+                # attribute1
+                if gear.get('attribute1') and gear['attribute1'] != '-':
+                    gear['attribute1_value'] = extract_number(gear['attribute1'])
+                    gear['attribute1_color'] = get_attribute_color(gear['attribute1'])
+                # attribute2
+                if gear.get('attribute2') and gear['attribute2'] != '-':
+                    gear['attribute2_value'] = extract_number(gear['attribute2'])
+                    gear['attribute2_color'] = get_attribute_color(gear['attribute2'])
+            # 处理武器
+            for weapon in vendor_data.get('weapons', []):
+                for attr in ['attribute1', 'attribute2', 'attribute3']:
+                    if weapon.get(attr) and weapon[attr] != '-':
+                        weapon[f'{attr}_value'] = extract_number(weapon[attr])
+                # 天赋图标 id 已经存在，无需额外处理
+            # 处理模组（装备模组）
+            for mod in vendor_data.get('mods', []):
+                if mod.get('type') == '护甲模组':
+                    # 提取数值和颜色
+                    mod['attributes_value'] = extract_number(mod['attributes'])
+                    mod['attributes_color'] = get_attribute_color(mod['attributes'])
+                    # 根据 name 前缀确定渐变色和图标前缀
+                    if '攻击协定' in mod['name']:
+                        mod['gradient_color'] = '#770000'
+                        mod['icon_prefix'] = '攻击协定'
+                    elif '防御协定' in mod['name']:
+                        mod['gradient_color'] = '#003f73'
+                        mod['icon_prefix'] = '防御协定'
+                    elif '性能协定' in mod['name']:
+                        mod['gradient_color'] = '#ab5f00'
+                        mod['icon_prefix'] = '性能协定'
+                    else:
+                        mod['gradient_color'] = '#fba000'
+                        mod['icon_prefix'] = '护甲模组'
+         # 5. 加载模板并渲染
+        template_path = os.path.join(os.path.dirname(__file__), "templates", "weekly_report.html")
+        try:
+            with open(template_path, "r", encoding="utf-8") as f:
+                template_str = f.read()
+        except Exception as e:
+            logger.error(f"读取模板失败: {e}")
+            yield event.plain_result("模板加载失败")
+            return
+        template = Template(template_str)
+        html = template.render(data=translated_data, vendor_name_map=vendor_name_map)
+
+        # 6. 调用文转图服务
+        try:
+            img_url = await self.html_render(html, {})
+            yield event.image_result(img_url)
+        except Exception as e:
+            logger.error(f"图片渲染失败: {e}")
+            yield event.plain_result("生成图片失败，请稍后重试")
+
 
     async def terminate(self):
         pass
