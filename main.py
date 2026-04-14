@@ -714,7 +714,6 @@ class MyPlugin(Star):
     async def weekly_vendor(self, event: AstrMessageEvent):
         # 1. 获取原始 JSON 数据
         url = "https://raw.githubusercontent.com/MuFen-mker/astrbot_plugin_TheDivision2_DataAPI/refs/heads/main/all_vendors.json"
-        DEFAULT_TALENT_ICON = "https://cdn.jsdelivr.net/gh/MuFen-mker/astrbot_plugin_TheDivision2@master/assets/Talent Icon/default.png"
         try:
             async with aiohttp.ClientSession() as session:
                 async with session.get(url, timeout=10) as resp:
@@ -824,12 +823,14 @@ class MyPlugin(Star):
                         else:
                             extracted_num = 0
 
+                        # 提取属性名称（先尝试百分号后，否则提取整个字符串中的中英文词）
                         attr_name_clean = None
                         attr_match = re.search(r'\d+(?:\.\d+)?%\s*(.+)', translated_val)
                         if attr_match:
                             attr_name = attr_match.group(1).strip()
                             attr_name_clean = re.sub(r'\s+', '', attr_name)
                         else:
+                            # 匹配非数字、非逗号、非空格、非百分号的连续字符（可能包含空格，后续移除）
                             name_match = re.search(r'[^\d,\s%]+(?:\s+[^\d,\s%]+)*', translated_val)
                             if name_match:
                                 attr_name = name_match.group(0).strip()
@@ -875,7 +876,7 @@ class MyPlugin(Star):
                 return new_dict
             else:
                 return obj
-
+    
         translated_data = translate_value(data)
 
         def extract_number(s):
@@ -894,7 +895,6 @@ class MyPlugin(Star):
             else:
                 return '#fba000'
 
-        # 预处理数据（添加数值、颜色，以及护甲天赋图标）
         for vendor_data in translated_data.values():
             # 处理护甲
             for gear in vendor_data.get('gears', []):
@@ -912,32 +912,27 @@ class MyPlugin(Star):
                 else:
                     gear['gradient_color'] = '#289eff'
                     gear['Core_color'] = '#289eff'
-
+                # attribute1
                 if gear.get('attribute1') and gear['attribute1'] != '-':
                     gear['attribute1_value'] = extract_number(gear['attribute1'])
                     gear['attribute1_color'] = get_attribute_color(gear['attribute1'])
+                # attribute2
                 if gear.get('attribute2') and gear['attribute2'] != '-':
                     gear['attribute2_value'] = extract_number(gear['attribute2'])
                     gear['attribute2_color'] = get_attribute_color(gear['attribute2'])
-
-                # 新增：护甲天赋图标
-                talent_id = gear.get('id', '')
-                if talent_id:
-                    gear['talent_icon'] = f"https://cdn.jsdelivr.net/gh/MuFen-mker/astrbot_plugin_TheDivision2@master/assets/Talent Icon/{talent_id}.png"
-                else:
-                    gear['talent_icon'] = DEFAULT_TALENT_ICON
-
-            # 处理武器（不变）
+            # 处理武器
             for weapon in vendor_data.get('weapons', []):
                 for attr in ['attribute1', 'attribute2', 'attribute3']:
                     if weapon.get(attr) and weapon[attr] != '-':
                         weapon[f'{attr}_value'] = extract_number(weapon[attr])
-
-            # 处理模组（不变）
+                # 天赋图标 id 已经存在，无需额外处理
+            # 处理模组（装备模组）
             for mod in vendor_data.get('mods', []):
                 if mod.get('type') == '护甲模组':
+                    # 提取数值和颜色
                     mod['attributes_value'] = extract_number(mod['attributes'])
                     mod['attributes_color'] = get_attribute_color(mod['attributes'])
+                    # 根据 name 前缀确定渐变色和图标前缀
                     if '攻击协定' in mod['name']:
                         mod['gradient_color'] = '#770000'
                         mod['icon_prefix'] = '攻击协定'
@@ -950,8 +945,7 @@ class MyPlugin(Star):
                     else:
                         mod['gradient_color'] = '#fba000'
                         mod['icon_prefix'] = '护甲模组'
-
-        # 加载模板并渲染
+        # 5. 加载模板并渲染
         template_path = os.path.join(os.path.dirname(__file__), "templates", "weekly_report.html")
         try:
             with open(template_path, "r", encoding="utf-8") as f:
@@ -960,12 +954,20 @@ class MyPlugin(Star):
             logger.error(f"读取模板失败: {e}")
             yield event.plain_result("模板加载失败")
             return
-
         template = Template(template_str)
         html = template.render(data=translated_data, vendor_name_map=vendor_name_map)
 
+        # 6. 调用文转图服务
+        options = {
+            "type": "png", 
+            "full_page":True,
+            "scale":"css",
+            "omit_background": True,
+            "quality": 70,
+            "scale": 0.8,
+        }
         try:
-            img_url = await self.html_render(html, {})
+            img_url = await self.html_render(html, {}, options=options)
             yield event.image_result(img_url)
         except Exception as e:
             logger.error(f"图片渲染失败: {e}")
