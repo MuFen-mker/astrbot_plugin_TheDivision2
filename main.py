@@ -965,31 +965,46 @@ class MyPlugin(Star):
         except Exception as e:
             logger.error(f"图片渲染失败: {e}")
             yield event.plain_result("生成图片失败，请稍后重试")
-            return  # 关键：必须退出
-
-        # 7. 下载图片到本地
-        try:
-            plugin_data_dir = Path(get_astrbot_data_path()) / "plugin_data" / self.name
-            plugin_data_dir.mkdir(parents=True, exist_ok=True)
-            local_img_path = plugin_data_dir / f"weekly_vendor_{int(time.time())}.jpg"
-
-            async with aiohttp.ClientSession() as session:
-                async with session.get(img_url) as resp:
-                    if resp.status == 200:
-                        with open(local_img_path, "wb") as f:
-                            f.write(await resp.read())
-                        logger.info(f"图片已保存到本地: {local_img_path}")
-                    else:
-                        logger.error(f"下载图片失败，状态码：{resp.status}")
-                        yield event.plain_result("图片下载失败，请稍后重试")
-                        return
-        except Exception as e:
-            logger.error(f"下载图片异常: {e}")
-            yield event.plain_result("图片下载失败，请稍后重试")
             return
 
-        # 8. 发送本地图片
-        yield event.image_result(str(local_img_path))
+        # 7. 下载并压缩图片，转为 Base64
+        try:
+            async with aiohttp.ClientSession() as session:
+                async with session.get(img_url) as resp:
+                    if resp.status != 200:
+                        yield event.plain_result("图片下载失败")
+                        return
+                    img_data = await resp.read()
+
+            # 压缩图片（使用 PIL）
+            from PIL import Image
+            import io
+            import base64
+
+            img = Image.open(io.BytesIO(img_data))
+            # 限制最大宽度 800 像素，保持比例
+            if img.width > 800:
+                ratio = 800 / img.width
+                new_size = (800, int(img.height * ratio))
+                img = img.resize(new_size, Image.LANCZOS)
+            # 转换为 RGB（防止 RGBA 问题），保存为 JPEG 质量 60
+            output = io.BytesIO()
+            img.convert("RGB").save(output, format="JPEG", quality=60)
+            compressed_data = output.getvalue()
+            logger.info(f"压缩后图片大小: {len(compressed_data) / 1024:.1f} KB")
+
+            # 转为 Base64
+            b64_str = base64.b64encode(compressed_data).decode()
+            img_base64 = f"base64://{b64_str}"
+            yield event.image_result(img_base64)
+
+        except ImportError:
+            logger.warning("Pillow 未安装，尝试直接发送 Base64（可能过大）")
+            b64_str = base64.b64encode(img_data).decode()
+            yield event.image_result(f"base64://{b64_str}")
+        except Exception as e:
+            logger.error(f"处理图片异常: {e}")
+            yield event.plain_result("图片处理失败，请稍后重试")
 
     async def terminate(self):
         pass
