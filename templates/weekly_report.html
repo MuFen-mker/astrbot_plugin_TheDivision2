@@ -12,7 +12,7 @@
         body{
             background-color: rgb(41, 41, 41);
             font-family: 'fzcy', sans-serif;
-            width: 1380px;
+            width: 1600px;           /* 从 1380px 增加到 1600px */
             height: auto;
             margin: 0;
             padding: 0;
@@ -58,7 +58,7 @@
             color: #e96e16;
         }
         .vendorlist{
-            width: 1380px;
+            width: 1600px;           /* 与 body 宽度一致 */
             height: auto;
             margin: 30px 0;
             background-color: #9f9f9f;
@@ -103,11 +103,10 @@
             margin-top: 10px;
             border-radius: 10px;
         }
-        /* 新增网格布局 */
         .card-grid {
             display: grid;
             grid-template-columns: 1fr 1fr;
-            gap: 10px;
+            gap: 15px;              /* 增加卡片间距 */
             margin-bottom: 20px;
         }
         .gears{
@@ -117,7 +116,6 @@
             align-items: center;
             justify-content: space-between;
             border: #ffffff solid 1px;
-            /* 移除 margin-top，由网格 gap 控制间距 */
             margin-top: 0;
             padding: 10px;
             width: auto;

@@ -735,26 +735,48 @@ class MyPlugin(Star):
             yield event.plain_result("翻译文件加载失败")
             return
 
-        trans_map = {}
+        # 分类映射表
+        armor_map = {}
+        weapon_map = {}
+        brand_map = {}
+        part_map = {}
+        attributes_map = {}
+        talent_map = {}
+        mods_map = {}
+        skill_map = {}
+        merchant_map = {}
         predefined_id = {}
         attr_max_map = {}
-        vendor_name_map = {}
-        for group_name, items in groups.items():
-            if group_name == "merchant" and isinstance(items, list):
-                for item in items:
-                    if "en" in item and "zh" in item:
-                        vendor_name_map[item["en"]] = item["zh"]
 
         for group_name, items in groups.items():
-            if isinstance(items, list):
-                for item in items:
-                    if "en" in item and "zh" in item:
-                        trans_map[item["en"]] = item["zh"]
-                        if group_name == "attributes" and "max" in item:
-                            key_clean = re.sub(r'\s+', '', item["zh"])
-                            attr_max_map[key_clean] = item["max"]
-                        if group_name == "talents" and "id" in item:
-                            predefined_id[item["en"]] = item["id"]
+            if not isinstance(items, list):
+                continue
+            for item in items:
+                if "en" not in item or "zh" not in item:
+                    continue
+                if group_name == "armor":
+                    armor_map[item["en"]] = item["zh"]
+                elif group_name == "weapon":
+                    weapon_map[item["en"]] = item["zh"]
+                elif group_name == "brand":
+                    brand_map[item["en"]] = item["zh"]
+                elif group_name == "part":
+                    part_map[item["en"]] = item["zh"]
+                elif group_name == "attributes":
+                    attributes_map[item["en"]] = item["zh"]
+                    if "max" in item:
+                        key_clean = re.sub(r'\s+', '', item["zh"])
+                        attr_max_map[key_clean] = item["max"]
+                elif group_name == "talent":
+                    talent_map[item["en"]] = item["zh"]
+                    if "id" in item:
+                        predefined_id[item["en"]] = item["id"]
+                elif group_name == "mods":
+                    mods_map[item["en"]] = item["zh"]
+                elif group_name == "skill":
+                    skill_map[item["en"]] = item["zh"]
+                elif group_name == "merchant":
+                    merchant_map[item["en"]] = item["zh"]
 
         USE_PREDEFINED_MAX_FOR = ["暴击机率","暴击伤害","爆头伤害","武器控制力","危害防护","爆炸抗性","装甲回复","技能加速","技能伤害","状态效果","修复技能","武器伤害","技能分阶","装甲"]
         USE_PREDEFINED_MAX_FOR_CLEAN = [re.sub(r'\s+', '', name) for name in USE_PREDEFINED_MAX_FOR]
@@ -777,27 +799,57 @@ class MyPlugin(Star):
             "对离开掩体目标的伤害": 10
         }
 
-        def translate_value(obj, context=None):
+        # 递归翻译函数（带分类映射）
+        def translate_value(obj, context=None, key=None):
             if isinstance(obj, str):
-                result = obj
-                for en_word in sorted(trans_map.keys(), key=len, reverse=True):
-                    if en_word in result:
-                        result = result.replace(en_word, trans_map[en_word])
-                return result
+                # 根据字段名和上下文选择映射表
+                target_map = None
+                if key == 'name':
+                    if context == 'gears':
+                        target_map = armor_map
+                    elif context == 'weapons':
+                        target_map = weapon_map
+                    elif context == 'mods':
+                        target_map = mods_map
+                elif key == 'brand':
+                    target_map = brand_map
+                elif key == 'type':
+                    if context == 'mods':
+                        target_map = skill_map
+                    else:
+                        target_map = part_map
+                elif key in ('Core', 'attribute1', 'attribute2', 'attribute3', 'attributes'):
+                    target_map = attributes_map
+                elif key == 'talent':
+                    target_map = talent_map
+
+                if target_map:
+                    result = obj
+                    for en_word in sorted(target_map.keys(), key=len, reverse=True):
+                        if en_word in result:
+                            result = result.replace(en_word, target_map[en_word])
+                    return result
+                else:
+                    return obj
             elif isinstance(obj, list):
-                return [translate_value(item, context) for item in obj]
+                return [translate_value(item, context, key) for item in obj]
             elif isinstance(obj, dict):
                 new_dict = {}
                 current_context = context
                 for k, v in obj.items():
+                    # 更新上下文
                     if k == 'gears':
                         sub_context = 'gears'
                     elif k == 'weapons':
                         sub_context = 'weapons'
+                    elif k == 'mods':
+                        sub_context = 'mods'
                     else:
                         sub_context = current_context
-                    new_dict[k] = translate_value(v, sub_context)
+                    # 递归，并传递字段名 k
+                    new_dict[k] = translate_value(v, sub_context, k)
 
+                    # 处理 talent 添加 id
                     if k == "talent":
                         original = v
                         translated = new_dict[k]
@@ -810,6 +862,7 @@ class MyPlugin(Star):
                             raw_id = translated
                         new_dict["id"] = raw_id.replace(' ', '_')
 
+                    # 处理属性字段添加 max
                     if k in ['Core', 'attribute1', 'attribute2', 'attribute3', 'attributes']:
                         translated_val = new_dict[k]
                         num_match = re.search(r'([\d,]+(?:\.\d+)?)', translated_val)
@@ -822,14 +875,13 @@ class MyPlugin(Star):
                         else:
                             extracted_num = 0
 
-                        # 提取属性名称（先尝试百分号后，否则提取整个字符串中的中英文词）
+                        # 提取属性名称
                         attr_name_clean = None
                         attr_match = re.search(r'\d+(?:\.\d+)?%\s*(.+)', translated_val)
                         if attr_match:
                             attr_name = attr_match.group(1).strip()
                             attr_name_clean = re.sub(r'\s+', '', attr_name)
                         else:
-                            # 匹配非数字、非逗号、非空格、非百分号的连续字符（可能包含空格，后续移除）
                             name_match = re.search(r'[^\d,\s%]+(?:\s+[^\d,\s%]+)*', translated_val)
                             if name_match:
                                 attr_name = name_match.group(0).strip()
@@ -875,9 +927,11 @@ class MyPlugin(Star):
                 return new_dict
             else:
                 return obj
-    
+
+        # 翻译整个数据
         translated_data = translate_value(data)
 
+        # 提取数字和颜色的辅助函数
         def extract_number(s):
             match = re.search(r'([\d,]+(?:\.\d+)?)', s)
             if match:
@@ -894,10 +948,10 @@ class MyPlugin(Star):
             else:
                 return '#fba000'
 
+        # 预处理数据（添加数值、颜色等）
         for vendor_data in translated_data.values():
-            # 处理护甲
+            # 护甲
             for gear in vendor_data.get('gears', []):
-                # Core
                 gear['Core_value'] = extract_number(gear['Core'])
                 if '装甲' in gear['Core']:
                     gear['gradient_color'] = '#289eff'
@@ -911,27 +965,25 @@ class MyPlugin(Star):
                 else:
                     gear['gradient_color'] = '#289eff'
                     gear['Core_color'] = '#289eff'
-                # attribute1
+
                 if gear.get('attribute1') and gear['attribute1'] != '-':
                     gear['attribute1_value'] = extract_number(gear['attribute1'])
                     gear['attribute1_color'] = get_attribute_color(gear['attribute1'])
-                # attribute2
                 if gear.get('attribute2') and gear['attribute2'] != '-':
                     gear['attribute2_value'] = extract_number(gear['attribute2'])
                     gear['attribute2_color'] = get_attribute_color(gear['attribute2'])
-            # 处理武器
+
+            # 武器
             for weapon in vendor_data.get('weapons', []):
                 for attr in ['attribute1', 'attribute2', 'attribute3']:
                     if weapon.get(attr) and weapon[attr] != '-':
                         weapon[f'{attr}_value'] = extract_number(weapon[attr])
-                # 天赋图标 id 已经存在，无需额外处理
-            # 处理模组（装备模组）
+
+            # 模组
             for mod in vendor_data.get('mods', []):
                 if mod.get('type') == '护甲模组':
-                    # 提取数值和颜色
                     mod['attributes_value'] = extract_number(mod['attributes'])
                     mod['attributes_color'] = get_attribute_color(mod['attributes'])
-                    # 根据 name 前缀确定渐变色和图标前缀
                     if '攻击协定' in mod['name']:
                         mod['gradient_color'] = '#770000'
                         mod['icon_prefix'] = '攻击协定'
@@ -944,7 +996,8 @@ class MyPlugin(Star):
                     else:
                         mod['gradient_color'] = '#fba000'
                         mod['icon_prefix'] = '护甲模组'
-        # 5. 加载模板并渲染
+
+        # 加载模板并渲染
         template_path = os.path.join(os.path.dirname(__file__), "templates", "weekly_report.html")
         try:
             with open(template_path, "r", encoding="utf-8") as f:
@@ -953,11 +1006,13 @@ class MyPlugin(Star):
             logger.error(f"读取模板失败: {e}")
             yield event.plain_result("模板加载失败")
             return
-        template = Template(template_str)
-        html = template.render(data=translated_data, vendor_name_map=vendor_name_map)
 
+        template = Template(template_str)
+        html = template.render(data=translated_data, vendor_name_map=merchant_map)
+
+        # 生成图片并发送
         img_url = await self.html_render(html, {})
-        yield event.image_result(img_url) 
+        yield event.image_result(img_url)
     
     async def terminate(self):
         pass
