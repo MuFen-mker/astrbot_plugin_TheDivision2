@@ -166,6 +166,7 @@
         {"en": "Lightweight", "zh": "轻型 "},
         {"en": "Urban", "zh": "城镇 "},
         {"en": "SOCOM", "zh": "特战 "},
+        {"en": "Marine", "zh": "海陆 "},
         {"en": "Magnum", "zh": "麦格农"}
     ],
     "_comment":"护甲名称翻译",
@@ -249,7 +250,7 @@
         {"en":"Empress International","zh":"女皇国际"},
         {"en":"Hana-U Corporation","zh":"哈瑙公司"},
         {"en":"Murakami Industries","zh":"村上工业"},
-        {"en":"Richter & Kaiser GmbH","zh":"李希特与凯萨有限公司"},
+        {"en":"Richter & Kaiser","zh":"李希特与凯萨有限公司"},
         {"en":"Shiny Monkey Gear","zh":"闪亮猴子装备"},
         {"en":"Wyvern Wear","zh":"飞龙纺织"},
         {"en":"Airaldi Holdings","zh":"阿尔拉蒂企业"},
