@@ -975,10 +975,6 @@ class MyPlugin(Star):
             logger.error(f"图片渲染失败: {e}")
             yield event.plain_result("生成图片失败，请稍后重试")
         #下载图片到本地插件数据目录
-        from astrbot.core.utils.astrbot_path import get_astrbot_data_path
-        from pathlib import Path
-        import aiohttp
-
         # 获取插件数据目录
         plugin_data_dir = get_astrbot_data_path() / "plugin_data" / self.name
         plugin_data_dir.mkdir(parents=True, exist_ok=True)
