@@ -6,7 +6,6 @@
         @font-face {
         font-family: 'fzcy';
         src: url('https://github.com/MuFen-mker/astrbot_plugin_TheDivision2/raw/refs/heads/master/font.ttf') format('truetype');
-        /* 如果是 woff2 格式：format('woff2') */
         font-weight: normal;
         font-style: normal;
         }
@@ -103,20 +102,25 @@
             flex-direction: column;
             margin-top: 10px;
             border-radius: 10px;
-            
         }
-        .contentData > div{
+        /* 新增网格布局 */
+        .card-grid {
             display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 20px;
         }
-        /* 将原 #gears 改为 .gears，因为多个卡片不能用相同id */
         .gears{
-            display: inline-flex;
+            display: flex;
             position: relative;
             border-radius: 10px;
             align-items: center;
             justify-content: space-between;
             border: #ffffff solid 1px;
-            margin-top: 5px;
+            /* 移除 margin-top，由网格 gap 控制间距 */
+            margin-top: 0;
+            padding: 10px;
+            width: auto;
         }
         .gears > div{
             display: inline-block;
@@ -133,17 +137,17 @@
         }
         .progress {
             position: relative;
-            width: 200px;           /* 固定总宽度，也可用百分比 */
+            width: 200px;
             height: 9px;
             background: transparent;
             display: inline-block;
         }
         .progress-bg {
             position: absolute;
-            bottom: 0;              /* 紧贴父容器底部 */
+            bottom: 0;
             left: 0;
             right: 0;
-            height: 2px;            /* 背景细线高度 */
+            height: 2px;
             background-color: #ffffff63;
         }
         .progress-fill {
@@ -159,9 +163,8 @@
             border-left: #ffffff63 solid 2px;
             border-right: #ffffff63 solid 2px;
             padding-bottom: 1px;
-            display:  inline-block;
+            display: inline-block;
         }
-        
     </style>
 </head>
 <body>
@@ -186,147 +189,159 @@
         <div class="contentData">
 
             {# ========== 护甲 ========== #}
-            {% for gear in vendor_data.gears %}
-            <div class="gears" style="background: linear-gradient(to right, {{ gear.gradient_color }}, rgb(69 69 69));">
-                <div style="border-radius: 10px;border: #ffffff solid 2px;padding: 10px;">
-                    <img src="https://cdn.jsdelivr.net/gh/MuFen-mker/astrbot_plugin_TheDivision2@master/assets/Main icons/{{ gear.brand }}.png" alt="">
-                </div>
-                <div style="display: flex;flex-direction: column;">
-                    <span style="font-size:35px">{{ gear.name }}</span>
-                    <span style="font-size:35px">{{ gear.brand }}</span>
-                    <div style="display: inline-flex;height: 37px;align-items: center;">
-                        <img class="icons" src="https://cdn.jsdelivr.net/gh/MuFen-mker/astrbot_plugin_TheDivision2@master/assets/Main icons/{{ gear.type }}.png">
-                        <span style="color: #ffffff;font-size:30px;margin-left: 6px;">{{ gear.type }}</span>
+            {% if vendor_data.gears %}
+            <div class="card-grid">
+                {% for gear in vendor_data.gears %}
+                <div class="gears" style="background: linear-gradient(to right, {{ gear.gradient_color }}, rgb(69 69 69));">
+                    <div style="border-radius: 10px;border: #ffffff solid 2px;padding: 10px;">
+                        <img src="https://cdn.jsdelivr.net/gh/MuFen-mker/astrbot_plugin_TheDivision2@master/assets/Main icons/{{ gear.brand }}.png" alt="">
                     </div>
-                </div>
-                <div style="padding-top: 10px;padding: 10px;text-align: right;margin-right: 35px;">
-                    <!-- Core -->
-                    <div style="display: block;text-align: right;">
-                        <span id="Core" style="font-size: 22px;color: #ffffff;">{{ gear.Core }}</span>
-                        <div class="vl">
-                            <div class="progress" style="--value: {{ gear.Core_value }}; --max: {{ gear.Core_max }};">
-                                <div class="progress-bg"></div>
-                                <div class="progress-fill" style="background-color: {{ gear.Core_color }}; width: calc(var(--value) / var(--max) * 100%);"></div>
-                            </div>
-                        </div>
-                    </div>
-                    <!-- attribute1 -->
-                    {% if gear.attribute1 and gear.attribute1 != '-' %}
-                    <div style="display: block;text-align: right;">
-                        <span id="secondary1" style="font-size: 22px;color: #ffffff;">{{ gear.attribute1 }}</span>
-                        <div class="vl">
-                            <div class="progress" style="--value: {{ gear.attribute1_value }}; --max: {{ gear.attribute1_max }};">
-                                <div class="progress-bg"></div>
-                                <div class="progress-fill" style="background-color: {{ gear.attribute1_color }}; width: calc(var(--value) / var(--max) * 100%);"></div>
-                            </div>
-                        </div>
-                    </div>
-                    {% endif %}
-                    <!-- attribute2 -->
-                    {% if gear.attribute2 and gear.attribute2 != '-' %}
-                    <div style="display: block;text-align: right;">
-                        <span id="secondary2" style="font-size: 22px;color: #ffffff;">{{ gear.attribute2 }}</span>
-                        <div class="vl">
-                            <div class="progress" style="--value: {{ gear.attribute2_value }}; --max: {{ gear.attribute2_max }};">
-                                <div class="progress-bg"></div>
-                                <div class="progress-fill" style="background-color: {{ gear.attribute2_color }}; width: calc(var(--value) / var(--max) * 100%);"></div>
-                            </div>
-                        </div>
-                    </div>
-                    {% endif %}
-                    <!-- talent -->
-                    <div style="display: inline-flex;align-items: center;height: 22px;">
-                        <img src="https://cdn.jsdelivr.net/gh/MuFen-mker/astrbot_plugin_TheDivision2@master/assets/Talent Icon/{{ gear.id }}.png"  style="height: 100%;">
-                        <span id="talent" style="font-size: 22px;color: #ffffff;">{{ gear.talent }}</span>
-                    </div>
-                </div>
-            </div>
-            {% endfor %}
-
-            {# ========== 武器 ========== #}
-            {% for weapon in vendor_data.weapons %}
-            <div class="gears weapons" style="background: linear-gradient(to right, #fba000, rgb(69 69 69));">
-                <div style="display: flex;flex-direction: column;margin-left: 30px;align-items: flex-start;">
-                    <span style="font-size:35px">{{ weapon.name }}</span>
-                    <span id="dmg" style="font-size: 24px;">DMG:{{ weapon.dmg }}</span>
-                    <span id="rpm" style="font-size: 24px;">RPM:{{ weapon.rpm }}</span>
-                </div>
-                <div style="padding-top: 10px;padding: 10px;text-align: right;margin-right: 35px;">
-                    <div style="display: block;text-align: right;">
-                        <span id="Core" style="font-size: 22px;color: #ffffff;">{{ weapon.attribute1 }}</span>
-                        <div class="vl">
-                            <div class="progress" style="--value: {{ weapon.attribute1_value }}; --max: {{ weapon.attribute1_max }};">
-                                <div class="progress-bg"></div>
-                                <div class="progress-fill" style="background-color: #fba000; width: calc(var(--value) / var(--max) * 100%);"></div>
-                            </div>
-                        </div>
-                    </div>
-                    <div style="display: block;text-align: right;">
-                        <span id="secondary1" style="font-size: 22px;color: #ffffff;">{{ weapon.attribute2 }}</span>
-                        <div class="vl">
-                            <div class="progress" style="--value: {{ weapon.attribute2_value }}; --max: {{ weapon.attribute2_max }};">
-                                <div class="progress-bg"></div>
-                                <div class="progress-fill" style="background-color: #fba000; width: calc(var(--value) / var(--max) * 100%);"></div>
-                            </div>
-                        </div>
-                    </div>
-                    <div style="display: block;text-align: right;">
-                        <span id="secondary2" style="font-size: 22px;color: #ffffff;">{{ weapon.attribute3 }}</span>
-                        <div class="vl">
-                            <div class="progress" style="--value: {{ weapon.attribute3_value }}; --max: {{ weapon.attribute3_max }};">
-                                <div class="progress-bg"></div>
-                                <div class="progress-fill" style="background-color: #fba000; width: calc(var(--value) / var(--max) * 100%);"></div>
-                            </div>
-                        </div>
-                    </div>
-                    <div style="display: inline-flex;align-items: center;height: 22px;">
-                        <img src="https://cdn.jsdelivr.net/gh/MuFen-mker/astrbot_plugin_TheDivision2@master/assets/Talent Icon/{{ weapon.id }}.png"  style="height: 100%;">
-                        <span id="talent" style="font-size: 22px;color: #ffffff;">{{ weapon.talent }}</span>
-                    </div>
-                </div>
-            </div>
-            {% endfor %}
-
-            {# ========== 模组 ========== #}
-            {% for mod in vendor_data.mods %}
-                {% if mod.type == "护甲模组" %}
-                <div class="gears gearsmods" style="background: linear-gradient(to right, {{ mod.gradient_color }}, rgb(69 69 69));">
-                    <div style="display: flex;flex-direction: column;margin: 15px;align-items: flex-start;">
-                        <span style="font-size:35px">{{ mod.name }}</span>
-                        <div style="display: flex; height:45px;align-items: center;">
-                            <img style="height: 80%;" src="https://cdn.jsdelivr.net/gh/MuFen-mker/astrbot_plugin_TheDivision2@master/assets/Main icons/{{ mod.icon_prefix }}.png">
-                            <span id="dmg" style="font-size: 32px;color:#ffffff;margin-left: 10px;">{{ mod.type }}</span>
+                    <div style="display: flex;flex-direction: column;">
+                        <span style="font-size:35px">{{ gear.name }}</span>
+                        <span style="font-size:35px">{{ gear.brand }}</span>
+                        <div style="display: inline-flex;height: 37px;align-items: center;">
+                            <img class="icons" src="https://cdn.jsdelivr.net/gh/MuFen-mker/astrbot_plugin_TheDivision2@master/assets/Main icons/{{ gear.type }}.png">
+                            <span style="color: #ffffff;font-size:30px;margin-left: 6px;">{{ gear.type }}</span>
                         </div>
                     </div>
                     <div style="padding-top: 10px;padding: 10px;text-align: right;margin-right: 35px;">
+                        <!-- Core -->
                         <div style="display: block;text-align: right;">
-                            <span id="attributes" style="font-size: 22px;color: #ffffff;">{{ mod.attributes }}</span>
+                            <span id="Core" style="font-size: 22px;color: #ffffff;">{{ gear.Core }}</span>
                             <div class="vl">
-                                <div class="progress" style="--value: {{ mod.attributes_value }}; --max: {{ mod.attributes_max }};">
+                                <div class="progress" style="--value: {{ gear.Core_value }}; --max: {{ gear.Core_max }};">
                                     <div class="progress-bg"></div>
-                                    <div class="progress-fill" style="background-color: {{ mod.attributes_color }}; width: calc(var(--value) / var(--max) * 100%);"></div>
+                                    <div class="progress-fill" style="background-color: {{ gear.Core_color }}; width: calc(var(--value) / var(--max) * 100%);"></div>
+                                </div>
+                            </div>
+                        </div>
+                        <!-- attribute1 -->
+                        {% if gear.attribute1 and gear.attribute1 != '-' %}
+                        <div style="display: block;text-align: right;">
+                            <span id="secondary1" style="font-size: 22px;color: #ffffff;">{{ gear.attribute1 }}</span>
+                            <div class="vl">
+                                <div class="progress" style="--value: {{ gear.attribute1_value }}; --max: {{ gear.attribute1_max }};">
+                                    <div class="progress-bg"></div>
+                                    <div class="progress-fill" style="background-color: {{ gear.attribute1_color }}; width: calc(var(--value) / var(--max) * 100%);"></div>
+                                </div>
+                            </div>
+                        </div>
+                        {% endif %}
+                        <!-- attribute2 -->
+                        {% if gear.attribute2 and gear.attribute2 != '-' %}
+                        <div style="display: block;text-align: right;">
+                            <span id="secondary2" style="font-size: 22px;color: #ffffff;">{{ gear.attribute2 }}</span>
+                            <div class="vl">
+                                <div class="progress" style="--value: {{ gear.attribute2_value }}; --max: {{ gear.attribute2_max }};">
+                                    <div class="progress-bg"></div>
+                                    <div class="progress-fill" style="background-color: {{ gear.attribute2_color }}; width: calc(var(--value) / var(--max) * 100%);"></div>
+                                </div>
+                            </div>
+                        </div>
+                        {% endif %}
+                        <!-- talent -->
+                        <div style="display: inline-flex;align-items: center;height: 22px;">
+                            <img src="https://cdn.jsdelivr.net/gh/MuFen-mker/astrbot_plugin_TheDivision2@master/assets/Talent Icon/{{ gear.id }}.png"  style="height: 100%;">
+                            <span id="talent" style="font-size: 22px;color: #ffffff;">{{ gear.talent }}</span>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+
+            {# ========== 武器 ========== #}
+            {% if vendor_data.weapons %}
+            <div class="card-grid">
+                {% for weapon in vendor_data.weapons %}
+                <div class="gears weapons" style="background: linear-gradient(to right, #fba000, rgb(69 69 69));">
+                    <div style="display: flex;flex-direction: column;margin-left: 30px;align-items: flex-start;">
+                        <span style="font-size:35px">{{ weapon.name }}</span>
+                        <span id="dmg" style="font-size: 24px;">DMG:{{ weapon.dmg }}</span>
+                        <span id="rpm" style="font-size: 24px;">RPM:{{ weapon.rpm }}</span>
+                    </div>
+                    <div style="padding-top: 10px;padding: 10px;text-align: right;margin-right: 35px;">
+                        <div style="display: block;text-align: right;">
+                            <span id="Core" style="font-size: 22px;color: #ffffff;">{{ weapon.attribute1 }}</span>
+                            <div class="vl">
+                                <div class="progress" style="--value: {{ weapon.attribute1_value }}; --max: {{ weapon.attribute1_max }};">
+                                    <div class="progress-bg"></div>
+                                    <div class="progress-fill" style="background-color: #fba000; width: calc(var(--value) / var(--max) * 100%);"></div>
+                                </div>
+                            </div>
+                        </div>
+                        <div style="display: block;text-align: right;">
+                            <span id="secondary1" style="font-size: 22px;color: #ffffff;">{{ weapon.attribute2 }}</span>
+                            <div class="vl">
+                                <div class="progress" style="--value: {{ weapon.attribute2_value }}; --max: {{ weapon.attribute2_max }};">
+                                    <div class="progress-bg"></div>
+                                    <div class="progress-fill" style="background-color: #fba000; width: calc(var(--value) / var(--max) * 100%);"></div>
+                                </div>
+                            </div>
+                        </div>
+                        <div style="display: block;text-align: right;">
+                            <span id="secondary2" style="font-size: 22px;color: #ffffff;">{{ weapon.attribute3 }}</span>
+                            <div class="vl">
+                                <div class="progress" style="--value: {{ weapon.attribute3_value }}; --max: {{ weapon.attribute3_max }};">
+                                    <div class="progress-bg"></div>
+                                    <div class="progress-fill" style="background-color: #fba000; width: calc(var(--value) / var(--max) * 100%);"></div>
+                                </div>
+                            </div>
+                        </div>
+                        <div style="display: inline-flex;align-items: center;height: 22px;">
+                            <img src="https://cdn.jsdelivr.net/gh/MuFen-mker/astrbot_plugin_TheDivision2@master/assets/Talent Icon/{{ weapon.id }}.png"  style="height: 100%;">
+                            <span id="talent" style="font-size: 22px;color: #ffffff;">{{ weapon.talent }}</span>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+
+            {# ========== 模组 ========== #}
+            {% if vendor_data.mods %}
+            <div class="card-grid">
+                {% for mod in vendor_data.mods %}
+                    {% if mod.type == "护甲模组" %}
+                    <div class="gears gearsmods" style="background: linear-gradient(to right, {{ mod.gradient_color }}, rgb(69 69 69));">
+                        <div style="display: flex;flex-direction: column;margin: 15px;align-items: flex-start;">
+                            <span style="font-size:35px">{{ mod.name }}</span>
+                            <div style="display: flex; height:45px;align-items: center;">
+                                <img style="height: 80%;" src="https://cdn.jsdelivr.net/gh/MuFen-mker/astrbot_plugin_TheDivision2@master/assets/Main icons/{{ mod.icon_prefix }}.png">
+                                <span id="dmg" style="font-size: 32px;color:#ffffff;margin-left: 10px;">{{ mod.type }}</span>
+                            </div>
+                        </div>
+                        <div style="padding-top: 10px;padding: 10px;text-align: right;margin-right: 35px;">
+                            <div style="display: block;text-align: right;">
+                                <span id="attributes" style="font-size: 22px;color: #ffffff;">{{ mod.attributes }}</span>
+                                <div class="vl">
+                                    <div class="progress" style="--value: {{ mod.attributes_value }}; --max: {{ mod.attributes_max }};">
+                                        <div class="progress-bg"></div>
+                                        <div class="progress-fill" style="background-color: {{ mod.attributes_color }}; width: calc(var(--value) / var(--max) * 100%);"></div>
+                                    </div>
                                 </div>
                             </div>
                         </div>
                     </div>
-                </div>
-                {% else %}
-                <div class="gears skillsmods" style="background: linear-gradient(to right, #fba000, rgb(69 69 69));">
-                    <div style="display: flex;flex-direction: column;margin: 15px;align-items: flex-start;">
-                        <span style="font-size:35px">{{ mod.name }}</span>
-                        <div style="display: flex; height:45px;align-items: center;">
-                            <img style="height: 80%;" src="https://cdn.jsdelivr.net/gh/MuFen-mker/astrbot_plugin_TheDivision2@master/assets/Main icons/{{ mod.type }}.png">
-                            <span id="dmg" style="font-size: 32px;color:#ffffff;margin-left: 10px;">{{ mod.type }}</span>
+                    {% else %}
+                    <div class="gears skillsmods" style="background: linear-gradient(to right, #fba000, rgb(69 69 69));">
+                        <div style="display: flex;flex-direction: column;margin: 15px;align-items: flex-start;">
+                            <span style="font-size:35px">{{ mod.name }}</span>
+                            <div style="display: flex; height:45px;align-items: center;">
+                                <img style="height: 80%;" src="https://cdn.jsdelivr.net/gh/MuFen-mker/astrbot_plugin_TheDivision2@master/assets/Main icons/{{ mod.type }}.png">
+                                <span id="dmg" style="font-size: 32px;color:#ffffff;margin-left: 10px;">{{ mod.type }}</span>
+                            </div>
+                        </div>
+                        <div style="padding-top: 10px;padding: 10px;text-align: right;margin-right: 35px;">
+                            <div style="display: block;text-align: right;">
+                                <span id="attributes" style="font-size: 22px;color: #ffffff;">{{ mod.attributes }}</span>
+                            </div>
                         </div>
                     </div>
-                    <div style="padding-top: 10px;padding: 10px;text-align: right;margin-right: 35px;">
-                        <div style="display: block;text-align: right;">
-                            <span id="attributes" style="font-size: 22px;color: #ffffff;">{{ mod.attributes }}</span>
-                        </div>
-                    </div>
-                </div>
-                {% endif %}
-            {% endfor %}
+                    {% endif %}
+                {% endfor %}
+            </div>
+            {% endif %}
 
         </div>
     </div>
