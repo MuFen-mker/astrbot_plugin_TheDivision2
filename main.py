@@ -976,9 +976,8 @@ class MyPlugin(Star):
             yield event.plain_result("生成图片失败，请稍后重试")
         #下载图片到本地插件数据目录
         # 获取插件数据目录
-        plugin_data_dir = get_astrbot_data_path() / "plugin_data" / self.name
+        plugin_data_dir = Path(get_astrbot_data_path()) / "plugin_data" / self.name
         plugin_data_dir.mkdir(parents=True, exist_ok=True)
-        # 本地保存路径
         local_img_path = plugin_data_dir / f"weekly_vendor_{int(time.time())}.jpg"
 
         try:
