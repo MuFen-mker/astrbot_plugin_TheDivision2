@@ -9,10 +9,12 @@ import time
 import json
 import aiohttp
 import os
-import os
 from jinja2 import Template
 from astrbot.core.utils.astrbot_path import get_astrbot_data_path
 from pathlib import Path
+from PIL import Image
+import io
+import base64
 
 TMPL = '''
 <style>
