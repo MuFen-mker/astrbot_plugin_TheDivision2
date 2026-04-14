@@ -5,7 +5,7 @@
     <style>
         @font-face {
             font-family: 'fzcy';
-            src: url('/assets/font.ttf') format('truetype');
+            src: url('https://cdn.jsdelivr.net/gh/MuFen-mker/astrbot_plugin_TheDivision2@master/font.ttf') format('truetype');
             font-weight: normal;
             font-style: normal;
         }
@@ -21,7 +21,7 @@
             position: relative;
             width: 100%;
             height: auto;
-            background-image: url('/assets/other/vendortitle.jpg');
+            background-image: url('https://cdn.jsdelivr.net/gh/MuFen-mker/astrbot_plugin_TheDivision2@master/assets/other/vendortitle.jpg');
             background-size: cover;
             background-position: center;
             display: flex;
@@ -188,12 +188,12 @@
 <body>
     <!-- 固定头部 -->
     <div class="title">
-        <img src="/assets/other/thedivision2.png" alt="">
+        <img src="https://cdn.jsdelivr.net/gh/MuFen-mker/astrbot_plugin_TheDivision2@master/assets/other/vendortitle.jpg">
         <span>全境封锁2周商简报</span>
         <div style="display: flex; align-items: center">
             <p>数据来源</p>
             <div style="background-color: #656464; display: flex; align-items: center; padding: 1px; border-radius: 5px; margin:0 5px">
-                <img style="width: auto; height:17px" src="/assets/other/Ruben Alamina.png">
+                <img style="width: auto; height:17px" https://cdn.jsdelivr.net/gh/MuFen-mker/astrbot_plugin_TheDivision2@master/assets/other/Ruben Alamina.png>
             </div>
             <p style="font-size: 18px;">The Division 2: Weekly Vendor Reset - Ruben Alamina</p>
         </div>
@@ -203,7 +203,7 @@
     {% for vendor_en, vendor_data in data.items() %}
     <div class="vendorlist">
         <!-- 商人标题（使用中文名称映射） -->
-        <div class="listtitle" style="background-image: url('/assets/other/{{ vendor_name_map[vendor_en] }}.png');">
+        <div class="listtitle" style="background-image: url('https://cdn.jsdelivr.net/gh/MuFen-mker/astrbot_plugin_TheDivision2@master/assets/other/{{ vendor_name_map[vendor_en] }}.png');">
             <span>{{ vendor_name_map[vendor_en] }}</span>
         </div>
         <div class="contentData">
@@ -213,13 +213,13 @@
             <div class="card" style="background: linear-gradient(to right, {{ gear.gradient_color }}, rgb(69 69 69));">
                 <div class="card-left">
                     <div class="brand-icon">
-                        <img src="/assets/Main icons/{{ gear.brand }}.png" alt="{{ gear.brand }}">
+                        <img src="https://cdn.jsdelivr.net/gh/MuFen-mker/astrbot_plugin_TheDivision2@master/assets/Main icons/{{ gear.brand }}.png" alt="{{ gear.brand }}">
                     </div>
                     <div>
                         <span style="font-size:35px">{{ gear.name }}</span><br>
                         <span style="font-size:35px">{{ gear.brand }}</span>
                         <div style="display: inline-flex; height: 37px; align-items: center;">
-                            <img class="icons" src="/assets/Main icons/{{ gear.type }}.png">
+                            <img class="icons" src="https://cdn.jsdelivr.net/gh/MuFen-mker/astrbot_plugin_TheDivision2@master/assets/Main icons/{{ gear.type }}.png">
                             <span style="color: #ffffff; font-size:30px; margin-left: 6px;">{{ gear.type }}</span>
                         </div>
                     </div>
@@ -261,7 +261,7 @@
                     {% endif %}
                     <!-- 天赋 -->
                     <div class="talent-icon">
-                        <img src="/assets/Talent Icon/{{ gear.id }}.png">
+                        <img src="https://cdn.jsdelivr.net/gh/MuFen-mker/astrbot_plugin_TheDivision2@master/assets/Talent Icon/{{ gear.id }}.png">
                         <span style="font-size: 22px; color: #ffffff; margin-left: 5px;">{{ gear.talent }}</span>
                     </div>
                 </div>
@@ -307,7 +307,7 @@
                         </div>
                     </div>
                     <div class="talent-icon">
-                        <img src="/assets/Talent Icon/{{ weapon.id }}.png">
+                        <img src="https://cdn.jsdelivr.net/gh/MuFen-mker/astrbot_plugin_TheDivision2@master/assets/Talent Icon/{{ weapon.id }}.png">
                         <span style="font-size: 22px; color: #ffffff; margin-left: 5px;">{{ weapon.talent }}</span>
                     </div>
                 </div>
@@ -323,7 +323,7 @@
                         <div>
                             <span style="font-size:35px">{{ mod.name }}</span>
                             <div style="display: flex; height:45px; align-items: center;">
-                                <img style="height: 80%;" src="/assets/Main icons/{{ mod.icon_prefix }}.png">
+                                <img style="height: 80%;" src="https://cdn.jsdelivr.net/gh/MuFen-mker/astrbot_plugin_TheDivision2@master/assets/Main icons/{{ mod.icon_prefix }}.png">
                                 <span style="font-size: 32px; color:#ffffff; margin-left: 10px;">{{ mod.type }}</span>
                             </div>
                         </div>
@@ -347,7 +347,7 @@
                         <div>
                             <span style="font-size:35px">{{ mod.name }}</span>
                             <div style="display: flex; height:45px; align-items: center;">
-                                <img style="height: 80%;" src="/assets/Main icons/{{ mod.type }}.png">
+                                <img style="height: 80%;" src="https://cdn.jsdelivr.net/gh/MuFen-mker/astrbot_plugin_TheDivision2@master/assets/Main icons/{{ mod.type }}.png">
                                 <span style="font-size: 32px; color:#ffffff; margin-left: 10px;">{{ mod.type }}</span>
                             </div>
                         </div>
