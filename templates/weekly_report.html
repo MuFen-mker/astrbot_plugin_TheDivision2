@@ -236,7 +236,7 @@
                     {% endif %}
                     <!-- talent -->
                     <div style="display: inline-flex;align-items: center;height: 22px;">
-                        <img src="https://cdn.jsdelivr.net/gh/MuFen-mker/astrbot_plugin_TheDivision2@master/assets/Talent Icon/{{ gear.id }}.png"  style="height: 100%;">
+                        <img src="{{ gear.talent_icon }}"  style="height: 100%;">
                         <span id="talent" style="font-size: 22px;color: #ffffff;">{{ gear.talent }}</span>
                     </div>
                 </div>
@@ -331,14 +331,5 @@
         </div>
     </div>
     {% endfor %}
-<script>
-    document.addEventListener('DOMContentLoaded', function() {
-        document.querySelectorAll('img').forEach(img => {
-            img.onerror = function() {
-                this.style.display = 'none';
-            };
-        });
-    });
-</script>
 </body>
 </html>
