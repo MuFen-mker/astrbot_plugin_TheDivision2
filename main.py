@@ -10,6 +10,8 @@ import json
 import aiohttp
 import os
 from jinja2 import Template
+from pathlib import Path
+from astrbot.core.utils.astrbot_path import get_astrbot_data_path
 
 TMPL = '''
 <style>
@@ -711,6 +713,21 @@ class MyPlugin(Star):
 
     @filter.command("周商")
     async def weekly_vendor(self, event: AstrMessageEvent):
+        # 缓存文件路径
+        cache_dir = Path(get_astrbot_data_path()) / "plugin_data" / self.name / "cache"
+        cache_dir.mkdir(parents=True, exist_ok=True)
+        cache_file = cache_dir / "weekly_vendor.jpg"
+        cache_ttl = 3600  # 1小时
+
+        # 检查缓存是否有效
+        if cache_file.exists():
+            mtime = cache_file.stat().st_mtime
+            if time.time() - mtime < cache_ttl:
+                logger.info("使用缓存的周商图片")
+                yield event.image_result(str(cache_file))
+                return
+            else:
+                logger.info("缓存已过期，重新生成")
         # 1. 获取原始 JSON 数据
         url = "https://raw.githubusercontent.com/MuFen-mker/astrbot_plugin_TheDivision2_DataAPI/refs/heads/main/all_vendors.json"
         try:
@@ -1015,9 +1032,32 @@ class MyPlugin(Star):
             "device_scale_factor": 3,   # 核心设置：启用高清渲染
             # "full_page": True,        # 可选，默认就是True
         }
-        # 生成图片并发送
-        img_url = await self.html_render(html, {},options=options)
-        yield event.image_result(img_url)
-    
+        try:
+            img_url = await self.html_render(html, {},options=options)  # 可加 options
+        except Exception as e:
+            logger.error(f"图片渲染失败: {e}")
+            yield event.plain_result("生成图片失败，请稍后重试")
+            return
+
+            # 下载图片到缓存文件
+        try:
+            async with aiohttp.ClientSession() as session:
+                async with session.get(img_url) as resp:
+                    if resp.status == 200:
+                        with open(cache_file, "wb") as f:
+                            f.write(await resp.read())
+                        logger.info(f"图片已缓存到 {cache_file}")
+                    else:
+                        logger.error(f"下载图片失败，状态码：{resp.status}")
+                        yield event.plain_result("图片下载失败，请稍后重试")
+                        return
+        except Exception as e:
+            logger.error(f"下载图片异常: {e}")
+            yield event.plain_result("图片下载失败，请稍后重试")
+            return
+
+        # 发送本地缓存图片
+        yield event.image_result(str(cache_file))
+
     async def terminate(self):
         pass
