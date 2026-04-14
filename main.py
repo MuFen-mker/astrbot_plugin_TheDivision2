@@ -1010,8 +1010,13 @@ class MyPlugin(Star):
         template = Template(template_str)
         html = template.render(data=translated_data, vendor_name_map=merchant_map)
 
+        options = {
+            "type": "png",
+            "device_scale_factor": 3,   # 核心设置：启用高清渲染
+            # "full_page": True,        # 可选，默认就是True
+        }
         # 生成图片并发送
-        img_url = await self.html_render(html, {})
+        img_url = await self.html_render(html, {},options=options)
         yield event.image_result(img_url)
     
     async def terminate(self):
