@@ -1030,7 +1030,6 @@ class MyPlugin(Star):
         options = {
             "type": "png",
             "device_scale_factor": 3,   # 核心设置：启用高清渲染
-            # "full_page": True,        # 可选，默认就是True
         }
         try:
             img_url = await self.html_render(html, {},options=options)  # 可加 options
