@@ -960,27 +960,19 @@ class MyPlugin(Star):
         html = template.render(data=translated_data, vendor_name_map=vendor_name_map)
 
         # 6. 调用文转图服务
-        options = {
-            "type": "png", 
-            "full_page":True,
-            "scale":"css",
-            "omit_background": True,
-            "quality": 70,
-            "scale": 0.8,
-        }
         try:
-            img_url = await self.html_render(html, {}, options=options)
-            yield event.image_result(img_url)
+            img_url = await self.html_render(html, {})
         except Exception as e:
             logger.error(f"图片渲染失败: {e}")
             yield event.plain_result("生成图片失败，请稍后重试")
-        #下载图片到本地插件数据目录
-        # 获取插件数据目录
-        plugin_data_dir = Path(get_astrbot_data_path()) / "plugin_data" / self.name
-        plugin_data_dir.mkdir(parents=True, exist_ok=True)
-        local_img_path = plugin_data_dir / f"weekly_vendor_{int(time.time())}.jpg"
+            return  # 关键：必须退出
 
+        # 7. 下载图片到本地
         try:
+            plugin_data_dir = Path(get_astrbot_data_path()) / "plugin_data" / self.name
+            plugin_data_dir.mkdir(parents=True, exist_ok=True)
+            local_img_path = plugin_data_dir / f"weekly_vendor_{int(time.time())}.jpg"
+
             async with aiohttp.ClientSession() as session:
                 async with session.get(img_url) as resp:
                     if resp.status == 200:
@@ -996,7 +988,7 @@ class MyPlugin(Star):
             yield event.plain_result("图片下载失败，请稍后重试")
             return
 
-        # 发送本地图片
+        # 8. 发送本地图片
         yield event.image_result(str(local_img_path))
 
     async def terminate(self):
