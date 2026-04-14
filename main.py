@@ -966,11 +966,9 @@ class MyPlugin(Star):
 
         # 调用文转图服务（修复 options）
         options = {
-            "type": "jpeg",          # 使用 jpeg 减小体积
+            "type": "jpeg",
             "quality": 70,
-            "scale": 0.8,
-            "omit_background": False,
-            "full_page": True,
+            "scale": 0.8
         }
         try:
             img_url = await self.html_render(html, {}, options=options)
