@@ -30,119 +30,118 @@ class TheDivision2Plugin(Star):
     @filter.command("数据查询")
     async def on_query(self, event: AstrMessageEvent, username: str):
         if self.data_source == "tracker":
-            async def on_aiocqhttp(self, event: AstrMessageEvent, platform: str, username: str):
-                platform = "ubi"
-                def build_tracker_url(platform: str, username: str) -> str:
-                    return f"https://tracker.gg/division-2/profile/{platform}/{username}/overview"
-                url = build_tracker_url(platform, username)
-                
-                async with AsyncSession() as session:
-                    response = await session.get(url, impersonate="edge101", timeout=120)
-                
-                if response.status_code != 200:
-                    body = response.text[:500] if response.text else "无响应体"
-                    logger.error(f"请求异常：{response.status_code}\n"
-                                f"URL:{url}\n"
-                                f"响应体：\n{body}"
-                                )
-                    yield event.plain_result(
-                        f"网络错误，请稍后重试！"
-                    )
-                    return               
-                soup = BeautifulSoup(response.text, 'html.parser')
-                #===================
-                #头像
-                avatarimg = soup.find("img", class_="user-avatar__image")
-                avatar_url = avatarimg.get('src') if avatarimg else None
-                logger.info(f"avatar_url type: {type(avatar_url)}, value: {avatar_url}")
-                #等级
-                level_span = soup.find('span', title='Player Level')
-                Level = level_span.find_next_sibling('span').find('span', class_='value').get_text(strip=True) if level_span else None
-                #暗区等级
-                dz_span = soup.find('span', title='DZ Level')
-                DZLevel = dz_span.find_next_sibling('span').find('span', class_='value').get_text(strip=True) if dz_span else None
-                #游戏时长
-                gametime = int(re.search(r'(\d+(?:,\d+)*)', soup.find('h2', string='Lifetime Overview').find_parent('div', class_='details').find('div', class_='title-stats').find('span', class_='playtime').get_text(strip=True)).group(1).replace(',', ''))
-                #功勋
-                CurrComm = soup.find('span', class_='name', title='Curr Comm. Score').find_parent('div', class_='numbers').find('span', class_='value').get_text(strip=True)
-                CurrComm = int(CurrComm.replace(',', '')) if CurrComm else None
-                #物品拾取数量
-                ItemsLooted = soup.find('span', class_='name', title='Items Looted').find_parent('div', class_='numbers').find('span', class_='value').get_text(strip=True)
-                ItemsLooted = int(ItemsLooted.replace(',', '')) if ItemsLooted else None
-                #玩家击杀
-                PvpKills = soup.find('span', class_='name', title='PvP Kills').find_parent('div', class_='numbers').find('span', class_='value').get_text(strip=True)
-                PvpKills = int(PvpKills.replace(',', '')) if PvpKills else None
-                #NPC击杀
-                NpcKills = soup.find('span', class_='name', title='NPC Kills').find_parent('div', class_='numbers').find('span', class_='value').get_text(strip=True)
-                NpcKills = int(NpcKills.replace(',', '')) if NpcKills else None
-                #技能击杀
-                SkillKills = soup.find('span', class_='name', title='Skill Kills').find_parent('div', class_='numbers').find('span', class_='value').get_text(strip=True)
-                SkillKills = int(SkillKills.replace(',', '')) if SkillKills else None
-                #爆头数量
-                Headshots = soup.find('span', class_='name', title='Headshots').find_parent('div', class_='numbers').find('span', class_='value').get_text(strip=True)
-                Headshots = int(Headshots.replace(',', '')) if Headshots else None
-                #E点数
-                ECreditBalance = soup.find('span', class_='name', title='E-Credit Balance').find_parent('div', class_='numbers').find('span', class_='value').get_text(strip=True)
-                ECreditBalance = int(ECreditBalance.replace(',', '')) if ECreditBalance else None
-                #PVE经验
-                PveXP = soup.find('span', class_='name', title='PvE XP').find_parent('div', class_='numbers').find('span', class_='value').get_text(strip=True)
-                PveXP = int(PveXP.replace(',', '')) if PveXP else None
-                #具名击杀
-                NamedKills = int(soup.find('h2', string='PvE').find_parent('div', class_='card').find('span', class_='name', title='Named Kills').find_parent('div', class_='numbers').find('span', class_='value').get_text(strip=True).replace(',', ''))
-                #鬣狗击杀
-                HyenaKills = soup.find('span', class_='name', title='Hyena Kills').find_parent('div', class_='numbers').find('span', class_='value').get_text(strip=True)
-                HyenaKills = int(HyenaKills.replace(',', '')) if HyenaKills else None
-                #流亡者击杀
-                OutCastsKills = soup.find('span', class_='name', title='OutCasts Kills').find_parent('div', class_='numbers').find('span', class_='value').get_text(strip=True)
-                OutCastsKills = int(OutCastsKills.replace(',', '')) if OutCastsKills else None
-                #真实之子击杀
-                TrueSonsKills = soup.find('span', class_='name', title='TrueSons Kills').find_parent('div', class_='numbers').find('span', class_='value').get_text(strip=True)
-                TrueSonsKills = int(TrueSonsKills.replace(',', '')) if TrueSonsKills else None
-                #黯牙击杀
-                BlackTuskKills = int(soup.find('h2', string='PvE').find_parent('div', class_='card').find('span', class_='name', title='BlackTusk Kills').find_parent('div', class_='numbers').find('span', class_='value').get_text(strip=True).replace(',', ''))
-                #暗区时长
-                h2 = soup.find('h2', string='Dark Zone')
-                if h2:
-                    playtime_span = h2.find_next('span', class_='playtime')
-                    if playtime_span:
-                        text = playtime_span.get_text(strip=True)
-                        match = re.search(r'(\d+)', text)
-                        dzPlaytime = int(match.group(1)) if match else None
-                #暗区经验
-                DzXp = soup.find('span', class_='name', title='DZ XP').find_parent('div', class_='numbers').find('span', class_='value').get_text(strip=True)
-                DzXp = int(DzXp.replace(',', '')) if DzXp else None
-                #冲突战等级
-                conflict_span = soup.find('span', class_='name', title='Conflict Rank').find_parent('div', class_='numbers').find('span', class_='value').get_text(strip=True)
-                conflict_span = int(conflict_span.replace(',', '')) if conflict_span else None
-                #叛变击杀
-                RoguesKilled = soup.find('span', class_='name', title='Rogues Killed').find_parent('div', class_='numbers').find('span', class_='value').get_text(strip=True)
-                RoguesKilled = int(RoguesKilled.replace(',', '')) if RoguesKilled else None
-                #叛变时长
-                RogueTimePlayed = soup.find('span', class_='name', title='Rogue Time Played').find_parent('div', class_='numbers').find('span', class_='value').get_text(strip=True)
-                #最长叛变时间
-                RogueLongestTimePlayed = soup.find('span', class_='name', title='Rogue Longest Time Played').find_parent('div', class_='numbers').find('span', class_='value').get_text(strip=True)
-                #流血击杀
-                BleedingKills = soup.find('td', string='Bleeding Kills').find_next_sibling('td').get_text(strip=True)
-                BleedingKills = int(BleedingKills.replace(',', '')) if BleedingKills else None
-                #燃烧击杀
-                BurningKills = soup.find('td', string='Burning Kills').find_next_sibling('td').get_text(strip=True)
-                BurningKills = int(BurningKills.replace(',', '')) if BurningKills else None
-                #爆头击杀
-                HeadshotKills = soup.find('td', string='Headshot Kills').find_next_sibling('td').get_text(strip=True)
-                HeadshotKills = int(HeadshotKills.replace(',', '')) if HeadshotKills else None
-                #冲锋枪击杀
-                SMGKills = soup.find('td', string='SMG Kills').find_next_sibling('td').get_text(strip=True)
-                SMGKills = int(SMGKills.replace(',', '')) if SMGKills else None
-                #霰弹枪击杀
-                ShotgunKills = soup.find('td', string='Shotgun Kills').find_next_sibling('td').get_text(strip=True)
-                ShotgunKills = int(ShotgunKills.replace(',', '')) if ShotgunKills else None
-                #步枪击杀
-                RifleKills = soup.find('td', string='Rifle Kills').find_next_sibling('td').get_text(strip=True)
-                RifleKills = int(RifleKills.replace(',', '')) if RifleKills else None
-                #手枪击杀
-                PistolKills = soup.find('td', string='Pistol Kills').find_next_sibling('td').get_text(strip=True)
-                PistolKills = int(PistolKills.replace(',', '')) if PistolKills else None
-                logger.info(f"数据字典已生成，数据来源：tracker.gg")
+            platform = "ubi"
+            def build_tracker_url(platform: str, username: str) -> str:
+                return f"https://tracker.gg/division-2/profile/{platform}/{username}/overview"
+            url = build_tracker_url(platform, username)
+            
+            async with AsyncSession() as session:
+                response = await session.get(url, impersonate="edge101", timeout=120)
+            
+            if response.status_code != 200:
+                body = response.text[:500] if response.text else "无响应体"
+                logger.error(f"请求异常：{response.status_code}\n"
+                            f"URL:{url}\n"
+                            f"响应体：\n{body}"
+                            )
+                yield event.plain_result(
+                    f"网络错误，请稍后重试！"
+                )
+                return               
+            soup = BeautifulSoup(response.text, 'html.parser')
+            #===================
+            #头像
+            avatarimg = soup.find("img", class_="user-avatar__image")
+            avatar_url = avatarimg.get('src') if avatarimg else None
+            logger.info(f"avatar_url type: {type(avatar_url)}, value: {avatar_url}")
+            #等级
+            level_span = soup.find('span', title='Player Level')
+            Level = level_span.find_next_sibling('span').find('span', class_='value').get_text(strip=True) if level_span else None
+            #暗区等级
+            dz_span = soup.find('span', title='DZ Level')
+            DZLevel = dz_span.find_next_sibling('span').find('span', class_='value').get_text(strip=True) if dz_span else None
+            #游戏时长
+            gametime = int(re.search(r'(\d+(?:,\d+)*)', soup.find('h2', string='Lifetime Overview').find_parent('div', class_='details').find('div', class_='title-stats').find('span', class_='playtime').get_text(strip=True)).group(1).replace(',', ''))
+            #功勋
+            CurrComm = soup.find('span', class_='name', title='Curr Comm. Score').find_parent('div', class_='numbers').find('span', class_='value').get_text(strip=True)
+            CurrComm = int(CurrComm.replace(',', '')) if CurrComm else None
+            #物品拾取数量
+            ItemsLooted = soup.find('span', class_='name', title='Items Looted').find_parent('div', class_='numbers').find('span', class_='value').get_text(strip=True)
+            ItemsLooted = int(ItemsLooted.replace(',', '')) if ItemsLooted else None
+            #玩家击杀
+            PvpKills = soup.find('span', class_='name', title='PvP Kills').find_parent('div', class_='numbers').find('span', class_='value').get_text(strip=True)
+            PvpKills = int(PvpKills.replace(',', '')) if PvpKills else None
+            #NPC击杀
+            NpcKills = soup.find('span', class_='name', title='NPC Kills').find_parent('div', class_='numbers').find('span', class_='value').get_text(strip=True)
+            NpcKills = int(NpcKills.replace(',', '')) if NpcKills else None
+            #技能击杀
+            SkillKills = soup.find('span', class_='name', title='Skill Kills').find_parent('div', class_='numbers').find('span', class_='value').get_text(strip=True)
+            SkillKills = int(SkillKills.replace(',', '')) if SkillKills else None
+            #爆头数量
+            Headshots = soup.find('span', class_='name', title='Headshots').find_parent('div', class_='numbers').find('span', class_='value').get_text(strip=True)
+            Headshots = int(Headshots.replace(',', '')) if Headshots else None
+            #E点数
+            ECreditBalance = soup.find('span', class_='name', title='E-Credit Balance').find_parent('div', class_='numbers').find('span', class_='value').get_text(strip=True)
+            ECreditBalance = int(ECreditBalance.replace(',', '')) if ECreditBalance else None
+            #PVE经验
+            PveXP = soup.find('span', class_='name', title='PvE XP').find_parent('div', class_='numbers').find('span', class_='value').get_text(strip=True)
+            PveXP = int(PveXP.replace(',', '')) if PveXP else None
+            #具名击杀
+            NamedKills = int(soup.find('h2', string='PvE').find_parent('div', class_='card').find('span', class_='name', title='Named Kills').find_parent('div', class_='numbers').find('span', class_='value').get_text(strip=True).replace(',', ''))
+            #鬣狗击杀
+            HyenaKills = soup.find('span', class_='name', title='Hyena Kills').find_parent('div', class_='numbers').find('span', class_='value').get_text(strip=True)
+            HyenaKills = int(HyenaKills.replace(',', '')) if HyenaKills else None
+            #流亡者击杀
+            OutCastsKills = soup.find('span', class_='name', title='OutCasts Kills').find_parent('div', class_='numbers').find('span', class_='value').get_text(strip=True)
+            OutCastsKills = int(OutCastsKills.replace(',', '')) if OutCastsKills else None
+            #真实之子击杀
+            TrueSonsKills = soup.find('span', class_='name', title='TrueSons Kills').find_parent('div', class_='numbers').find('span', class_='value').get_text(strip=True)
+            TrueSonsKills = int(TrueSonsKills.replace(',', '')) if TrueSonsKills else None
+            #黯牙击杀
+            BlackTuskKills = int(soup.find('h2', string='PvE').find_parent('div', class_='card').find('span', class_='name', title='BlackTusk Kills').find_parent('div', class_='numbers').find('span', class_='value').get_text(strip=True).replace(',', ''))
+            #暗区时长
+            h2 = soup.find('h2', string='Dark Zone')
+            if h2:
+                playtime_span = h2.find_next('span', class_='playtime')
+                if playtime_span:
+                    text = playtime_span.get_text(strip=True)
+                    match = re.search(r'(\d+)', text)
+                    dzPlaytime = int(match.group(1)) if match else None
+            #暗区经验
+            DzXp = soup.find('span', class_='name', title='DZ XP').find_parent('div', class_='numbers').find('span', class_='value').get_text(strip=True)
+            DzXp = int(DzXp.replace(',', '')) if DzXp else None
+            #冲突战等级
+            conflict_span = soup.find('span', class_='name', title='Conflict Rank').find_parent('div', class_='numbers').find('span', class_='value').get_text(strip=True)
+            conflict_span = int(conflict_span.replace(',', '')) if conflict_span else None
+            #叛变击杀
+            RoguesKilled = soup.find('span', class_='name', title='Rogues Killed').find_parent('div', class_='numbers').find('span', class_='value').get_text(strip=True)
+            RoguesKilled = int(RoguesKilled.replace(',', '')) if RoguesKilled else None
+            #叛变时长
+            RogueTimePlayed = soup.find('span', class_='name', title='Rogue Time Played').find_parent('div', class_='numbers').find('span', class_='value').get_text(strip=True)
+            #最长叛变时间
+            RogueLongestTimePlayed = soup.find('span', class_='name', title='Rogue Longest Time Played').find_parent('div', class_='numbers').find('span', class_='value').get_text(strip=True)
+            #流血击杀
+            BleedingKills = soup.find('td', string='Bleeding Kills').find_next_sibling('td').get_text(strip=True)
+            BleedingKills = int(BleedingKills.replace(',', '')) if BleedingKills else None
+            #燃烧击杀
+            BurningKills = soup.find('td', string='Burning Kills').find_next_sibling('td').get_text(strip=True)
+            BurningKills = int(BurningKills.replace(',', '')) if BurningKills else None
+            #爆头击杀
+            HeadshotKills = soup.find('td', string='Headshot Kills').find_next_sibling('td').get_text(strip=True)
+            HeadshotKills = int(HeadshotKills.replace(',', '')) if HeadshotKills else None
+            #冲锋枪击杀
+            SMGKills = soup.find('td', string='SMG Kills').find_next_sibling('td').get_text(strip=True)
+            SMGKills = int(SMGKills.replace(',', '')) if SMGKills else None
+            #霰弹枪击杀
+            ShotgunKills = soup.find('td', string='Shotgun Kills').find_next_sibling('td').get_text(strip=True)
+            ShotgunKills = int(ShotgunKills.replace(',', '')) if ShotgunKills else None
+            #步枪击杀
+            RifleKills = soup.find('td', string='Rifle Kills').find_next_sibling('td').get_text(strip=True)
+            RifleKills = int(RifleKills.replace(',', '')) if RifleKills else None
+            #手枪击杀
+            PistolKills = soup.find('td', string='Pistol Kills').find_next_sibling('td').get_text(strip=True)
+            PistolKills = int(PistolKills.replace(',', '')) if PistolKills else None
+            logger.info(f"数据字典已生成，数据来源：tracker.gg")
 
         elif self.data_source == "ubi-go":
             # 1. 获取玩家 UID
