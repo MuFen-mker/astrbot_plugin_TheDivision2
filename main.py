@@ -16,146 +16,262 @@ from astrbot.core.utils.astrbot_path import get_astrbot_data_path
 class TheDivision2Plugin(Star):
     def __init__(self, context: Context, config: AstrBotConfig = None):
         super().__init__(context)
-        # 兼容 config 为 None 的情况
         if config is None:
             base = "http://127.0.0.1:8080"
+            self.data_source = "ubi-go"
         else:
             base = config.get("api_base_url", "http://127.0.0.1:8080")
+            self.data_source = config.get("data_source", "ubi-go")
         self.api_base_url = base.rstrip('/')
-        logger.info(f"后端基础地址: {self.api_base_url}")
+        logger.info(f"后端基础地址: {self.api_base_url}, 数据源: {self.data_source}")
 
     @filter.command("数据查询")
     async def on_query(self, event: AstrMessageEvent, username: str):
-        # 1. 获取玩家 UID
-        profile_url = f"{self.api_base_url}/profile?username={username}&platform=uplay"
-        try:
-            async with aiohttp.ClientSession() as session:
-                async with session.get(profile_url, timeout=10) as resp:
-                    if resp.status != 200:
-                        yield event.plain_result(f"获取UID失败，状态码：{resp.status}")
-                        return
-                    profile_data = await resp.json()
-                    uid = profile_data.get("data", {}).get("UserId")  # 根据实际返回字段调整
-                    if not uid:
-                        yield event.plain_result("未找到玩家UID")
-                        return
-        except Exception as e:
-            logger.error(f"请求UID异常：{e}")
-            yield event.plain_result("网络错误，请稍后重试")
-            return
+        if self.data_source == "tracker":
+            async def on_aiocqhttp(self, event: AstrMessageEvent, platform: str, username: str):
+                platform = "ubi"
+                def build_tracker_url(platform: str, username: str) -> str:
+                    return f"https://tracker.gg/division-2/profile/{platform}/{username}/overview"
+                url = build_tracker_url(platform, username)
+                
+                async with AsyncSession() as session:
+                    response = await session.get(url, impersonate="edge101", timeout=120)
+                
+                if response.status_code != 200:
+                    body = response.text[:500] if response.text else "无响应体"
+                    logger.error(f"请求异常：{response.status_code}\n"
+                                f"URL:{url}\n"
+                                f"响应体：\n{body}"
+                                )
+                    yield event.plain_result(
+                        f"网络错误，请稍后重试！"
+                    )
+                    return               
+                soup = BeautifulSoup(response.text, 'html.parser')
+                #===================
+                #头像
+                avatarimg = soup.find("img", class_="user-avatar__image")
+                avatar_url = avatarimg.get('src') if avatarimg else None
+                logger.info(f"avatar_url type: {type(avatar_url)}, value: {avatar_url}")
+                #等级
+                level_span = soup.find('span', title='Player Level')
+                Level = level_span.find_next_sibling('span').find('span', class_='value').get_text(strip=True) if level_span else None
+                #暗区等级
+                dz_span = soup.find('span', title='DZ Level')
+                DZLevel = dz_span.find_next_sibling('span').find('span', class_='value').get_text(strip=True) if dz_span else None
+                #游戏时长
+                gametime = int(re.search(r'(\d+(?:,\d+)*)', soup.find('h2', string='Lifetime Overview').find_parent('div', class_='details').find('div', class_='title-stats').find('span', class_='playtime').get_text(strip=True)).group(1).replace(',', ''))
+                #功勋
+                CurrComm = soup.find('span', class_='name', title='Curr Comm. Score').find_parent('div', class_='numbers').find('span', class_='value').get_text(strip=True)
+                CurrComm = int(CurrComm.replace(',', '')) if CurrComm else None
+                #物品拾取数量
+                ItemsLooted = soup.find('span', class_='name', title='Items Looted').find_parent('div', class_='numbers').find('span', class_='value').get_text(strip=True)
+                ItemsLooted = int(ItemsLooted.replace(',', '')) if ItemsLooted else None
+                #玩家击杀
+                PvpKills = soup.find('span', class_='name', title='PvP Kills').find_parent('div', class_='numbers').find('span', class_='value').get_text(strip=True)
+                PvpKills = int(PvpKills.replace(',', '')) if PvpKills else None
+                #NPC击杀
+                NpcKills = soup.find('span', class_='name', title='NPC Kills').find_parent('div', class_='numbers').find('span', class_='value').get_text(strip=True)
+                NpcKills = int(NpcKills.replace(',', '')) if NpcKills else None
+                #技能击杀
+                SkillKills = soup.find('span', class_='name', title='Skill Kills').find_parent('div', class_='numbers').find('span', class_='value').get_text(strip=True)
+                SkillKills = int(SkillKills.replace(',', '')) if SkillKills else None
+                #爆头数量
+                Headshots = soup.find('span', class_='name', title='Headshots').find_parent('div', class_='numbers').find('span', class_='value').get_text(strip=True)
+                Headshots = int(Headshots.replace(',', '')) if Headshots else None
+                #E点数
+                ECreditBalance = soup.find('span', class_='name', title='E-Credit Balance').find_parent('div', class_='numbers').find('span', class_='value').get_text(strip=True)
+                ECreditBalance = int(ECreditBalance.replace(',', '')) if ECreditBalance else None
+                #PVE经验
+                PveXP = soup.find('span', class_='name', title='PvE XP').find_parent('div', class_='numbers').find('span', class_='value').get_text(strip=True)
+                PveXP = int(PveXP.replace(',', '')) if PveXP else None
+                #具名击杀
+                NamedKills = int(soup.find('h2', string='PvE').find_parent('div', class_='card').find('span', class_='name', title='Named Kills').find_parent('div', class_='numbers').find('span', class_='value').get_text(strip=True).replace(',', ''))
+                #鬣狗击杀
+                HyenaKills = soup.find('span', class_='name', title='Hyena Kills').find_parent('div', class_='numbers').find('span', class_='value').get_text(strip=True)
+                HyenaKills = int(HyenaKills.replace(',', '')) if HyenaKills else None
+                #流亡者击杀
+                OutCastsKills = soup.find('span', class_='name', title='OutCasts Kills').find_parent('div', class_='numbers').find('span', class_='value').get_text(strip=True)
+                OutCastsKills = int(OutCastsKills.replace(',', '')) if OutCastsKills else None
+                #真实之子击杀
+                TrueSonsKills = soup.find('span', class_='name', title='TrueSons Kills').find_parent('div', class_='numbers').find('span', class_='value').get_text(strip=True)
+                TrueSonsKills = int(TrueSonsKills.replace(',', '')) if TrueSonsKills else None
+                #黯牙击杀
+                BlackTuskKills = int(soup.find('h2', string='PvE').find_parent('div', class_='card').find('span', class_='name', title='BlackTusk Kills').find_parent('div', class_='numbers').find('span', class_='value').get_text(strip=True).replace(',', ''))
+                #暗区时长
+                h2 = soup.find('h2', string='Dark Zone')
+                if h2:
+                    playtime_span = h2.find_next('span', class_='playtime')
+                    if playtime_span:
+                        text = playtime_span.get_text(strip=True)
+                        match = re.search(r'(\d+)', text)
+                        dzPlaytime = int(match.group(1)) if match else None
+                #暗区经验
+                DzXp = soup.find('span', class_='name', title='DZ XP').find_parent('div', class_='numbers').find('span', class_='value').get_text(strip=True)
+                DzXp = int(DzXp.replace(',', '')) if DzXp else None
+                #冲突战等级
+                conflict_span = soup.find('span', class_='name', title='Conflict Rank').find_parent('div', class_='numbers').find('span', class_='value').get_text(strip=True)
+                conflict_span = int(conflict_span.replace(',', '')) if conflict_span else None
+                #叛变击杀
+                RoguesKilled = soup.find('span', class_='name', title='Rogues Killed').find_parent('div', class_='numbers').find('span', class_='value').get_text(strip=True)
+                RoguesKilled = int(RoguesKilled.replace(',', '')) if RoguesKilled else None
+                #叛变时长
+                RogueTimePlayed = soup.find('span', class_='name', title='Rogue Time Played').find_parent('div', class_='numbers').find('span', class_='value').get_text(strip=True)
+                #最长叛变时间
+                RogueLongestTimePlayed = soup.find('span', class_='name', title='Rogue Longest Time Played').find_parent('div', class_='numbers').find('span', class_='value').get_text(strip=True)
+                #流血击杀
+                BleedingKills = soup.find('td', string='Bleeding Kills').find_next_sibling('td').get_text(strip=True)
+                BleedingKills = int(BleedingKills.replace(',', '')) if BleedingKills else None
+                #燃烧击杀
+                BurningKills = soup.find('td', string='Burning Kills').find_next_sibling('td').get_text(strip=True)
+                BurningKills = int(BurningKills.replace(',', '')) if BurningKills else None
+                #爆头击杀
+                HeadshotKills = soup.find('td', string='Headshot Kills').find_next_sibling('td').get_text(strip=True)
+                HeadshotKills = int(HeadshotKills.replace(',', '')) if HeadshotKills else None
+                #冲锋枪击杀
+                SMGKills = soup.find('td', string='SMG Kills').find_next_sibling('td').get_text(strip=True)
+                SMGKills = int(SMGKills.replace(',', '')) if SMGKills else None
+                #霰弹枪击杀
+                ShotgunKills = soup.find('td', string='Shotgun Kills').find_next_sibling('td').get_text(strip=True)
+                ShotgunKills = int(ShotgunKills.replace(',', '')) if ShotgunKills else None
+                #步枪击杀
+                RifleKills = soup.find('td', string='Rifle Kills').find_next_sibling('td').get_text(strip=True)
+                RifleKills = int(RifleKills.replace(',', '')) if RifleKills else None
+                #手枪击杀
+                PistolKills = soup.find('td', string='Pistol Kills').find_next_sibling('td').get_text(strip=True)
+                PistolKills = int(PistolKills.replace(',', '')) if PistolKills else None
+                logger.info(f"数据字典已生成，数据来源：tracker.gg")
 
-        # 2. 获取玩家统计数据
-        stats_url = f"{self.api_base_url}/stats?gameId=60859c37-949d-49e2-8fc8-6d8dc40f1a9e&platform=uplay&uids={uid}"
-        try:
-            async with aiohttp.ClientSession() as session:
-                async with session.get(stats_url, timeout=10) as resp:
-                    if resp.status != 200:
-                        yield event.plain_result(f"获取统计数据失败，状态码：{resp.status}")
-                        return
-                    stats_data = await resp.json()
-                    # 假设 stats_data 是包含玩家信息的字典，你需要根据实际结构调整
-                    # 例如：stats_data = stats_data[0] 或类似
-        except Exception as e:
-            logger.error(f"请求统计异常：{e}")
-            yield event.plain_result("网络错误，请稍后重试")
-            return
-        
-        #时间格式化函数
-        def format_duration(seconds):
+        elif self.data_source == "ubi-go":
+            # 1. 获取玩家 UID
+            profile_url = f"{self.api_base_url}/profile?username={username}&platform=uplay"
             try:
-                seconds = int(seconds)
-            except (ValueError, TypeError):
-                return "0秒"
-            if seconds <= 0:
-                return "0秒"
-            h = seconds // 3600
-            m = (seconds % 3600) // 60
-            s = seconds % 60
-            parts = []
-            if h:
-                parts.append(f"{h}小时")
-            if m:
-                parts.append(f"{m}分钟")
-            if s:
-                parts.append(f"{s}秒")
-            return "".join(parts) if parts else "0秒"
-        
-        #武器击杀求和用
-        def get_weapon_total(stats_obj, family):
-            total = 0
-            prefix = f"weaponFactionKills.weaponFamily.{family}.npcFaction."
-            for key, value in stats_obj.items():
-                if key.startswith(prefix):
-                    total += int(value.get("value", 0))
-            return total
-        
-        player_data = stats_data["data"][0]["stats"]
-        #===================
-        #头像
-        avatar_url = f"https://ubisoft-avatars.akamaized.net/{uid}/default_146_146.png"
-        logger.info(f"avatar_url type: {type(avatar_url)}, value: {avatar_url}")
-        #等级
-        Level = player_data.get("LatestLevel.rankType.NormalXP", {}).get("value", "0")
-        #暗区等级
-        DZLevel = player_data.get("LatestLevel.rankType.DarkZoneXP", {}).get("value", "0")
-        #游戏时长
-        playtime_seconds = int(player_data.get("Playtime", {}).get("value", "0"))
-        gametime = round(playtime_seconds / 3600, 1) if playtime_seconds else 0
-        #功勋
-        CurrComm = player_data.get("LatestCommendationScore", {}).get("value", "0")
-        #物品拾取数量
-        ItemsLooted = player_data.get("SumItemsLooted", {}).get("value", "0")
-        #玩家击杀
-        PvpKills = player_data.get("SumPvpKills", {}).get("value", "0")
-        #NPC击杀
-        NpcKills = player_data.get("SumPveKills", {}).get("value", "0")
-        #技能击杀
-        SkillKills = player_data.get("SumSkillKills", {}).get("value", "0")
-        #爆头数量
-        Headshots = player_data.get("SumHeadShots", {}).get("value", "0")
-        #E点数
-        ECreditBalance = int(player_data.get("LatestWalletBalanceSplit.currencyName.E-Credits", {}).get("value", "0"))
-        #PVE经验
-        PveXP = player_data.get("TotalXpOw", {}).get("value", "0")
-        #具名击杀
-        NamedKills = player_data.get("specialRoleKills.npcSpecialRole.named", {}).get("value", "0")
-        #鬣狗击杀
-        HyenaKills = player_data.get("factionDarkZoneKills.npcFaction.Blackbloc", {}).get("value", "0")
-        #流亡者击杀
-        OutCastsKills = player_data.get("factionDarkZoneKills.npcFaction.Cultists", {}).get("value", "0")
-        #真实之子击杀
-        TrueSonsKills = player_data.get("factionDarkZoneKills.npcFaction.Militia", {}).get("value", "0")
-        #黯牙击杀
-        BlackTuskKills = player_data.get("factionKills.npcFaction.Endgame", {}).get("value", "0")
-        #暗区时长
-        dzplaytime_seconds = int(player_data.get("TotalPlaytimeDarkzone", {}).get("value", "0"))
-        dzPlaytime = round(dzplaytime_seconds / 3600, 1) if dzplaytime_seconds else 0
-        #暗区经验
-        DzXp = player_data.get("TotalXpDz", {}).get("value", "0")
-        #冲突战等级
-        conflict_span = player_data.get("LatestLevel.rankType.OrganizedPvpXP", {}).get("value", "0")
-        #叛变击杀
-        RoguesKilled = player_data.get("numberOfRoguePlayerKills", {}).get("value", "0")
-        #叛变时长
-        RogueTimePlayed_seconds = player_data.get("TotalPlaytimeRogue", {}).get("value", "0")
-        RogueTimePlayed = format_duration(RogueTimePlayed_seconds)
-        #最长叛变时间
-        RogueLongestTimePlayed_seconds = player_data.get("MaxRogueTime", {}).get("value", "0")
-        RogueLongestTimePlayed = format_duration(RogueLongestTimePlayed_seconds)
-        #流血击杀
-        BleedingKills = player_data.get("bleedingKills", {}).get("value", "0")
-        #燃烧击杀
-        BurningKills = player_data.get("burningKills", {}).get("value", "0")
-        #爆头击杀
-        HeadshotKills = player_data.get("headshotKills", {}).get("value", "0")
-        #冲锋枪击杀
-        SMGKills = get_weapon_total(player_data, "SubMachinegun")
-        #霰弹枪击杀
-        ShotgunKills = get_weapon_total(player_data, "Shotgun")
-        #步枪击杀
-        RifleKills = player_data.get("weaponFamilyKills.weaponFamily.MountedWeapon", {}).get("value", "0")
-        #手枪击杀
-        PistolKills = player_data.get("weaponFamilyKills.weaponFamily.Pistol", {}).get("value", "0")
+                async with aiohttp.ClientSession() as session:
+                    async with session.get(profile_url, timeout=10) as resp:
+                        if resp.status != 200:
+                            yield event.plain_result(f"获取UID失败，状态码：{resp.status}")
+                            return
+                        profile_data = await resp.json()
+                        uid = profile_data.get("data", {}).get("UserId")  # 根据实际返回字段调整
+                        if not uid:
+                            yield event.plain_result("未找到玩家UID")
+                            return
+            except Exception as e:
+                logger.error(f"请求UID异常：{e}")
+                yield event.plain_result("网络错误，请稍后重试")
+                return
+
+            # 2. 获取玩家统计数据
+            stats_url = f"{self.api_base_url}/stats?gameId=60859c37-949d-49e2-8fc8-6d8dc40f1a9e&platform=uplay&uids={uid}"
+            try:
+                async with aiohttp.ClientSession() as session:
+                    async with session.get(stats_url, timeout=10) as resp:
+                        if resp.status != 200:
+                            yield event.plain_result(f"获取统计数据失败，状态码：{resp.status}")
+                            return
+                        stats_data = await resp.json()
+            except Exception as e:
+                logger.error(f"请求统计异常：{e}")
+                yield event.plain_result("网络错误，请稍后重试")
+                return
+            
+            #时间格式化函数
+            def format_duration(seconds):
+                try:
+                    seconds = int(seconds)
+                except (ValueError, TypeError):
+                    return "0秒"
+                if seconds <= 0:
+                    return "0秒"
+                h = seconds // 3600
+                m = (seconds % 3600) // 60
+                s = seconds % 60
+                parts = []
+                if h:
+                    parts.append(f"{h}小时")
+                if m:
+                    parts.append(f"{m}分钟")
+                if s:
+                    parts.append(f"{s}秒")
+                return "".join(parts) if parts else "0秒"
+            
+            #武器击杀求和
+            def get_weapon_total(stats_obj, family):
+                total = 0
+                prefix = f"weaponFactionKills.weaponFamily.{family}.npcFaction."
+                for key, value in stats_obj.items():
+                    if key.startswith(prefix):
+                        total += int(value.get("value", 0))
+                return total
+            
+            player_data = stats_data["data"][0]["stats"]
+            #===================
+            #头像
+            avatar_url = f"https://ubisoft-avatars.akamaized.net/{uid}/default_146_146.png"
+            logger.info(f"avatar_url type: {type(avatar_url)}, value: {avatar_url}")
+            #等级
+            Level = player_data.get("LatestLevel.rankType.NormalXP", {}).get("value", "0")
+            #暗区等级
+            DZLevel = player_data.get("LatestLevel.rankType.DarkZoneXP", {}).get("value", "0")
+            #游戏时长
+            playtime_seconds = int(player_data.get("Playtime", {}).get("value", "0"))
+            gametime = round(playtime_seconds / 3600, 1) if playtime_seconds else 0
+            #功勋
+            CurrComm = player_data.get("LatestCommendationScore", {}).get("value", "0")
+            #物品拾取数量
+            ItemsLooted = player_data.get("SumItemsLooted", {}).get("value", "0")
+            #玩家击杀
+            PvpKills = player_data.get("SumPvpKills", {}).get("value", "0")
+            #NPC击杀
+            NpcKills = player_data.get("SumPveKills", {}).get("value", "0")
+            #技能击杀
+            SkillKills = player_data.get("SumSkillKills", {}).get("value", "0")
+            #爆头数量
+            Headshots = player_data.get("SumHeadShots", {}).get("value", "0")
+            #E点数
+            ECreditBalance = int(player_data.get("LatestWalletBalanceSplit.currencyName.E-Credits", {}).get("value", "0"))
+            #PVE经验
+            PveXP = player_data.get("TotalXpOw", {}).get("value", "0")
+            #具名击杀
+            NamedKills = player_data.get("specialRoleKills.npcSpecialRole.named", {}).get("value", "0")
+            #鬣狗击杀
+            HyenaKills = player_data.get("factionDarkZoneKills.npcFaction.Blackbloc", {}).get("value", "0")
+            #流亡者击杀
+            OutCastsKills = player_data.get("factionDarkZoneKills.npcFaction.Cultists", {}).get("value", "0")
+            #真实之子击杀
+            TrueSonsKills = player_data.get("factionDarkZoneKills.npcFaction.Militia", {}).get("value", "0")
+            #黯牙击杀
+            BlackTuskKills = player_data.get("factionKills.npcFaction.Endgame", {}).get("value", "0")
+            #暗区时长
+            dzplaytime_seconds = int(player_data.get("TotalPlaytimeDarkzone", {}).get("value", "0"))
+            dzPlaytime = round(dzplaytime_seconds / 3600, 1) if dzplaytime_seconds else 0
+            #暗区经验
+            DzXp = player_data.get("TotalXpDz", {}).get("value", "0")
+            #冲突战等级
+            conflict_span = player_data.get("LatestLevel.rankType.OrganizedPvpXP", {}).get("value", "0")
+            #叛变击杀
+            RoguesKilled = player_data.get("numberOfRoguePlayerKills", {}).get("value", "0")
+            #叛变时长
+            RogueTimePlayed_seconds = player_data.get("TotalPlaytimeRogue", {}).get("value", "0")
+            RogueTimePlayed = format_duration(RogueTimePlayed_seconds)
+            #最长叛变时间
+            RogueLongestTimePlayed_seconds = player_data.get("MaxRogueTime", {}).get("value", "0")
+            RogueLongestTimePlayed = format_duration(RogueLongestTimePlayed_seconds)
+            #流血击杀
+            BleedingKills = player_data.get("bleedingKills", {}).get("value", "0")
+            #燃烧击杀
+            BurningKills = player_data.get("burningKills", {}).get("value", "0")
+            #爆头击杀
+            HeadshotKills = player_data.get("headshotKills", {}).get("value", "0")
+            #冲锋枪击杀
+            SMGKills = get_weapon_total(player_data, "SubMachinegun")
+            #霰弹枪击杀
+            ShotgunKills = get_weapon_total(player_data, "Shotgun")
+            #步枪击杀
+            RifleKills = player_data.get("weaponFamilyKills.weaponFamily.MountedWeapon", {}).get("value", "0")
+            #手枪击杀
+            PistolKills = player_data.get("weaponFamilyKills.weaponFamily.Pistol", {}).get("value", "0")
+            logger.info(f"数据字典已生成，数据来源：UBI-GO URL:{self.api_base_url}")
 
         #整理字典
         player_info_data = {
@@ -535,7 +651,7 @@ class TheDivision2Plugin(Star):
             yield event.plain_result("生成图片失败，请稍后重试")
             return
 
-            # 下载图片到缓存文件
+        # 下载图片到缓存文件
         try:
             async with aiohttp.ClientSession() as session:
                 async with session.get(img_url) as resp:
