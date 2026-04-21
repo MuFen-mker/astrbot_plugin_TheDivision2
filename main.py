@@ -1,6 +1,6 @@
 from astrbot.api.event import filter, AstrMessageEvent, MessageEventResult
 from astrbot.api.star import Context, Star, register
-from astrbot.api import logger 
+from astrbot.api import logger, AstrBotConfig 
 from bs4 import BeautifulSoup
 from curl_cffi.requests import AsyncSession
 import asyncio
@@ -13,14 +13,18 @@ from jinja2 import Template
 from pathlib import Path
 from astrbot.core.utils.astrbot_path import get_astrbot_data_path
 
-class MyPlugin(Star):
-    def __init__(self, context: Context):
+class astrbot_plugin_TheDivision2(Star):
+    def __init__(self, context: Context, config: AstrBotConfig = None):
         super().__init__(context)
+        # 读取配置
+        base = config.get("api_base_url", "http://127.0.0.1:8080")
+        self.api_base_url = base.rstrip('/')
+        logger.info(f"插件已启动，UBI-GO后端地址: {self.api_base_url}")
 
     @filter.command("数据查询")
     async def on_query(self, event: AstrMessageEvent, username: str):
         # 1. 获取玩家 UID
-        profile_url = f"http://127.0.0.1:8080/profile?username={username}&platform=uplay"
+        profile_url = f"{self.api_base_url}/profile?username={username}&platform=uplay"
         try:
             async with aiohttp.ClientSession() as session:
                 async with session.get(profile_url, timeout=10) as resp:
@@ -38,7 +42,7 @@ class MyPlugin(Star):
             return
 
         # 2. 获取玩家统计数据
-        stats_url = f"http://127.0.0.1:8080/stats?gameId=60859c37-949d-49e2-8fc8-6d8dc40f1a9e&platform=uplay&uids={uid}"
+        stats_url = f"{self.api_base_url}/stats?gameId=60859c37-949d-49e2-8fc8-6d8dc40f1a9e&platform=uplay&uids={uid}"
         try:
             async with aiohttp.ClientSession() as session:
                 async with session.get(stats_url, timeout=10) as resp:
