@@ -62,7 +62,11 @@ class TheDivision2Plugin(Star):
         
         #时间格式化函数
         def format_duration(seconds):
-            if not seconds:
+            try:
+                seconds = int(seconds)
+            except (ValueError, TypeError):
+                return "0秒"
+            if seconds <= 0:
                 return "0秒"
             h = seconds // 3600
             m = (seconds % 3600) // 60
@@ -95,7 +99,7 @@ class TheDivision2Plugin(Star):
         #暗区等级
         DZLevel = player_data.get("LatestLevel.rankType.DarkZoneXP", {}).get("value", "0")
         #游戏时长
-        playtime_seconds = player_data.get("Playtime", {}).get("value", "0")
+        playtime_seconds = int(player_data.get("Playtime", {}).get("value", "0"))
         gametime = round(playtime_seconds / 3600, 1) if playtime_seconds else 0
         #功勋
         CurrComm = player_data.get("LatestCommendationScore", {}).get("value", "0")
@@ -124,7 +128,7 @@ class TheDivision2Plugin(Star):
         #黯牙击杀
         BlackTuskKills = player_data.get("factionKills.npcFaction.Endgame", {}).get("value", "0")
         #暗区时长
-        dzplaytime_seconds = player_data.get("TotalPlaytimeDarkzone", {}).get("value", "0")
+        dzplaytime_seconds = int(player_data.get("TotalPlaytimeDarkzone", {}).get("value", "0"))
         dzPlaytime = round(dzplaytime_seconds / 3600, 1) if dzplaytime_seconds else 0
         #暗区经验
         DzXp = player_data.get("TotalXpDz", {}).get("value", "0")
