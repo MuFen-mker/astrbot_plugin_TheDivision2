@@ -21,7 +21,9 @@ class TheDivision2Plugin(Star):
             self.data_source = "ubi-go"
         else:
             base = config.get("api_base_url", "http://127.0.0.1:8080")
-            self.data_source = config.get("data_source", "ubi-go")
+            ds = config.get("data_source", "ubi-go")
+            # 规范化数据源值
+            self.data_source = ds if ds in ("tracker", "ubi-go") else "tracker"
         self.api_base_url = base.rstrip('/')
         logger.info(f"后端基础地址: {self.api_base_url}, 数据源: {self.data_source}")
 

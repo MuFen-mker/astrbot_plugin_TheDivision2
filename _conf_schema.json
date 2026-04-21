@@ -7,12 +7,9 @@
     },
     "data_source": {
         "description": "数据源选择",
-        "type": "select",
-        "hint": "选择使用 tracker.gg 网站数据或自建 UBI-GO 后端 API",
-        "default": "ubi-go",
-        "options": [
-            { "label": "Tracker.gg", "value": "tracker" },
-            { "label": "UBI-GO(需自建后端)", "value": "ubi-go" }
-        ]
+        "type": "string",
+        "hint": "tracker: 使用 tracker.gg 网站数据；ubi-go: 使用自建后端 API",
+        "default": "tracker",
+        "enum": ["tracker.gg", "ubi-go"]
     }
 }
