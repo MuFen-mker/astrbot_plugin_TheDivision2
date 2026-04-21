@@ -224,7 +224,7 @@ class TheDivision2Plugin(Star):
             #玩家击杀
             PvpKills = player_data.get("SumPvpKills", {}).get("value", "0")
             #NPC击杀
-            NpcKills = player_data.get("SumPveKills", {}).get("value", "0")
+            NpcKills = player_data.get("SumNpcKills", {}).get("value", "0")
             #技能击杀
             SkillKills = player_data.get("SumSkillKills", {}).get("value", "0")
             #爆头数量
