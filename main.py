@@ -13,13 +13,16 @@ from jinja2 import Template
 from pathlib import Path
 from astrbot.core.utils.astrbot_path import get_astrbot_data_path
 
-class astrbot_plugin_TheDivision2(Star):
+class TheDivision2Plugin(Star):
     def __init__(self, context: Context, config: AstrBotConfig = None):
         super().__init__(context)
-        # 读取配置
-        base = config.get("api_base_url", "http://127.0.0.1:8080")
+        # 兼容 config 为 None 的情况
+        if config is None:
+            base = "http://127.0.0.1:8080"
+        else:
+            base = config.get("api_base_url", "http://127.0.0.1:8080")
         self.api_base_url = base.rstrip('/')
-        logger.info(f"插件已启动，UBI-GO后端地址: {self.api_base_url}")
+        logger.info(f"后端基础地址: {self.api_base_url}")
 
     @filter.command("数据查询")
     async def on_query(self, event: AstrMessageEvent, username: str):
