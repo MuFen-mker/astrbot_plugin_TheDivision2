@@ -642,8 +642,9 @@ class TheDivision2Plugin(Star):
         html = template.render(data=translated_data, vendor_name_map=merchant_map)
 
         options = {
-            "type": "png",
-            "device_scale_factor": 3,   # 核心设置：启用高清渲染
+            "type": "jpeg",
+            "quality": 75,
+            "device_scale_factor": 1,
         }
         try:
             img_url = await self.html_render(html, {},options=options)  # 可加 options
