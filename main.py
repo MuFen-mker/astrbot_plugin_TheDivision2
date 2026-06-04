@@ -279,13 +279,13 @@ class TheDivision2Plugin(Star):
             #头部命中率
             HeadHitRate = f"{Headshots/hit*100:.1f}%"
             #爆头和身体命中比
-            HeadshotToBodyshotRatio = f"每命中{((lambda r: f'{int(r)}' if r.is_integer() else f'{r:.1f}')(bodyHit/Headshots))}次身体后命中1次头部"
+            HeadshotToBodyshotRatio = f"{((lambda r: f'{int(r)}' if r.is_integer() else f'{r:.1f}')(bodyHit/Headshots))}次身体:1次头部"
             #每小时击杀数
-            KillRatePerHour = NpcKills/gametime
+            KillRatePerHour = int(NpcKills/gametime)
             #每小时爆头命中数
-            HourlyHeadcountHits = Headshots/gametime
+            HourlyHeadcountHits = int(Headshots/gametime)
             #每小时身体命中数
-            HourlyBodyHits = bodyHit/gametime
+            HourlyBodyHits = int(bodyHit/gametime)
             #当日击杀数
             DailyKills = player_data.get("npckillsperiodic", {}).get("value", "0")
             #当日爆头数
