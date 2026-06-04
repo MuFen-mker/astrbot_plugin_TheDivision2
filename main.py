@@ -141,6 +141,24 @@ class TheDivision2Plugin(Star):
             #手枪击杀
             PistolKills = soup.find('td', string='Pistol Kills').find_next_sibling('td').get_text(strip=True)
             PistolKills = int(PistolKills.replace(',', '')) if PistolKills else None
+            #总命中数
+            hit = "无"
+            #身体命中数
+            bodyHit = "无"
+            #头部命中率
+            HeadHitRate = "无"
+            #爆头和身体命中比
+            HeadshotToBodyshotRatio = "无"
+            #每小时击杀数
+            KillRatePerHour = "无"
+            #每小时爆头命中数
+            HourlyHeadcountHits = "无"
+            #每小时身体命中数
+            HourlyBodyHits = "无"
+            #当日击杀数
+            DailyKills = "无"
+            #当日爆头数
+            DailyHeadcount = "无"
             logger.info(f"数据字典已生成，数据来源：tracker.gg")
 
         elif self.data_source == "ubi-go":
