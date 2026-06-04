@@ -29,28 +29,29 @@ class TheDivision2Plugin(Star):
         self.api_base_url = base.rstrip('/')
         logger.info(f"后端基础地址: {self.api_base_url}, 数据源: {self.data_source}")
     
-    def query_talent_by_name(talent_name: str):
-        """根据天赋中文名或英文名查询，返回字典或 None"""
+    def get_talent_data(self, talent_name: str):
+        """根据天赋名称（中文或英文）从 data.db 中查询完整信息"""
         db_path = os.path.join(os.path.dirname(__file__), "data.db")
         conn = sqlite3.connect(db_path)
         conn.row_factory = sqlite3.Row
         cur = conn.cursor()
-        cur.execute(
-            "SELECT name_zh, name_en, `icon path`, type, description FROM talent WHERE name_zh = ? OR name_en = ?",
-            (talent_name, talent_name)
-        )
+        # 注意字段名 `icon path` 有空格，必须用反引号包裹
+        cur.execute("""
+            SELECT name_zh, name_en, `icon path`, type, description
+            FROM talent
+            WHERE name_zh = ? OR name_en = ?
+        """, (talent_name, talent_name))
         row = cur.fetchone()
         conn.close()
-        if row:
-            # 将字段映射为模板需要的变量名
-            return {
-                "name": row["name_zh"],
-                "eng_name": row["name_en"],
-                "icon_url": row["icon path"],      # 注意字段名有空格，用反引号或该写法
-                "type": row["type"],
-                "description": row["description"]
-            }
-        return None
+        if not row:
+            return None
+        return {
+            "name": row["name_zh"],
+            "eng_name": row["name_en"],
+            "icon_url": row["icon path"],      # 数据库已存绝对路径，直接使用
+            "type": row["type"] or "",
+            "description": row["description"] or ""
+        }
 
     @filter.command("数据查询")
     async def on_query(self, event: AstrMessageEvent, username: str):
@@ -752,12 +753,17 @@ class TheDivision2Plugin(Star):
         if not talent:
             yield event.plain_result(f"未找到名为「{talent_name}」的天赋")
             return
-        
+
         # 渲染 HTML 模板
         html = self.render_template("talent_card.html", talent=talent)
-        # 生成图片（复用）
-        img_bytes = await self.get_player_info_pic(html)
-        yield event.plain_result(Image.from_bytes(img_bytes))
+        options = {
+            "type": "png",
+            "full_page": True,
+            "scale": "css",
+            "omit_background": True
+        }
+        img_url = await self.html_render(html, {}, options=options)
+        yield event.image_result(img_url)
 
 
     async def terminate(self):
