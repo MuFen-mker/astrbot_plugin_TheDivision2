@@ -20,18 +20,19 @@
             --panel-bg: rgba(20, 20, 28, 0.7);
         }
 
+        /* 直接匹配截图宽度 1280px，并放大所有内边距和字体 */
         body {
+            width: 1280px;
+            margin: 0 auto;
+            padding: 40px;              /* 留白稍多，但卡片内部已放大 */
             background-color: #0a0a0f;
             background-image: 
                 radial-gradient(circle at 30% 20%, rgba(255, 133, 0, 0.12) 0%, transparent 70%),
                 repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(255, 133, 0, 0.05) 2px, rgba(255, 133, 0, 0.05) 4px),
                 repeating-linear-gradient(90deg, transparent, transparent 2px, rgba(255, 133, 0, 0.05) 2px, rgba(255, 133, 0, 0.05) 4px);
             font-family: 'Segoe UI', 'Orbitron', 'Rajdhani', 'Roboto', sans-serif;
-            margin: 0;
-            padding: 0;
         }
 
-        /* 扫描线 (装饰) */
         .scanline {
             position: fixed;
             top: 0;
@@ -45,55 +46,52 @@
             z-index: 10;
         }
 
-        /* 主卡片 */
         .talent-card {
             background: var(--bg-dark);
-            max-width: 860px;
-            border-left: 5px solid var(--isac-orange);
-            box-shadow: 0 20px 35px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 133, 0, 0.2) inset, 0 0 15px rgba(255, 133, 0, 0.25);
-            padding: 32px;
+            width: 100%;
+            border-left: 7px solid var(--isac-orange);
+            box-shadow: 0 30px 45px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 133, 0, 0.2) inset, 0 0 22px rgba(255, 133, 0, 0.3);
+            padding: 48px 56px 56px 56px;
             clip-path: polygon(0 0, 98% 0, 100% 3%, 100% 100%, 2% 100%, 0 97%);
             backdrop-filter: blur(1px);
-            margin: 0;
             position: relative;
         }
 
         .deco-dots {
             position: absolute;
-            top: 18px;
-            right: 22px;
+            top: 28px;
+            right: 32px;
             display: flex;
-            gap: 6px;
+            gap: 10px;
         }
         .dot {
-            width: 5px;
-            height: 5px;
+            width: 7px;
+            height: 7px;
             background: var(--isac-orange);
-            box-shadow: 0 0 4px var(--isac-orange);
+            box-shadow: 0 0 5px var(--isac-orange);
             border-radius: 1px;
         }
 
-        /* 头部区域 */
         .talent-header {
             display: flex;
-            gap: 1.8rem;
+            gap: 2.5rem;
             align-items: center;
             flex-wrap: wrap;
-            border-bottom: 1px solid var(--border-glow);
-            padding-bottom: 1.2rem;
-            margin-bottom: 1.2rem;
+            border-bottom: 2px solid var(--border-glow);
+            padding-bottom: 2rem;
+            margin-bottom: 2rem;
         }
 
         .talent-icon {
-            width: 80px;
-            height: 80px;
+            width: 120px;
+            height: 120px;
             background: #11161f;
-            border: 2px solid var(--isac-orange);
-            border-radius: 12px;
+            border: 3px solid var(--isac-orange);
+            border-radius: 20px;
             display: flex;
             align-items: center;
             justify-content: center;
-            padding: 8px;
+            padding: 12px;
         }
         .talent-icon img {
             max-width: 100%;
@@ -102,84 +100,70 @@
         }
 
         .talent-name {
-            font-size: 2rem;
+            font-size: 3rem;
             font-weight: 800;
             background: linear-gradient(135deg, #fff, #ffc285);
             background-clip: text;
             -webkit-background-clip: text;
             color: transparent;
-            margin-bottom: 0.25rem;
+            margin-bottom: 0.4rem;
         }
         .talent-eng {
-            font-size: 1rem;
+            font-size: 1.4rem;
             color: var(--isac-orange);
             font-family: 'Courier New', monospace;
             text-transform: uppercase;
         }
 
-        /* 描述区域 */
         .talent-description {
             background: var(--panel-bg);
-            border-left: 3px solid var(--isac-orange);
-            padding: 1rem 1.2rem;
-            margin-bottom: 1.5rem;
-            border-radius: 0 8px 8px 0;
+            border-left: 5px solid var(--isac-orange);
+            padding: 1.5rem 1.8rem;
+            margin-bottom: 2rem;
+            border-radius: 0 12px 12px 0;
         }
         .desc-text {
             color: var(--text-primary);
-            font-size: 0.9rem;
-            line-height: 1.5;
+            font-size: 1.1rem;
+            line-height: 1.65;
             white-space: pre-line;
         }
 
-        /* 来源部位 - 美观的徽章网格 */
         .source-section {
-            margin-top: 0.2rem;
+            margin-top: 0.5rem;
         }
         .source-label {
-            font-size: 0.7rem;
+            font-size: 0.95rem;
             text-transform: uppercase;
             color: var(--isac-orange);
-            letter-spacing: 1.5px;
-            margin-bottom: 12px;
+            letter-spacing: 2.5px;
+            margin-bottom: 18px;
             font-weight: bold;
         }
         .weapon-grid {
             display: flex;
             flex-wrap: wrap;
-            gap: 12px;
+            gap: 16px;
         }
         .weapon-badge {
             background: rgba(0, 0, 0, 0.5);
             border: 1px solid rgba(255, 133, 0, 0.5);
-            border-radius: 40px;
-            padding: 0.4rem 1rem;
-            font-size: 0.8rem;
+            border-radius: 48px;
+            padding: 0.6rem 1.5rem;
+            font-size: 1rem;
             font-weight: 500;
             color: #ffda99;
             backdrop-filter: blur(2px);
-            transition: 0.1s;
-        }
-        .weapon-badge:hover {
-            border-color: var(--isac-orange);
-            background: rgba(255, 133, 0, 0.2);
         }
 
         .footer-divider {
-            margin-top: 1.8rem;
-            padding-top: 0.8rem;
+            margin-top: 2.2rem;
+            padding-top: 1.2rem;
             border-top: 1px solid var(--border-glow);
             text-align: right;
-            font-size: 0.6rem;
+            font-size: 0.8rem;
             color: var(--text-dim);
             font-family: monospace;
-        }
-
-        @media (max-width: 600px) {
-            body { padding: 16px; }
-            .talent-card { padding: 1.2rem; }
-            .talent-name { font-size: 1.5rem; }
-            .weapon-badge { font-size: 0.7rem; padding: 0.3rem 0.8rem; }
         }
     </style>
 </head>
@@ -190,10 +174,9 @@
         <div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div>
     </div>
 
-    <!-- 头部 -->
     <div class="talent-header">
         <div class="talent-icon">
-            <img src="{{ talent.icon_url }}" alt="{{ talent.name }}" onerror="this.src='https://placehold.co/80x80/ff8500/111?text=?'">
+            <img src="{{ talent.icon_url }}" alt="{{ talent.name }}" onerror="this.src='https://placehold.co/120x120/ff8500/111?text=?'">
         </div>
         <div class="talent-title">
             <div class="talent-name">{{ talent.name }}</div>
@@ -201,12 +184,10 @@
         </div>
     </div>
 
-    <!-- 描述 -->
     <div class="talent-description">
         <div class="desc-text">{{ talent.description | safe }}</div>
     </div>
 
-    <!-- 来源部位：使用 Jinja split 将换行符拆分为列表，循环生成徽章 -->
     <div class="source-section">
         <div class="source-label">⚙️ 可装配装备</div>
         <div class="weapon-grid">
