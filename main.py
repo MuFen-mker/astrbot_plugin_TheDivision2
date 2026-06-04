@@ -746,7 +746,7 @@ class TheDivision2Plugin(Star):
     @filter.command("天赋")
     async def talent_query(self, event: AstrMessageEvent, talent_name: str = None):
         if not talent_name:
-            yield event.plain_result("请提供天赋名称，例如：/天赋查询 反复")
+            yield event.plain_result("请提供天赋名称，例如：/天赋 反复")
             return
         talent = self.get_talent_data(talent_name.strip())
         if not talent:
