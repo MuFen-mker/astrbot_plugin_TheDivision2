@@ -775,12 +775,23 @@ class TheDivision2Plugin(Star):
             yield event.plain_result(f"未找到名为「{talent_name}」的天赋")
             return
 
-        # 渲染 HTML 模板
-        html = self.render_template("talent_card.html", talent=talent)
+        # 手动加载模板文件（与 on_query 中的方式一致）
+        template_path = os.path.join(os.path.dirname(__file__), "templates", "talent_card.html")
+        try:
+            with open(template_path, "r", encoding="utf-8") as f:
+                template_str = f.read()
+        except FileNotFoundError:
+            yield event.plain_result("模板文件 talent_card.html 未找到")
+            return
+
+        template = Template(template_str)
+        html = template.render(talent=talent)
+
+        # 生成图片
         options = {
-            "type": "png",
-            "full_page": True,
-            "scale": "css",
+            "type": "png", 
+            "full_page":True,
+            "scale":"css",
             "omit_background": True
         }
         img_url = await self.html_render(html, {}, options=options)
