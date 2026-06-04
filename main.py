@@ -30,25 +30,46 @@ class TheDivision2Plugin(Star):
         logger.info(f"后端基础地址: {self.api_base_url}, 数据源: {self.data_source}")
     
     def get_talent_data(self, talent_name: str):
-        """根据天赋名称（中文或英文）从 data.db 中查询完整信息"""
-        db_path = os.path.join(os.path.dirname(__file__), "data.db")
+        """根据天赋名称（中文或英文）从 data/data.db 中查询完整信息"""
+        db_path = os.path.join(os.path.dirname(__file__), "data", "data.db")
+        if not os.path.exists(db_path):
+            logger.error(f"数据库文件不存在: {db_path}")
+            return None
+        
         conn = sqlite3.connect(db_path)
         conn.row_factory = sqlite3.Row
         cur = conn.cursor()
+        
+        # 检查表是否存在（先尝试 talent，再尝试 talents）
+        cur.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='talent'")
+        if cur.fetchone():
+            table_name = "talent"
+        else:
+            cur.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='talents'")
+            if cur.fetchone():
+                table_name = "talents"
+            else:
+                logger.error("数据库中没有 talent 或 talents 表")
+                conn.close()
+                return None
+        
         # 注意字段名 `icon path` 有空格，必须用反引号包裹
-        cur.execute("""
+        query = f"""
             SELECT name_zh, name_en, `icon path`, type, description
-            FROM talent
+            FROM {table_name}
             WHERE name_zh = ? OR name_en = ?
-        """, (talent_name, talent_name))
+        """
+        cur.execute(query, (talent_name, talent_name))
         row = cur.fetchone()
         conn.close()
+        
         if not row:
             return None
+        
         return {
             "name": row["name_zh"],
             "eng_name": row["name_en"],
-            "icon_url": row["icon path"],      # 数据库已存绝对路径，直接使用
+            "icon_url": row["icon path"],      # 数据库已存绝对路径
             "type": row["type"] or "",
             "description": row["description"] or ""
         }
@@ -764,7 +785,6 @@ class TheDivision2Plugin(Star):
         }
         img_url = await self.html_render(html, {}, options=options)
         yield event.image_result(img_url)
-
 
     async def terminate(self):
         pass
