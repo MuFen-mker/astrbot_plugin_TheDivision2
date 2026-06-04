@@ -272,6 +272,24 @@ class TheDivision2Plugin(Star):
             RifleKills = player_data.get("weaponFamilyKills.weaponFamily.MountedWeapon", {}).get("value", "0")
             #手枪击杀
             PistolKills = player_data.get("weaponFamilyKills.weaponFamily.Pistol", {}).get("value", "0")
+            #总命中数
+            hit = player_data.get("SumHits", {}).get("value", "0")
+            #身体命中数
+            bodyHit = hit - Headshots
+            #头部命中率
+            HeadHitRate = f"{Headshots/hit*100:.1f}%"
+            #爆头和身体命中比
+            HeadshotToBodyshotRatio = f"每命中{((lambda r: f'{int(r)}' if r.is_integer() else f'{r:.1f}')(bodyHit/Headshots))}次身体后命中1次头部"
+            #每小时击杀数
+            KillRatePerHour = NpcKills/gametime
+            #每小时爆头命中数
+            HourlyHeadcountHits = Headshots/gametime
+            #每小时身体命中数
+            HourlyBodyHits = bodyHit/gametime
+            #当日击杀数
+            DailyKills = player_data.get("npckillsperiodic", {}).get("value", "0")
+            #当日爆头数
+            DailyHeadcount = player_data.get("DailySumHeadShots", {}).get("value", "0")
             logger.info(f"数据字典已生成，数据来源：UBI-GO URL:{self.api_base_url}")
 
         #整理字典
@@ -306,7 +324,16 @@ class TheDivision2Plugin(Star):
             "SMGKills":SMGKills,
             "ShotgunKills":ShotgunKills,
             "RifleKills":RifleKills,
-            "PistolKills":PistolKills
+            "PistolKills":PistolKills,
+            "hit":hit,
+            "bodyHit":bodyHit,
+            "HeadHitRate":HeadHitRate,
+            "HeadshotToBodyshotRatio":HeadshotToBodyshotRatio,
+            "KillRatePerHour":KillRatePerHour,
+            "HourlyHeadcountHits":HourlyHeadcountHits,
+            "HourlyBodyHits":HourlyBodyHits,
+            "DailyKills":DailyKills,
+            "DailyHeadcount":DailyHeadcount
         }
 
         #导入渲染模板
