@@ -1,6 +1,7 @@
 from astrbot.api.event import filter, AstrMessageEvent, MessageEventResult
 from astrbot.api.star import Context, Star, register
 from astrbot.api import logger, AstrBotConfig 
+from astrbot.api.message_components import Image
 from bs4 import BeautifulSoup
 from curl_cffi.requests import AsyncSession
 import asyncio
@@ -12,6 +13,7 @@ import os
 from jinja2 import Template
 from pathlib import Path
 from astrbot.core.utils.astrbot_path import get_astrbot_data_path
+import sqlite3
 
 class TheDivision2Plugin(Star):
     def __init__(self, context: Context, config: AstrBotConfig = None):
@@ -26,6 +28,29 @@ class TheDivision2Plugin(Star):
             self.data_source = ds if ds in ("tracker", "ubi-go") else "tracker"
         self.api_base_url = base.rstrip('/')
         logger.info(f"后端基础地址: {self.api_base_url}, 数据源: {self.data_source}")
+    
+    def query_talent_by_name(talent_name: str):
+        """根据天赋中文名或英文名查询，返回字典或 None"""
+        db_path = os.path.join(os.path.dirname(__file__), "data.db")
+        conn = sqlite3.connect(db_path)
+        conn.row_factory = sqlite3.Row
+        cur = conn.cursor()
+        cur.execute(
+            "SELECT name_zh, name_en, `icon path`, type, description FROM talent WHERE name_zh = ? OR name_en = ?",
+            (talent_name, talent_name)
+        )
+        row = cur.fetchone()
+        conn.close()
+        if row:
+            # 将字段映射为模板需要的变量名
+            return {
+                "name": row["name_zh"],
+                "eng_name": row["name_en"],
+                "icon_url": row["icon path"],      # 注意字段名有空格，用反引号或该写法
+                "type": row["type"],
+                "description": row["description"]
+            }
+        return None
 
     @filter.command("数据查询")
     async def on_query(self, event: AstrMessageEvent, username: str):
@@ -717,6 +742,23 @@ class TheDivision2Plugin(Star):
 
         # 发送本地缓存图片
         yield event.image_result(str(cache_file))
+
+    @filter.command("天赋")
+    async def talent_query(self, event: AstrMessageEvent, talent_name: str = None):
+        if not talent_name:
+            yield event.plain_result("请提供天赋名称，例如：/天赋查询 反复")
+            return
+        talent = self.get_talent_data(talent_name.strip())
+        if not talent:
+            yield event.plain_result(f"未找到名为「{talent_name}」的天赋")
+            return
+        
+        # 渲染 HTML 模板
+        html = self.render_template("talent_card.html", talent=talent)
+        # 生成图片（复用）
+        img_bytes = await self.get_player_info_pic(html)
+        yield event.plain_result(Image.from_bytes(img_bytes))
+
 
     async def terminate(self):
         pass
