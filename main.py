@@ -224,11 +224,11 @@ class TheDivision2Plugin(Star):
             #玩家击杀
             PvpKills = player_data.get("SumPvpKills", {}).get("value", "0")
             #NPC击杀
-            NpcKills = player_data.get("SumNpcKills", {}).get("value", "0")
+            NpcKills = int(player_data.get("SumNpcKills", {}).get("value", "0"))
             #技能击杀
             SkillKills = player_data.get("SumSkillKills", {}).get("value", "0")
             #爆头数量
-            Headshots = player_data.get("SumHeadShots", {}).get("value", "0")
+            Headshots = int(player_data.get("SumHeadShots", {}).get("value", "0"))
             #E点数
             ECreditBalance = int(player_data.get("LatestWalletBalanceSplit.currencyName.E-Credits", {}).get("value", "0"))
             #PVE经验
@@ -273,7 +273,7 @@ class TheDivision2Plugin(Star):
             #手枪击杀
             PistolKills = player_data.get("weaponFamilyKills.weaponFamily.Pistol", {}).get("value", "0")
             #总命中数
-            hit = player_data.get("SumHits", {}).get("value", "0")
+            hit = int(player_data.get("SumHits", {}).get("value", "0"))
             #身体命中数
             bodyHit = hit - Headshots
             #头部命中率
