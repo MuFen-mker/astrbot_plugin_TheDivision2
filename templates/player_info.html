@@ -10,7 +10,7 @@
             box-sizing: border-box;
         }
 
-        /* 主色调 —— 橙红科技感 (无背景线条与扫描线) */
+        /* 主色调 ) */
         :root {
             --isac-orange: #ff8500;
             --isac-glow: rgba(255, 133, 0, 0.6);
@@ -22,13 +22,18 @@
         }
 
         body {
-            background-color: #0a0a0f;      /* 纯色深空背景，无任何线条 */
+            background-color: #0a0a0f;
+            background-image: 
+                radial-gradient(circle at 30% 20%, rgba(255, 133, 0, 0.12) 0%, transparent 70%),
+                repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(255, 133, 0, 0.05) 2px, rgba(255, 133, 0, 0.05) 4px),
+                repeating-linear-gradient(90deg, transparent, transparent 2px, rgba(255, 133, 0, 0.05) 2px, rgba(255, 133, 0, 0.05) 4px);
             font-family: 'Segoe UI', 'Orbitron', 'Rajdhani', 'Roboto', 'Microsoft YaHei', sans-serif;
             margin: 0;
-            padding: 24px;                  /* 给卡片预留左上角间距，保持视觉呼吸感 */
+            padding: 24px;                  
+            position: relative;
         }
 
-        /* 主卡片 —— 切角军事风格 + 橙色电光边框，默认左上角排布（无flex居中） */
+        /* 主卡片  */
         .agent-card {
             background: var(--bg-dark);
             width: 100%;
@@ -40,7 +45,7 @@
             clip-path: polygon(0 0, 98% 0, 100% 3%, 100% 100%, 2% 100%, 0 97%);
             backdrop-filter: blur(1px);
             transition: all 0.2s;
-            margin: 0;                     /* 确保紧贴左上角，body的padding提供留白 */
+            margin: 0;                     
         }
 
         /* 边角科技装饰点（保留，增加UI细节） */
