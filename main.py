@@ -901,7 +901,7 @@ class TheDivision2Plugin(Star):
         img_url = await self.html_render(html, {}, options=options)
         yield event.image_result(img_url)
 
-    @filter.command("武器")
+    @filter.command("武器",split_args=False)
     async def weapon_query(self, event: AstrMessageEvent, weapon_name: str = None):
         if not weapon_name:
             yield event.plain_result("请提供武器名称，例如：/武器 铁肺")
