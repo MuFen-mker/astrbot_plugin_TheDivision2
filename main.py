@@ -901,29 +901,38 @@ class TheDivision2Plugin(Star):
         img_url = await self.html_render(html, {}, options=options)
         yield event.image_result(img_url)
 
-    @filter.command("武器",split_args=False)
-    async def weapon_query(self, event: AstrMessageEvent, weapon_name: str = None):
+    @filter.command("武器")
+    async def weapon_query(self, event: AstrMessageEvent):
+        # 获取原始消息字符串（AstrBot 已自动去除 @ 提及）
+        text = event.message_str.strip()
+        # 正则匹配：/武器 后面的所有内容（支持 /武器 和 武器）
+        match = re.search(r'^(?:/)?武器\s+(.+)$', text)
+        if not match:
+            yield event.plain_result("请提供武器名称，例如：/武器 战术 M1911")
+            return
+        weapon_name = match.group(1).strip()
         if not weapon_name:
-            yield event.plain_result("请提供武器名称，例如：/武器 铁肺")
+            yield event.plain_result("请提供武器名称，例如：/武器 战术 M1911")
             return
 
-        weapon = self.get_weapon_by_name(weapon_name.strip())
+        # 查询武器（必须调用）
+        weapon = self.get_weapon_by_name(weapon_name)
         if not weapon:
             yield event.plain_result(f"未找到名为「{weapon_name}」的武器")
             return
 
+        # 获取属性映射表
         attr_map = self.get_weapon_attributes_map()
 
-        # 构建武器属性列表（根据位置确定类型，从 attr_map 中获取对应数值）
+        # 构建武器属性列表（根据位置确定类型）
         attributes_list = []
         total = len(weapon['attributes'])
         for idx, attr_key in enumerate(weapon['attributes']):
             is_last = (idx == total - 1)
             attr_type = 'secondary' if is_last else 'core'
-            # 获取该属性在指定类型下的信息，若不存在则回退到任意类型
+            # 获取属性信息（优先根据类型获取，若无则降级）
             attr_info = attr_map.get(attr_key, {}).get(attr_type, {})
             if not attr_info:
-                # 降级：尝试获取该属性的任意类型（兼容旧数据）
                 for any_info in attr_map.get(attr_key, {}).values():
                     attr_info = any_info
                     break
@@ -931,13 +940,11 @@ class TheDivision2Plugin(Star):
             max_value = attr_info.get('max_value', '-')
             is_named = attr_info.get('named', False)
 
-            # 特殊处理随机词条
             if attr_key == '随机词条':
                 display_value = '-'
                 prototype_value = '-'
             else:
                 display_value = max_value if max_value else '-'
-                # 计算原型数值（仅非奇特武器）
                 if weapon['quality'] != '奇特' and display_value != '-':
                     try:
                         if '%' in display_value:
@@ -956,14 +963,11 @@ class TheDivision2Plugin(Star):
                 'value': display_value,
                 'prototype': prototype_value,
                 'special': is_named,
-                'type': attr_type   # 用于模板决定图标
+                'type': attr_type
             })
 
-        # 动态判断是否为特殊爆头武器（金色显示）
-        special_headshot = any(
-            attr['name'] == '爆头伤害' and attr.get('special') 
-            for attr in attributes_list
-        )
+        # 特殊爆头金色标记（根据属性中是否有名为“爆头伤害”的特殊词条）
+        special_headshot = any(attr['name'] == '爆头伤害' and attr.get('special') for attr in attributes_list)
 
         talent = self.get_talent_by_weapon_name(weapon['name_zh'])
 
@@ -1013,7 +1017,6 @@ class TheDivision2Plugin(Star):
         except Exception as e:
             logger.error(f"武器卡片渲染失败: {e}")
             yield event.plain_result("生成图片失败，请稍后重试")
-    
 
     async def terminate(self):
         pass
