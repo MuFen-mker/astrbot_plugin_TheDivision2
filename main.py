@@ -76,7 +76,7 @@ class TheDivision2Plugin(Star):
 
     def get_weapon_by_name(self, weapon_name: str):
         """根据武器名称（中文或英文）查询武器基础信息"""
-        db_path = os.path.join(os.path.dirname(__file__), "data.db")
+        db_path = os.path.join(os.path.dirname(__file__), "data", "data.db")
         conn = sqlite3.connect(db_path)
         conn.row_factory = sqlite3.Row
         cur = conn.cursor()
@@ -106,7 +106,7 @@ class TheDivision2Plugin(Star):
 
     def get_weapon_attributes_map(self):
         """获取属性映射表：key -> {entry_name_zh, max_value, type, named}"""
-        db_path = os.path.join(os.path.dirname(__file__), "data.db")
+        db_path = os.path.join(os.path.dirname(__file__), "data", "data.db")
         conn = sqlite3.connect(db_path)
         conn.row_factory = sqlite3.Row
         cur = conn.cursor()
@@ -127,7 +127,7 @@ class TheDivision2Plugin(Star):
 
     def get_talent_by_weapon_name(self, weapon_name: str):
         """根据武器名称模糊匹配天赋（匹配 talent 表的 type 字段）"""
-        db_path = os.path.join(os.path.dirname(__file__), "data.db")
+        db_path = os.path.join(os.path.dirname(__file__), "data", "data.db")
         conn = sqlite3.connect(db_path)
         conn.row_factory = sqlite3.Row
         cur = conn.cursor()
