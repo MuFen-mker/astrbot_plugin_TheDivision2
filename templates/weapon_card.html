@@ -160,11 +160,9 @@
                 <div class="stats-row">
                     <span class="stats-label">🎯 爆头倍率</span>
                     <span class="stats-value {% if weapon.special_headshot %}gold-value{% endif %}">
-                        {{ weapon.headshot_multiplier }}%
-                        {% if weapon.quality != '奇特' and weapon.headshot_multiplier and not weapon.special_headshot %}
-                        <span class="prototype-value">原型 {{ (weapon.headshot_multiplier * 1.5)|round(1) }}%</span>
-                        {% elif weapon.quality != '奇特' and weapon.special_headshot %}
-                        <span class="prototype-value">原型 {{ (weapon.headshot_multiplier * 1.5)|round(1) }}%</span>
+                        {{ weapon.head_magnification }}%
+                        {% if weapon.prototype_head %}
+                        <span class="prototype-value">原型 {{ weapon.prototype_head }}%</span>
                         {% endif %}
                     </span>
                 </div>

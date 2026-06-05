@@ -82,8 +82,8 @@ class TheDivision2Plugin(Star):
         cur = conn.cursor()
         cur.execute("""
             SELECT name_zh, name_en, type, quality, harm, rpm, magazine_capacity,
-                   reload, range, headshot_multiplier, sight, muzzle, grip, magazine,
-                   attributes, special_headshot
+                   reload, range, head_magnification, sight, muzzle, grip, magazine,
+                   attributes
             FROM weapon
             WHERE name_zh = ? OR name_en = ?
         """, (weapon_name, weapon_name))
@@ -92,6 +92,31 @@ class TheDivision2Plugin(Star):
         if not row:
             return None
         weapon = dict(row)
+        # 转换数字字段（避免字符串乘法错误）
+        try:
+            weapon['harm'] = float(weapon['harm']) if weapon['harm'] else 0.0
+        except:
+            weapon['harm'] = 0.0
+        try:
+            weapon['rpm'] = int(weapon['rpm']) if weapon['rpm'] else 0
+        except:
+            weapon['rpm'] = 0
+        try:
+            weapon['magazine_capacity'] = int(weapon['magazine_capacity']) if weapon['magazine_capacity'] else 0
+        except:
+            weapon['magazine_capacity'] = 0
+        try:
+            weapon['reload'] = float(weapon['reload']) if weapon['reload'] else 0.0
+        except:
+            weapon['reload'] = 0.0
+        try:
+            weapon['range'] = int(weapon['range']) if weapon['range'] else 0
+        except:
+            weapon['range'] = 0
+        try:
+            weapon['head_magnification'] = int(weapon['head_magnification']) if weapon['head_magnification'] else 0
+        except:
+            weapon['head_magnification'] = 0
         # 解析 attributes JSON 字符串
         if weapon.get('attributes'):
             try:
@@ -100,8 +125,6 @@ class TheDivision2Plugin(Star):
                 weapon['attributes'] = []
         else:
             weapon['attributes'] = []
-        # 确保 special_headshot 为布尔值
-        weapon['special_headshot'] = bool(weapon.get('special_headshot', 0))
         return weapon
 
     def get_weapon_attributes_map(self):
@@ -115,7 +138,6 @@ class TheDivision2Plugin(Star):
         conn.close()
         attr_map = {}
         for row in rows:
-            # named 字段是文本 "TRUE"/"FALSE"
             is_named = row['named'] == "TRUE" if row['named'] is not None else False
             attr_map[row['key']] = {
                 'entry_name_zh': row['entry_name_zh'],
@@ -131,7 +153,24 @@ class TheDivision2Plugin(Star):
         conn = sqlite3.connect(db_path)
         conn.row_factory = sqlite3.Row
         cur = conn.cursor()
-        # 模糊匹配 type 字段（包含武器名称）
+        cur.execute("SELECT name_zh, name_en, `icon path`, type, description FROM talent WHERE type LIKE ? LIMIT 1", (f'%{weapon_name}%',))
+        row = cur.fetchone()
+        conn.close()
+        if row:
+            return {
+                'name_zh': row['name_zh'],
+                'name_en': row['name_en'],
+                'icon_path': row['icon path'],
+                'type': row['type'],
+                'description': row['description']
+            }
+        return None
+
+        db_path = os.path.join(os.path.dirname(__file__), "data", "data.db")
+        conn = sqlite3.connect(db_path)
+        conn.row_factory = sqlite3.Row
+        cur = conn.cursor()
+        # 匹配 talent 表中的 type 字段，如 '铁肺' 或 '暗冬行动（冲锋枪）'
         cur.execute("SELECT name_zh, name_en, `icon path`, type, description FROM talent WHERE type LIKE ? LIMIT 1", (f'%{weapon_name}%',))
         row = cur.fetchone()
         conn.close()
@@ -882,13 +921,13 @@ class TheDivision2Plugin(Star):
         # 获取属性映射表
         attr_map = self.get_weapon_attributes_map()
 
-        # 构建武器属性列表（用于模板渲染）
+        # 构建武器属性列表
         attributes_list = []
         for attr_key in weapon['attributes']:
             attr_info = attr_map.get(attr_key, {})
             display_name = attr_info.get('entry_name_zh', attr_key)
-            is_special = attr_info.get('named', False)  # 特殊词条（具名/奇特属性）
-            # 当前武器表中没有存储具体属性数值，统一显示 '-'
+            is_special = attr_info.get('named', False)
+            # 数值目前没有存储，显示 -
             attributes_list.append({
                 'name': display_name,
                 'value': '-',
@@ -896,8 +935,20 @@ class TheDivision2Plugin(Star):
                 'special': is_special
             })
 
-        # 获取天赋（根据武器名称模糊匹配 type 字段）
+        # 获取天赋
         talent = self.get_talent_by_weapon_name(weapon['name_zh'])
+
+        # 计算原型数值（非奇特武器）
+        if weapon['quality'] != '奇特':
+            prototype_harm = round(weapon['harm'] * 1.5, 2)
+            prototype_head = round(weapon['head_magnification'] * 1.5, 1)
+        else:
+            prototype_harm = None
+            prototype_head = None
+
+        # 特殊爆头武器（用于金色显示）
+        special_headshot_weapons = ['白色死神', '圣诞颂歌']
+        special_headshot = weapon['name_zh'] in special_headshot_weapons
 
         # 准备模板数据
         template_data = {
@@ -907,23 +958,25 @@ class TheDivision2Plugin(Star):
                 'type': weapon['type'],
                 'quality': weapon['quality'],
                 'harm': weapon['harm'],
+                'prototype_harm': prototype_harm,
                 'rpm': weapon['rpm'],
                 'magazine_capacity': weapon['magazine_capacity'],
                 'reload': weapon['reload'],
                 'range': weapon['range'],
-                'headshot_multiplier': weapon['headshot_multiplier'],
-                'special_headshot': weapon['special_headshot'],
+                'head_magnification': weapon['head_magnification'],
+                'prototype_head': prototype_head,
+                'special_headshot': special_headshot,
                 'sight': weapon['sight'],
                 'muzzle': weapon['muzzle'],
                 'grip': weapon['grip'],
                 'magazine': weapon['magazine'],
                 'attributes': attributes_list,
-                'talent': talent   # 可能为 None
+                'talent': talent
             },
-            'attr_map': attr_map   # 模板可能用到（可选）
+            'attr_map': attr_map
         }
 
-        # 加载并渲染模板
+        # 渲染模板
         template_path = os.path.join(os.path.dirname(__file__), "templates", "weapon_card.html")
         if not os.path.exists(template_path):
             yield event.plain_result("武器卡片模板文件未找到")
@@ -933,6 +986,7 @@ class TheDivision2Plugin(Star):
         template = Template(template_str)
         html = template.render(**template_data)
 
+        # 生成图片
         options = {
             "type": "png",
             "full_page": True,
