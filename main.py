@@ -144,17 +144,19 @@ class TheDivision2Plugin(Star):
         conn = sqlite3.connect(db_path)
         conn.row_factory = sqlite3.Row
         cur = conn.cursor()
-        cur.execute("SELECT key, entry_name_zh, max_value, type, named FROM weapon_attributes")
+        cur.execute("SELECT key, type, entry_name_zh, max_value, named FROM weapon_attributes")
         rows = cur.fetchall()
         conn.close()
         attr_map = {}
         for row in rows:
-            is_named = row['named'] == "TRUE" if row['named'] is not None else False
-            attr_map[row['key']] = {
+            key = row['key']
+            typ = row['type']
+            if key not in attr_map:
+                attr_map[key] = {}
+            attr_map[key][typ] = {
                 'entry_name_zh': row['entry_name_zh'],
                 'max_value': row['max_value'],
-                'type': row['type'],
-                'named': is_named
+                'named': row['named'] == "TRUE" if row['named'] is not None else False
             }
         return attr_map
 
@@ -912,20 +914,30 @@ class TheDivision2Plugin(Star):
 
         attr_map = self.get_weapon_attributes_map()
 
-        # 构建武器属性列表
+        # 构建武器属性列表（根据位置确定类型，从 attr_map 中获取对应数值）
         attributes_list = []
-        for attr_key in weapon['attributes']:
-            attr_info = attr_map.get(attr_key, {})
+        total = len(weapon['attributes'])
+        for idx, attr_key in enumerate(weapon['attributes']):
+            is_last = (idx == total - 1)
+            attr_type = 'secondary' if is_last else 'core'
+            # 获取该属性在指定类型下的信息，若不存在则回退到任意类型
+            attr_info = attr_map.get(attr_key, {}).get(attr_type, {})
+            if not attr_info:
+                # 降级：尝试获取该属性的任意类型（兼容旧数据）
+                for any_info in attr_map.get(attr_key, {}).values():
+                    attr_info = any_info
+                    break
             display_name = attr_info.get('entry_name_zh', attr_key)
             max_value = attr_info.get('max_value', '-')
             is_named = attr_info.get('named', False)
 
+            # 特殊处理随机词条
             if attr_key == '随机词条':
                 display_value = '-'
                 prototype_value = '-'
             else:
                 display_value = max_value if max_value else '-'
-                # 计算原型数值（非奇特武器）
+                # 计算原型数值（仅非奇特武器）
                 if weapon['quality'] != '奇特' and display_value != '-':
                     try:
                         if '%' in display_value:
@@ -943,7 +955,8 @@ class TheDivision2Plugin(Star):
                 'name': display_name,
                 'value': display_value,
                 'prototype': prototype_value,
-                'special': is_named
+                'special': is_named,
+                'type': attr_type   # 用于模板决定图标
             })
 
         # 动态判断是否为特殊爆头武器（金色显示）

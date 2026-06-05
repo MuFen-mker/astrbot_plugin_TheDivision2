@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ISAC · 武器数据库</title>
     <style>
-        /* 所有样式保持不变，见上文完整样式 */
         * { margin: 0; padding: 0; box-sizing: border-box; }
         :root { --isac-orange: #ff8500; --bg-dark: rgba(12, 12, 18, 0.94); --border-glow: rgba(255, 133, 0, 0.4); --text-primary: #ffffff; --text-dim: rgba(255, 255, 255, 0.7); --panel-bg: rgba(20, 20, 28, 0.75); --gold: #ffd966; --gold-glow: rgba(255, 217, 102, 0.3); --prototype-purple: #c77dff; }
         html { background-color: #0a0a0f; background-image: radial-gradient(circle at 30% 20%, rgba(255, 133, 0, 0.12) 0%, transparent 70%), linear-gradient(0deg, transparent 0px, transparent 19px, rgba(255, 133, 0, 0.1) 20px, transparent 21px), linear-gradient(90deg, transparent 0px, transparent 19px, rgba(255, 133, 0, 0.1) 20px, transparent 21px); background-size: auto, 100% 40px, 40px 100%; background-repeat: no-repeat, repeat, repeat; }
@@ -196,8 +195,8 @@
                 {% set prototype_value = attr.prototype if attr.prototype is defined else (attr_value * 1.5) if attr_value not in [None, '-'] else '-' %}
                 <div class="stats-row">
                     <span class="stats-label">
-                        <img src="https://raw.githubusercontent.com/MuFen-mker/astrbot_plugin_TheDivision2_DataAPI/refs/heads/main/assets/Main%20icons/{% if is_core %}core{% else %}secondary{% endif %}.png" 
-                             alt="{% if is_core %}core{% else %}secondary{% endif %}">
+                        <img src="https://raw.githubusercontent.com/MuFen-mker/astrbot_plugin_TheDivision2_DataAPI/refs/heads/main/assets/Main%20icons/{{ attr.type }}.png" 
+                            alt="{{ attr.type }}">
                         {{ attr.name }}
                     </span>
                     <span class="stats-value {% if is_special %}gold-value{% endif %}">
