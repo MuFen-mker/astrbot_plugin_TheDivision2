@@ -85,38 +85,59 @@ class TheDivision2Plugin(Star):
             return 0.0
 
     def get_weapon_by_name(self, weapon_name: str):
+        weapon_name = weapon_name.strip()
         db_path = os.path.join(os.path.dirname(__file__), "data", "data.db")
         conn = sqlite3.connect(db_path)
         conn.row_factory = sqlite3.Row
         cur = conn.cursor()
+
+        # 精确匹配
         cur.execute("""
             SELECT name_zh, name_en, type, quality, harm, rpm, magazine_capacity,
-                   reload, range, head_magnification, sight, muzzle, grip, magazine,
-                   attributes
+                reload, range, head_magnification, sight, muzzle, grip, magazine,
+                attributes
             FROM weapon
             WHERE name_zh = ? OR name_en = ?
         """, (weapon_name, weapon_name))
         row = cur.fetchone()
-        conn.close()
-        if not row:
-            return None
-        weapon = dict(row)
-        # 数字字段转换
-        weapon['harm'] = self.parse_number(weapon['harm'])
-        weapon['rpm'] = int(self.parse_number(weapon['rpm']))
-        weapon['magazine_capacity'] = int(self.parse_number(weapon['magazine_capacity']))
-        weapon['reload'] = self.parse_number(weapon['reload'])
-        weapon['range'] = int(self.parse_number(weapon['range']))
-        weapon['head_magnification'] = int(self.parse_number(weapon['head_magnification']))
-        # 解析 attributes JSON
-        if weapon.get('attributes'):
-            try:
-                weapon['attributes'] = json.loads(weapon['attributes'])
-            except:
+        if row:
+            conn.close()
+            # 处理数字和 JSON
+            weapon = dict(row)
+            def parse(s):
+                if s is None or s == '':
+                    return 0.0
+                s = str(s).replace(',', '').strip()
+                try:
+                    return float(s)
+                except:
+                    return 0.0
+            weapon['harm'] = parse(weapon['harm'])
+            weapon['rpm'] = int(parse(weapon['rpm']))
+            weapon['magazine_capacity'] = int(parse(weapon['magazine_capacity']))
+            weapon['reload'] = parse(weapon['reload'])
+            weapon['range'] = int(parse(weapon['range']))
+            weapon['head_magnification'] = int(parse(weapon['head_magnification']))
+            if weapon.get('attributes'):
+                try:
+                    weapon['attributes'] = json.loads(weapon['attributes'])
+                except:
+                    weapon['attributes'] = []
+            else:
                 weapon['attributes'] = []
-        else:
-            weapon['attributes'] = []
-        return weapon
+            return weapon
+
+        # 别名匹配
+        cur.execute("SELECT name_zh, alias FROM weapon")
+        rows = cur.fetchall()
+        conn.close()
+        for row in rows:
+            alias_str = row['alias']
+            if alias_str:
+                aliases = [a.strip() for a in alias_str.split('\n') if a.strip()]
+                if weapon_name in aliases:
+                    return self.get_weapon_by_name(row['name_zh'])  # 递归调用，走精确匹配分支
+        return None
 
     def get_weapon_attributes_map(self):
         db_path = os.path.join(os.path.dirname(__file__), "data", "data.db")
