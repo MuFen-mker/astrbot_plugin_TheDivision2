@@ -134,12 +134,7 @@
                 <div class="panel-title">⚙️ 基础参数</div>
                 <div class="stats-row">
                     <span class="stats-label">📊 基础伤害</span>
-                    <span class="stats-value">
-                        {{ weapon.harm }}
-                        {% if weapon.quality != '奇特' %}
-                        <span class="prototype-value">原型 {{ (weapon.harm * 1.5)|round(2) }}</span>
-                        {% endif %}
-                    </span>
+                    <span class="stats-value">{{ weapon.harm }}</span>
                 </div>
                 <div class="stats-row">
                     <span class="stats-label">⚡ 射速 (RPM)</span>
@@ -161,9 +156,6 @@
                     <span class="stats-label">🎯 爆头倍率</span>
                     <span class="stats-value {% if weapon.special_headshot %}gold-value{% endif %}">
                         {{ weapon.head_magnification }}%
-                        {% if weapon.prototype_head %}
-                        <span class="prototype-value">原型 {{ weapon.prototype_head }}%</span>
-                        {% endif %}
                     </span>
                 </div>
             </div>
