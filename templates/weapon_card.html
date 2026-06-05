@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ISAC · 武器数据库</title>
+    <style>
+        /* 所有样式保持不变，见上文完整样式 */
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        :root { --isac-orange: #ff8500; --bg-dark: rgba(12, 12, 18, 0.94); --border-glow: rgba(255, 133, 0, 0.4); --text-primary: #ffffff; --text-dim: rgba(255, 255, 255, 0.7); --panel-bg: rgba(20, 20, 28, 0.75); --gold: #ffd966; --gold-glow: rgba(255, 217, 102, 0.3); --prototype-purple: #c77dff; }
+        html { background-color: #0a0a0f; background-image: radial-gradient(circle at 30% 20%, rgba(255, 133, 0, 0.12) 0%, transparent 70%), linear-gradient(0deg, transparent 0px, transparent 19px, rgba(255, 133, 0, 0.1) 20px, transparent 21px), linear-gradient(90deg, transparent 0px, transparent 19px, rgba(255, 133, 0, 0.1) 20px, transparent 21px); background-size: auto, 100% 40px, 40px 100%; background-repeat: no-repeat, repeat, repeat; }
+        body { width: 1380px; margin: 0 auto; padding: 40px; background: transparent; font-family: 'Segoe UI', 'Orbitron', 'Rajdhani', 'Roboto', sans-serif; }
+        .scanline { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: linear-gradient(to bottom, transparent 50%, rgba(0, 0, 0, 0.1) 51%); background-size: 100% 4px; pointer-events: none; opacity: 0.4; z-index: 10; }
+        .weapon-card { background: var(--bg-dark); width: 100%; border-left: 7px solid var(--isac-orange); box-shadow: 0 28px 45px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 133, 0, 0.2) inset, 0 0 22px rgba(255, 133, 0, 0.3); padding: 36px 42px 42px 42px; clip-path: polygon(0 0, 98% 0, 100% 3%, 100% 100%, 2% 100%, 0 97%); backdrop-filter: blur(1px); position: relative; }
+        .deco-dots { position: absolute; top: 24px; right: 32px; display: flex; gap: 8px; }
+        .dot { width: 7px; height: 7px; background: var(--isac-orange); box-shadow: 0 0 5px var(--isac-orange); border-radius: 1px; }
+        .weapon-header { display: flex; gap: 2rem; align-items: center; border-bottom: 2px solid var(--border-glow); padding-bottom: 1.6rem; margin-bottom: 1.8rem; }
+        .weapon-icon { width: 112px; height: 112px; background: #11161f; border: 3px solid var(--isac-orange); border-radius: 20px; display: flex; align-items: center; justify-content: center; padding: 12px; flex-shrink: 0; }
+        .weapon-icon img { max-width: 100%; max-height: 100%; object-fit: contain; }
+        .weapon-title { flex: 1; }
+        .weapon-name { font-size: 2.8rem; font-weight: 800; background: linear-gradient(135deg, #fff, #ffc285); background-clip: text; -webkit-background-clip: text; color: transparent; margin-bottom: 0.3rem; letter-spacing: 1px; }
+        .weapon-eng { font-size: 1.2rem; color: var(--isac-orange); font-family: 'Courier New', monospace; text-transform: uppercase; }
+        .weapon-quality { display: inline-block; margin-top: 0.4rem; background: rgba(255, 133, 0, 0.2); border-left: 3px solid var(--isac-orange); padding: 0.2rem 0.8rem; font-size: 0.7rem; font-weight: bold; color: #ffc285; }
+        .two-columns { display: flex; gap: 2.2rem; margin-bottom: 2rem; flex-wrap: wrap; }
+        .col { flex: 1; min-width: 280px; }
+        .stat-panel { background: var(--panel-bg); border-radius: 14px; padding: 1.2rem 1.5rem; margin-bottom: 1.5rem; border: 1px solid rgba(255, 133, 0, 0.2); }
+        .panel-title { font-size: 0.8rem; text-transform: uppercase; color: var(--isac-orange); letter-spacing: 2px; margin-bottom: 1rem; border-left: 3px solid var(--isac-orange); padding-left: 12px; font-weight: bold; }
+        .stats-row { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 12px; flex-wrap: wrap; gap: 8px; font-size: 1rem; }
+        .stats-label { color: var(--text-dim); font-weight: 500; display: flex; align-items: center; gap: 8px; }
+        .stats-label img { width: 20px; height: 20px; vertical-align: middle; }
+        .stats-value { color: var(--text-primary); font-family: 'Courier New', monospace; font-weight: 600; font-size: 1.1rem; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+        .prototype-value { color: var(--prototype-purple); font-size: 0.8rem; font-weight: normal; background: rgba(199, 125, 255, 0.15); padding: 0.1rem 0.5rem; border-radius: 20px; }
+        .gold-value { color: var(--gold); text-shadow: 0 0 4px var(--gold-glow); }
+        .mod-grid { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 8px; }
+        .mod-item { background: rgba(0, 0, 0, 0.45); border: 1px solid rgba(255, 133, 0, 0.4); border-radius: 40px; padding: 0.3rem 1.1rem; font-size: 0.8rem; color: #ffda99; }
+        .mod-detail-list { margin-top: 12px; display: flex; flex-direction: column; gap: 6px; font-size: 0.75rem; color: var(--text-dim); }
+        .mod-detail-list div { display: flex; align-items: center; gap: 8px; }
+
+        /* 天赋卡片样式 */
+        .talent-card-small {
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+            background: rgba(0, 0, 0, 0.35);
+            border-radius: 12px;
+            padding: 0.8rem;
+            border: 1px solid rgba(255, 133, 0, 0.3);
+        }
+        .talent-icon-small {
+            width: 48px;
+            height: 48px;
+            background: #11161f;
+            border: 1px solid var(--isac-orange);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 4px;
+            flex-shrink: 0;
+        }
+        .talent-icon-small img {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+        }
+        .talent-info-small {
+            flex: 1;
+        }
+        .talent-name-small {
+            font-size: 1rem;
+            font-weight: bold;
+            color: var(--gold);
+        }
+        .talent-eng-small {
+            font-size: 0.7rem;
+            color: var(--isac-orange);
+            font-family: monospace;
+        }
+        .talent-desc-small {
+            font-size: 0.7rem;
+            color: var(--text-dim);
+            margin-top: 4px;
+            line-height: 1.3;
+        }
+        .talent-placeholder {
+            background: rgba(0,0,0,0.3);
+            border: 1px dashed rgba(255,133,0,0.5);
+            border-radius: 10px;
+            padding: 0.8rem 1rem;
+            text-align: center;
+            color: var(--text-dim);
+            font-size: 0.8rem;
+        }
+
+        @media (max-width: 960px) { body { width: auto; padding: 24px; } .two-columns { flex-direction: column; } }
+    </style>
+</head>
+<body>
+<div class="scanline"></div>
+<div class="weapon-card">
+    <div class="deco-dots">
+        <div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div>
+    </div>
+
+    <!-- 武器头部信息 -->
+    <div class="weapon-header">
+        <div class="weapon-icon">
+            {% set type_icon_map = {
+                '突击步枪': '突击步枪', '步枪': '步枪', '射手步枪': '射手步枪',
+                '轻机枪': '轻机枪', '冲锋枪': '冲锋枪', '霰弹枪': '霰弹枪', '手枪': '手枪'
+            } %}
+            {% set icon_name = type_icon_map.get(weapon.type, '步枪') %}
+            <img src="https://raw.githubusercontent.com/MuFen-mker/astrbot_plugin_TheDivision2_DataAPI/refs/heads/main/assets/Main%20icons/{{ icon_name }}.png" 
+                 alt="{{ weapon.type }}" 
+                 onerror="this.src='https://placehold.co/112x112/ff8500/111?text=?'">
+        </div>
+        <div class="weapon-title">
+            <div class="weapon-name">{{ weapon.name_zh }}</div>
+            <div class="weapon-eng">{{ weapon.name_en }}</div>
+            <div class="weapon-quality">
+                {% if weapon.quality == '奇特' %}✨ 奇特武器
+                {% elif weapon.quality == '具名' %}⭐ 具名武器
+                {% else %}▪️ {{ weapon.type }}
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- 左右两列信息 -->
+    <div class="two-columns">
+        <!-- 左侧：基础参数 + 天赋 -->
+        <div class="col">
+            <div class="stat-panel">
+                <div class="panel-title">⚙️ 基础参数</div>
+                <div class="stats-row">
+                    <span class="stats-label">📊 基础伤害</span>
+                    <span class="stats-value">
+                        {{ weapon.harm }}
+                        {% if weapon.quality != '奇特' %}
+                        <span class="prototype-value">原型 {{ (weapon.harm * 1.5)|round(2) }}</span>
+                        {% endif %}
+                    </span>
+                </div>
+                <div class="stats-row">
+                    <span class="stats-label">⚡ 射速 (RPM)</span>
+                    <span class="stats-value">{{ weapon.rpm }}</span>
+                </div>
+                <div class="stats-row">
+                    <span class="stats-label">🔫 弹匣容量</span>
+                    <span class="stats-value">{{ weapon.magazine_capacity }}</span>
+                </div>
+                <div class="stats-row">
+                    <span class="stats-label">⏱️ 换弹速度 (s)</span>
+                    <span class="stats-value">{{ weapon.reload }}</span>
+                </div>
+                <div class="stats-row">
+                    <span class="stats-label">📏 有效射程 (m)</span>
+                    <span class="stats-value">{{ weapon.range }}</span>
+                </div>
+                <div class="stats-row">
+                    <span class="stats-label">🎯 爆头倍率</span>
+                    <span class="stats-value {% if weapon.special_headshot %}gold-value{% endif %}">
+                        {{ weapon.headshot_multiplier }}%
+                        {% if weapon.quality != '奇特' and weapon.headshot_multiplier and not weapon.special_headshot %}
+                        <span class="prototype-value">原型 {{ (weapon.headshot_multiplier * 1.5)|round(1) }}%</span>
+                        {% elif weapon.quality != '奇特' and weapon.special_headshot %}
+                        <span class="prototype-value">原型 {{ (weapon.headshot_multiplier * 1.5)|round(1) }}%</span>
+                        {% endif %}
+                    </span>
+                </div>
+            </div>
+
+            <!-- 天赋区域：如果有天赋数据则显示完整天赋卡片，否则显示随机选取占位符 -->
+            <div class="stat-panel">
+                <div class="panel-title">✨ 天赋</div>
+                {% if weapon.talent and weapon.talent.name_zh %}
+                <div class="talent-card-small">
+                    <div class="talent-icon-small">
+                        <img src="{{ weapon.talent.icon_path }}" alt="{{ weapon.talent.name_zh }}" onerror="this.src='https://placehold.co/48x48/ff8500/111?text=?'">
+                    </div>
+                    <div class="talent-info-small">
+                        <div class="talent-name-small">{{ weapon.talent.name_zh }}</div>
+                        <div class="talent-eng-small">{{ weapon.talent.name_en }}</div>
+                        <div class="talent-desc-small">{{ weapon.talent.description | truncate(100) }}</div>
+                    </div>
+                </div>
+                {% else %}
+                <div class="talent-placeholder">
+                    [ {{ weapon.type }}种类天赋随机选取 · ISAC 检索中 ]
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- 右侧：武器属性 + 配件 -->
+        <div class="col">
+            <div class="stat-panel">
+                <div class="panel-title">📈 武器属性</div>
+                {% for attr in weapon.attributes %}
+                {% set attr_info = attr_map.get(attr.name) %}
+                {% set is_core = attr_info.type == 'core' if attr_info else loop.index <= 2 %}
+                {% set is_special = attr.special is defined and attr.special %}
+                {% set attr_value = attr.value %}
+                {% set prototype_value = attr.prototype if attr.prototype is defined else (attr_value * 1.5) if attr_value not in [None, '-'] else '-' %}
+                <div class="stats-row">
+                    <span class="stats-label">
+                        <img src="https://raw.githubusercontent.com/MuFen-mker/astrbot_plugin_TheDivision2_DataAPI/refs/heads/main/assets/Main%20icons/{% if is_core %}core{% else %}secondary{% endif %}.png" 
+                             alt="{% if is_core %}core{% else %}secondary{% endif %}">
+                        {{ attr.name }}
+                    </span>
+                    <span class="stats-value {% if is_special %}gold-value{% endif %}">
+                        {% if attr_value is not none and attr_value != '-' %}
+                            {{ attr_value }}{% if attr_value is string and '%' not in attr_value and '伤害' in attr.name %}%{% endif %}
+                        {% else %}
+                            -
+                        {% endif %}
+                        {% if weapon.quality != '奇特' and attr_value is not none and attr_value != '-' %}
+                        <span class="prototype-value">原型 {{ prototype_value }}{% if prototype_value is number and prototype_value is not none %}{% if attr_value is string and '%' in attr_value %}%{% endif %}{% endif %}</span>
+                        {% endif %}
+                    </span>
+                </div>
+                {% endfor %}
+            </div>
+
+            <div class="stat-panel">
+                <div class="panel-title">🔧 配件槽位</div>
+                <div class="mod-grid">
+                    <span class="mod-item">{{ weapon.sight|default('无') }}</span>
+                    <span class="mod-item">{{ weapon.muzzle|default('无') }}</span>
+                    <span class="mod-item">{{ weapon.grip|default('无') }}</span>
+                    <span class="mod-item">{{ weapon.magazine|default('无') }}</span>
+                </div>
+                <div class="mod-detail-list">
+                    <div>🔭 瞄具：{{ weapon.sight|default('无') }}</div>
+                    <div>🔫 枪口：{{ weapon.muzzle|default('无') }}</div>
+                    <div>✋ 握把：{{ weapon.grip|default('无') }}</div>
+                    <div>📀 弹匣：{{ weapon.magazine|default('无') }}</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div style="margin-top: 0.5rem; padding-top: 0.8rem; border-top: 1px solid var(--border-glow); text-align: right; font-size: 0.7rem; color: var(--text-dim);">
+        <span>◈ ISAC 战术分析 · 武器数据基于实时校表 ◈</span>
+    </div>
+</div>
+</body>
+</html>

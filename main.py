@@ -74,6 +74,77 @@ class TheDivision2Plugin(Star):
             "description": row["description"] or ""
         }
 
+    def get_weapon_by_name(self, weapon_name: str):
+        """根据武器名称（中文或英文）查询武器基础信息"""
+        db_path = os.path.join(os.path.dirname(__file__), "data.db")
+        conn = sqlite3.connect(db_path)
+        conn.row_factory = sqlite3.Row
+        cur = conn.cursor()
+        cur.execute("""
+            SELECT name_zh, name_en, type, quality, harm, rpm, magazine_capacity,
+                   reload, range, headshot_multiplier, sight, muzzle, grip, magazine,
+                   attributes, special_headshot
+            FROM weapon
+            WHERE name_zh = ? OR name_en = ?
+        """, (weapon_name, weapon_name))
+        row = cur.fetchone()
+        conn.close()
+        if not row:
+            return None
+        weapon = dict(row)
+        # 解析 attributes JSON 字符串
+        if weapon.get('attributes'):
+            try:
+                weapon['attributes'] = json.loads(weapon['attributes'])
+            except:
+                weapon['attributes'] = []
+        else:
+            weapon['attributes'] = []
+        # 确保 special_headshot 为布尔值
+        weapon['special_headshot'] = bool(weapon.get('special_headshot', 0))
+        return weapon
+
+    def get_weapon_attributes_map(self):
+        """获取属性映射表：key -> {entry_name_zh, max_value, type, named}"""
+        db_path = os.path.join(os.path.dirname(__file__), "data.db")
+        conn = sqlite3.connect(db_path)
+        conn.row_factory = sqlite3.Row
+        cur = conn.cursor()
+        cur.execute("SELECT key, entry_name_zh, max_value, type, named FROM weapon_attributes")
+        rows = cur.fetchall()
+        conn.close()
+        attr_map = {}
+        for row in rows:
+            # named 字段是文本 "TRUE"/"FALSE"
+            is_named = row['named'] == "TRUE" if row['named'] is not None else False
+            attr_map[row['key']] = {
+                'entry_name_zh': row['entry_name_zh'],
+                'max_value': row['max_value'],
+                'type': row['type'],
+                'named': is_named
+            }
+        return attr_map
+
+    def get_talent_by_weapon_name(self, weapon_name: str):
+        """根据武器名称模糊匹配天赋（匹配 talent 表的 type 字段）"""
+        db_path = os.path.join(os.path.dirname(__file__), "data.db")
+        conn = sqlite3.connect(db_path)
+        conn.row_factory = sqlite3.Row
+        cur = conn.cursor()
+        # 模糊匹配 type 字段（包含武器名称）
+        cur.execute("SELECT name_zh, name_en, `icon path`, type, description FROM talent WHERE type LIKE ? LIMIT 1", (f'%{weapon_name}%',))
+        row = cur.fetchone()
+        conn.close()
+        if row:
+            return {
+                'name_zh': row['name_zh'],
+                'name_en': row['name_en'],
+                'icon_path': row['icon path'],
+                'type': row['type'],
+                'description': row['description']
+            }
+        return None
+    
     @filter.command("数据查询")
     async def on_query(self, event: AstrMessageEvent, username: str):
         if self.data_source == "tracker":
@@ -796,6 +867,85 @@ class TheDivision2Plugin(Star):
         }
         img_url = await self.html_render(html, {}, options=options)
         yield event.image_result(img_url)
+
+    @filter.command("武器")
+    async def weapon_query(self, event: AstrMessageEvent, weapon_name: str = None):
+        if not weapon_name:
+            yield event.plain_result("请提供武器名称，例如：/武器 铁肺")
+            return
+
+        weapon = self.get_weapon_by_name(weapon_name.strip())
+        if not weapon:
+            yield event.plain_result(f"未找到名为「{weapon_name}」的武器")
+            return
+
+        # 获取属性映射表
+        attr_map = self.get_weapon_attributes_map()
+
+        # 构建武器属性列表（用于模板渲染）
+        attributes_list = []
+        for attr_key in weapon['attributes']:
+            attr_info = attr_map.get(attr_key, {})
+            display_name = attr_info.get('entry_name_zh', attr_key)
+            is_special = attr_info.get('named', False)  # 特殊词条（具名/奇特属性）
+            # 当前武器表中没有存储具体属性数值，统一显示 '-'
+            attributes_list.append({
+                'name': display_name,
+                'value': '-',
+                'prototype': '-',
+                'special': is_special
+            })
+
+        # 获取天赋（根据武器名称模糊匹配 type 字段）
+        talent = self.get_talent_by_weapon_name(weapon['name_zh'])
+
+        # 准备模板数据
+        template_data = {
+            'weapon': {
+                'name_zh': weapon['name_zh'],
+                'name_en': weapon['name_en'],
+                'type': weapon['type'],
+                'quality': weapon['quality'],
+                'harm': weapon['harm'],
+                'rpm': weapon['rpm'],
+                'magazine_capacity': weapon['magazine_capacity'],
+                'reload': weapon['reload'],
+                'range': weapon['range'],
+                'headshot_multiplier': weapon['headshot_multiplier'],
+                'special_headshot': weapon['special_headshot'],
+                'sight': weapon['sight'],
+                'muzzle': weapon['muzzle'],
+                'grip': weapon['grip'],
+                'magazine': weapon['magazine'],
+                'attributes': attributes_list,
+                'talent': talent   # 可能为 None
+            },
+            'attr_map': attr_map   # 模板可能用到（可选）
+        }
+
+        # 加载并渲染模板
+        template_path = os.path.join(os.path.dirname(__file__), "templates", "weapon_card.html")
+        if not os.path.exists(template_path):
+            yield event.plain_result("武器卡片模板文件未找到")
+            return
+        with open(template_path, "r", encoding="utf-8") as f:
+            template_str = f.read()
+        template = Template(template_str)
+        html = template.render(**template_data)
+
+        options = {
+            "type": "png",
+            "full_page": True,
+            "scale": "css",
+            "omit_background": True
+        }
+        try:
+            img_url = await self.html_render(html, {}, options=options)
+            yield event.image_result(img_url)
+        except Exception as e:
+            logger.error(f"武器卡片渲染失败: {e}")
+            yield event.plain_result("生成图片失败，请稍后重试")
+    
 
     async def terminate(self):
         pass
