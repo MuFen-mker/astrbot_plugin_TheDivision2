@@ -132,29 +132,29 @@
         <!-- 左侧：基础参数 + 天赋 -->
         <div class="col">
             <div class="stat-panel">
-                <div class="panel-title">⚙️ 基础参数</div>
+                <div class="panel-title"> 基础参数</div>
                 <div class="stats-row">
-                    <span class="stats-label">📊 基础伤害</span>
+                    <span class="stats-label"> 基础伤害</span>
                     <span class="stats-value">{{ weapon.harm }}</span>
                 </div>
                 <div class="stats-row">
-                    <span class="stats-label">⚡ 射速 (RPM)</span>
+                    <span class="stats-label"> 射速 (RPM)</span>
                     <span class="stats-value">{{ weapon.rpm }}</span>
                 </div>
                 <div class="stats-row">
-                    <span class="stats-label">🔫 弹匣容量</span>
+                    <span class="stats-label"> 弹匣容量</span>
                     <span class="stats-value">{{ weapon.magazine_capacity }}</span>
                 </div>
                 <div class="stats-row">
-                    <span class="stats-label">⏱️ 换弹速度 (s)</span>
+                    <span class="stats-label"> 换弹速度 (s)</span>
                     <span class="stats-value">{{ weapon.reload }}</span>
                 </div>
                 <div class="stats-row">
-                    <span class="stats-label">📏 有效射程 (m)</span>
+                    <span class="stats-label"> 有效射程 (m)</span>
                     <span class="stats-value">{{ weapon.range }}</span>
                 </div>
                 <div class="stats-row">
-                    <span class="stats-label">🎯 爆头倍率</span>
+                    <span class="stats-label"> 爆头倍率</span>
                     <span class="stats-value {% if weapon.special_headshot %}gold-value{% endif %}">
                         {{ weapon.head_magnification }}%
                     </span>
@@ -163,7 +163,7 @@
 
             <!-- 天赋区域：如果有天赋数据则显示完整天赋卡片，否则显示随机选取占位符 -->
             <div class="stat-panel">
-                <div class="panel-title">✨ 天赋</div>
+                <div class="panel-title"> 天赋</div>
                 {% if weapon.talent and weapon.talent.name_zh %}
                 <div class="talent-card-small">
                     <div class="talent-icon-small">
@@ -186,7 +186,7 @@
         <!-- 右侧：武器属性 + 配件 -->
         <div class="col">
             <div class="stat-panel">
-                <div class="panel-title">📈 武器属性</div>
+                <div class="panel-title"> 武器属性</div>
                 {% for attr in weapon.attributes %}
                 {% set attr_info = attr_map.get(attr.name) %}
                 {% set is_core = attr_info.type == 'core' if attr_info else loop.index <= 2 %}
@@ -214,7 +214,7 @@
             </div>
 
             <div class="stat-panel">
-                <div class="panel-title">🔧 配件槽位</div>
+                <div class="panel-title"> 配件槽位</div>
                 <div class="mod-grid">
                     <span class="mod-item">{{ weapon.sight|default('无') }}</span>
                     <span class="mod-item">{{ weapon.muzzle|default('无') }}</span>
@@ -222,10 +222,10 @@
                     <span class="mod-item">{{ weapon.magazine|default('无') }}</span>
                 </div>
                 <div class="mod-detail-list">
-                    <div>🔭 瞄具：{{ weapon.sight|default('无') }}</div>
-                    <div>🔫 枪口：{{ weapon.muzzle|default('无') }}</div>
-                    <div>✋ 握把：{{ weapon.grip|default('无') }}</div>
-                    <div>📀 弹匣：{{ weapon.magazine|default('无') }}</div>
+                    <div> 瞄具：{{ weapon.sight|default('无') }}</div>
+                    <div> 枪口：{{ weapon.muzzle|default('无') }}</div>
+                    <div> 握把：{{ weapon.grip|default('无') }}</div>
+                    <div> 弹匣：{{ weapon.magazine|default('无') }}</div>
                 </div>
             </div>
         </div>
