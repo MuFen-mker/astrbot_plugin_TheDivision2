@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ISAC · 套装数据库</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --isac-orange: #ff8500;
+            --bg-dark: rgba(12, 12, 18, 0.94);
+            --border-glow: rgba(255, 133, 0, 0.4);
+            --text-primary: #ffffff;
+            --text-dim: rgba(255, 255, 255, 0.7);
+            --panel-bg: rgba(20, 20, 28, 0.75);
+            --gold: #ffcc00;
+            --green: #a0ffa0;
+            --green-deep: #66ff66;
+        }
+
+        html {
+            background-color: #0a0a0f;
+            background-image: 
+                radial-gradient(circle at 30% 20%, rgba(255, 133, 0, 0.12) 0%, transparent 70%),
+                linear-gradient(0deg, transparent 0px, transparent 19px, rgba(255, 133, 0, 0.1) 20px, transparent 21px),
+                linear-gradient(90deg, transparent 0px, transparent 19px, rgba(255, 133, 0, 0.1) 20px, transparent 21px);
+            background-size: auto, 100% 40px, 40px 100%;
+            background-repeat: no-repeat, repeat, repeat;
+        }
+
+        body {
+            width: 860px;
+            margin: 0 auto;
+            padding: 40px;
+            background: transparent;
+            font-family: 'Segoe UI', 'Orbitron', 'Rajdhani', 'Roboto', sans-serif;
+        }
+
+        .scanline {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(to bottom, transparent 50%, rgba(0, 0, 0, 0.1) 51%);
+            background-size: 100% 4px;
+            pointer-events: none;
+            opacity: 0.4;
+            z-index: 10;
+        }
+
+        .equipment-card {
+            background: var(--bg-dark);
+            width: 100%;
+            border-left: 7px solid;
+            box-shadow: 0 28px 45px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 133, 0, 0.2) inset, 0 0 22px rgba(255, 133, 0, 0.3);
+            padding: 32px 36px 36px 36px;
+            clip-path: polygon(0 0, 98% 0, 100% 3%, 100% 100%, 2% 100%, 0 97%);
+            backdrop-filter: blur(1px);
+            position: relative;
+        }
+
+        /* 品牌主题 */
+        .equipment-card.brand {
+            border-left-color: var(--gold);
+            box-shadow: 0 28px 45px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 204, 0, 0.3) inset, 0 0 22px rgba(255, 204, 0, 0.2);
+        }
+        .equipment-card.brand .equipment-name {
+            background: linear-gradient(135deg, #fff, var(--gold));
+            background-clip: text;
+            -webkit-background-clip: text;
+            color: transparent;
+        }
+        .equipment-card.brand .effect-piece {
+            color: var(--gold);
+        }
+        .equipment-card.brand .equipment-type {
+            background: rgba(255, 204, 0, 0.2);
+            border-left-color: var(--gold);
+            color: var(--gold);
+        }
+
+        /* 装备组主题 */
+        .equipment-card.gearset {
+            border-left-color: var(--green);
+            box-shadow: 0 28px 45px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(160, 255, 160, 0.3) inset, 0 0 22px rgba(160, 255, 160, 0.2);
+        }
+        .equipment-card.gearset .equipment-name {
+            background: linear-gradient(135deg, #fff, var(--green));
+            background-clip: text;
+            -webkit-background-clip: text;
+            color: transparent;
+        }
+        .equipment-card.gearset .effect-piece {
+            color: var(--green);
+        }
+        .equipment-card.gearset .equipment-type {
+            background: rgba(160, 255, 160, 0.2);
+            border-left-color: var(--green);
+            color: var(--green);
+        }
+        .equipment-card.gearset .talent-name {
+            color: var(--green-deep);
+        }
+
+        .deco-dots {
+            position: absolute;
+            top: 20px;
+            right: 28px;
+            display: flex;
+            gap: 8px;
+        }
+        .dot {
+            width: 7px;
+            height: 7px;
+            background: var(--isac-orange);
+            box-shadow: 0 0 5px var(--isac-orange);
+            border-radius: 1px;
+        }
+
+        .equipment-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            border-bottom: 2px solid var(--border-glow);
+            padding-bottom: 1rem;
+            margin-bottom: 1.5rem;
+            flex-wrap: wrap;
+        }
+        .equipment-title {
+            flex: 1;
+        }
+        .equipment-name {
+            font-size: 2.4rem;
+            font-weight: 800;
+            margin-bottom: 0.2rem;
+            letter-spacing: 1px;
+        }
+        .equipment-eng {
+            font-size: 1rem;
+            color: var(--isac-orange);
+            font-family: 'Courier New', monospace;
+            text-transform: uppercase;
+        }
+        .equipment-type {
+            display: inline-block;
+            margin-top: 0.4rem;
+            padding: 0.2rem 0.8rem;
+            font-size: 0.7rem;
+            font-weight: bold;
+            border-left: 3px solid;
+            border-radius: 0 4px 4px 0;
+        }
+
+        .effect-panel {
+            background: var(--panel-bg);
+            border-radius: 14px;
+            padding: 1.2rem 1.5rem;
+            margin-bottom: 1.5rem;
+            border: 1px solid rgba(255, 133, 0, 0.2);
+        }
+        .panel-title {
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            color: var(--isac-orange);
+            letter-spacing: 2px;
+            margin-bottom: 1rem;
+            border-left: 3px solid var(--isac-orange);
+            padding-left: 12px;
+            font-weight: bold;
+        }
+        .effect-line {
+            display: flex;
+            align-items: baseline;
+            margin-bottom: 0.8rem;
+            flex-wrap: wrap;
+        }
+        .effect-piece {
+            font-weight: bold;
+            width: 80px;
+            flex-shrink: 0;
+        }
+        .effect-text {
+            color: var(--text-primary);
+            font-size: 0.95rem;
+            line-height: 1.5;
+            flex: 1;
+        }
+
+        .talents-grid {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1rem;
+            margin-top: 0.5rem;
+        }
+        .talent-item {
+            background: rgba(0, 0, 0, 0.35);
+            border-radius: 12px;
+            padding: 0.8rem 1rem;
+            flex: 1;
+            min-width: 150px;
+            border: 1px solid rgba(255, 133, 0, 0.3);
+        }
+        .talent-item .talent-label {
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            color: var(--green);
+            letter-spacing: 1px;
+            margin-bottom: 6px;
+        }
+        .talent-name {
+            font-size: 1rem;
+            font-weight: bold;
+        }
+        .talent-desc-placeholder {
+            font-size: 0.7rem;
+            color: var(--text-dim);
+            margin-top: 6px;
+            font-style: italic;
+        }
+
+        .footer-divider {
+            margin-top: 1.5rem;
+            padding-top: 0.8rem;
+            border-top: 1px solid var(--border-glow);
+            text-align: right;
+            font-size: 0.65rem;
+            color: var(--text-dim);
+        }
+
+        @media (max-width: 960px) {
+            body { width: auto; padding: 24px; }
+        }
+    </style>
+</head>
+<body>
+<div class="equipment-card {{ 'brand' if group.type == '品牌' else 'gearset' }}">
+    <!-- 页眉区域：显示装备名称和类型 -->
+    <div class="equipment-header">
+        <div class="equipment-title">
+            <div class="equipment-name">{{ group.name_zh }}</div>
+            <div class="equipment-eng">{{ group.name_en }}</div>
+            <div class="equipment-type">
+                {% if group.type == '品牌' %}🏷️ 品牌套装
+                {% else %}⚙️ 装备组{% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- 套装加成面板 -->
+    <div class="effect-panel">
+        <div class="panel-title">📋 套装加成</div>
+        {% set effect_lines = group.effect.strip().split('\n') if group.effect else [] %}
+        {% set start_num = 1 if group.type == '品牌' else 2 %}
+        {% for line in effect_lines %}
+            <div class="effect-line">
+                <span class="effect-piece">{{ start_num + loop.index0 }}件：</span>
+                <span class="effect-text">{{ line.strip() }}</span>
+            </div>
+        {% endfor %}
+    </div>
+
+    <!-- 天赋配置面板（仅装备组显示） -->
+    {% if group.type == '装备组' %}
+    <div class="effect-panel">
+        <div class="panel-title">✨ 天赋配置</div>
+        <div class="talents-grid">
+            {% if group.set_talent and group.set_talent != '无' %}
+            <div class="talent-item">
+                <div class="talent-label">🔷 四件套天赋</div>
+                <div class="talent-name">{{ group.set_talent }}</div>
+                <div class="talent-desc">{{ group.set_talent_desc or '暂无描述' }}</div>
+            </div>
+            {% endif %}
+            {% if group.enhancetalent_chestarmor and group.enhancetalent_chestarmor != '无' %}
+            <div class="talent-item">
+                <div class="talent-label">🛡️ 胸甲增强天赋</div>
+                <div class="talent-name">{{ group.enhancetalent_chestarmor }}</div>
+                <div class="talent-desc">{{ group.enhancetalent_chestarmor_desc or '暂无描述' }}</div>
+            </div>
+            {% endif %}
+            {% if group.enhancetalent_backpack and group.enhancetalent_backpack != '无' %}
+            <div class="talent-item">
+                <div class="talent-label">🎒 背包增强天赋</div>
+                <div class="talent-name">{{ group.enhancetalent_backpack }}</div>
+                <div class="talent-desc">{{ group.enhancetalent_backpack_desc or '暂无描述' }}</div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
+
+    <div class="footer-divider">
+        <span>◈ ISAC 战术分析 · 装备数据基于实时校表 ◈</span>
+    </div>
+</div>
+</body>
+</html>

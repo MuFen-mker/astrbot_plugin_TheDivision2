@@ -29,6 +29,7 @@ class TheDivision2Plugin(Star):
         self.api_base_url = base.rstrip('/')
         logger.info(f"后端基础地址: {self.api_base_url}, 数据源: {self.data_source}")
     
+    #天赋查询方法
     def get_talent_data(self, talent_name: str):
         """根据天赋名称（中文或英文）从 data/data.db 中查询完整信息"""
         db_path = os.path.join(os.path.dirname(__file__), "data", "data.db")
@@ -40,7 +41,6 @@ class TheDivision2Plugin(Star):
         conn.row_factory = sqlite3.Row
         cur = conn.cursor()
         
-        # 检查表是否存在（先尝试 talent，再尝试 talents）
         cur.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='talent'")
         if cur.fetchone():
             table_name = "talent"
@@ -53,7 +53,6 @@ class TheDivision2Plugin(Star):
                 conn.close()
                 return None
         
-        # 注意字段名 `icon path` 有空格，必须用反引号包裹
         query = f"""
             SELECT name_zh, name_en, `icon path`, type, description
             FROM {table_name}
@@ -84,6 +83,7 @@ class TheDivision2Plugin(Star):
         except:
             return 0.0
 
+    #武器查询方法
     def get_weapon_by_name(self, weapon_name: str):
         weapon_name = weapon_name.strip()
         db_path = os.path.join(os.path.dirname(__file__), "data", "data.db")
@@ -177,6 +177,56 @@ class TheDivision2Plugin(Star):
                 'description': row['description']
             }
         return None
+    
+    #品牌查询方法
+    def get_equipment_full_data(self, name: str):
+        """根据名称或别名查询装备完整信息（包括天赋描述）"""
+        db_path = os.path.join(os.path.dirname(__file__), "data", "data.db")
+        conn = sqlite3.connect(db_path)
+        conn.row_factory = sqlite3.Row
+        cur = conn.cursor()
+
+        # 1. 精确匹配 name_zh 或 name_en
+        cur.execute("SELECT * FROM equipment_group WHERE name_zh = ? OR name_en = ?", (name, name))
+        row = cur.fetchone()
+        if not row:
+            # 2. 别名匹配：遍历全表
+            cur.execute("SELECT * FROM equipment_group")
+            rows = cur.fetchall()
+            for r in rows:
+                alias_str = r['alias']
+                if alias_str:
+                    # 别名用换行符分隔
+                    aliases = [a.strip() for a in alias_str.split('\n') if a.strip()]
+                    if name in aliases:
+                        row = r
+                        break
+
+        if not row:
+            conn.close()
+            return None
+
+        equipment = dict(row)
+
+        # 3. 如果是装备组，补充天赋描述
+        if equipment.get('type') == '装备组':
+            # 字段映射：数据库字段名 -> 输出字典中存放描述的键名
+            talent_fields = [
+                ('set_talent', 'set_talent_desc'),
+                ('enhancetalent_chestarmor', 'enhancetalent_chestarmor_desc'),
+                ('enhancetalent_backpack', 'enhancetalent_backpack_desc')
+            ]
+            for talent_field, desc_field in talent_fields:
+                talent_name = equipment.get(talent_field)
+                if talent_name and talent_name != '无':
+                    cur.execute("SELECT description FROM talent WHERE name_zh = ?", (talent_name,))
+                    desc_row = cur.fetchone()
+                    equipment[desc_field] = desc_row['description'] if desc_row else '暂无描述'
+                else:
+                    equipment[desc_field] = None
+
+        conn.close()
+        return equipment
     
     @filter.command("数据查询")
     async def on_query(self, event: AstrMessageEvent, username: str):
@@ -1018,5 +1068,40 @@ class TheDivision2Plugin(Star):
             logger.error(f"武器卡片渲染失败: {e}")
             yield event.plain_result("生成图片失败，请稍后重试")
 
+    @filter.command("套装")
+    async def equipment_query(self, event: AstrMessageEvent, name: str = None):
+        if not name:
+            yield event.plain_result("请提供装备品牌或装备组名称，例如：/套装 核心力量")
+            return
+
+        equipment = self.get_equipment_full_data(name.strip())
+        if not equipment:
+            yield event.plain_result(f"未找到名为「{name}」的装备")
+            return
+
+        # 渲染模板
+        template_path = os.path.join(os.path.dirname(__file__), "templates", "equipment_card.html")
+        if not os.path.exists(template_path):
+            yield event.plain_result("装备卡片模板文件未找到")
+            return
+        with open(template_path, "r", encoding="utf-8") as f:
+            template_str = f.read()
+        template = Template(template_str)
+        html = template.render(group=equipment)
+
+        # 生成图片
+        options = {
+            "type": "png",
+            "full_page": True,
+            "scale": "css",
+            "omit_background": True
+        }
+        try:
+            img_url = await self.html_render(html, {}, options=options)
+            yield event.image_result(img_url)
+        except Exception as e:
+            logger.error(f"装备卡片渲染失败: {e}")
+            yield event.plain_result("生成图片失败，请稍后重试")
+    
     async def terminate(self):
         pass
