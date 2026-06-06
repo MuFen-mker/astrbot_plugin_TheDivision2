@@ -187,19 +187,37 @@ class TheDivision2Plugin(Star):
         cur = conn.cursor()
 
         # 1. 精确匹配 name_zh 或 name_en
-        cur.execute("SELECT * FROM equipment_group WHERE name_zh = ? OR name_en = ?", (name, name))
+        cur.execute("""
+            SELECT 
+                id, name_zh, name_en, alias, type, effect,
+                set_talent,
+                `enhancetalent _ chestarmor` AS enhancetalent_chestarmor,
+                `enhancetalent _ backpack` AS enhancetalent_backpack
+            FROM equipment_group 
+            WHERE name_zh = ? OR name_en = ?
+        """, (name, name))
         row = cur.fetchone()
+        
+        # 2. 别名匹配（如果没有精确匹配）
         if not row:
-            # 2. 别名匹配：遍历全表
-            cur.execute("SELECT * FROM equipment_group")
-            rows = cur.fetchall()
-            for r in rows:
+            cur.execute("SELECT id, name_zh, alias FROM equipment_group")
+            all_rows = cur.fetchall()
+            for r in all_rows:
                 alias_str = r['alias']
                 if alias_str:
-                    # 别名用换行符分隔
                     aliases = [a.strip() for a in alias_str.split('\n') if a.strip()]
                     if name in aliases:
-                        row = r
+                        # 重新查询该行完整信息（避免重复代码）
+                        cur.execute("""
+                            SELECT 
+                                id, name_zh, name_en, alias, type, effect,
+                                set_talent,
+                                `enhancetalent _ chestarmor` AS enhancetalent_chestarmor,
+                                `enhancetalent _ backpack` AS enhancetalent_backpack
+                            FROM equipment_group 
+                            WHERE id = ?
+                        """, (r['id'],))
+                        row = cur.fetchone()
                         break
 
         if not row:
@@ -210,24 +228,31 @@ class TheDivision2Plugin(Star):
 
         # 3. 如果是装备组，补充天赋描述
         if equipment.get('type') == '装备组':
-            # 字段映射：数据库字段名 -> 输出字典中存放描述的键名
-            talent_fields = [
-                ('set_talent', 'set_talent_desc'),
-                ('enhancetalent_chestarmor', 'enhancetalent_chestarmor_desc'),
-                ('enhancetalent_backpack', 'enhancetalent_backpack_desc')
-            ]
-            for talent_field, desc_field in talent_fields:
-                talent_name = equipment.get(talent_field)
+            talent_map = {}
+            # 需要查询描述的三个天赋字段（标准化后的键名）
+            fields = ['set_talent', 'enhancetalent_chestarmor', 'enhancetalent_backpack']
+            for field in fields:
+                talent_name = equipment.get(field)
                 if talent_name and talent_name != '无':
-                    cur.execute("SELECT description FROM talent WHERE name_zh = ?", (talent_name,))
+                    # 去除可能的空白字符
+                    talent_name_clean = talent_name.strip()
+                    # 在 talent 表中查找 name_zh
+                    cur.execute("SELECT description FROM talent WHERE name_zh = ?", (talent_name_clean,))
                     desc_row = cur.fetchone()
-                    equipment[desc_field] = desc_row['description'] if desc_row else '暂无描述'
+                    if desc_row:
+                        talent_map[f"{field}_desc"] = desc_row['description']
+                    else:
+                        # 尝试模糊匹配（如果精确匹配失败）
+                        cur.execute("SELECT description FROM talent WHERE name_zh LIKE ?", (f'%{talent_name_clean}%',))
+                        desc_row = cur.fetchone()
+                        talent_map[f"{field}_desc"] = desc_row['description'] if desc_row else '暂无描述'
                 else:
-                    equipment[desc_field] = None
+                    talent_map[f"{field}_desc"] = None
+            equipment.update(talent_map)
 
         conn.close()
         return equipment
-    
+
     @filter.command("数据查询")
     async def on_query(self, event: AstrMessageEvent, username: str):
         if self.data_source == "tracker":

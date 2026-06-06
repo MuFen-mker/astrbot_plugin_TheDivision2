@@ -29,16 +29,16 @@
             background-color: #0a0a0f;
             background-image: 
                 radial-gradient(circle at 30% 20%, rgba(255, 133, 0, 0.12) 0%, transparent 70%),
-                linear-gradient(0deg, transparent 0px, transparent 19px, rgba(255, 133, 0, 0.1) 20px, transparent 21px),
-                linear-gradient(90deg, transparent 0px, transparent 19px, rgba(255, 133, 0, 0.1) 20px, transparent 21px);
-            background-size: auto, 100% 40px, 40px 100%;
+                linear-gradient(0deg, transparent 0px, transparent 31px, rgba(255, 133, 0, 0.1) 32px, transparent 33px),
+                linear-gradient(90deg, transparent 0px, transparent 31px, rgba(255, 133, 0, 0.1) 32px, transparent 33px);
+            background-size: auto, 100% 64px, 64px 100%;
             background-repeat: no-repeat, repeat, repeat;
         }
 
         body {
-            width: 860px;
+            width: 1419px;          /* 860 * 1.65 */
             margin: 0 auto;
-            padding: 40px;
+            padding: 66px;          /* 40 * 1.65 */
             background: transparent;
             font-family: 'Segoe UI', 'Orbitron', 'Rajdhani', 'Roboto', sans-serif;
         }
@@ -50,7 +50,7 @@
             width: 100%;
             height: 100%;
             background: linear-gradient(to bottom, transparent 50%, rgba(0, 0, 0, 0.1) 51%);
-            background-size: 100% 4px;
+            background-size: 100% 6px;  /* 4px * 1.65 ≈ 6.6，取整6 */
             pointer-events: none;
             opacity: 0.4;
             z-index: 10;
@@ -59,9 +59,9 @@
         .equipment-card {
             background: var(--bg-dark);
             width: 100%;
-            border-left: 7px solid;
-            box-shadow: 0 28px 45px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 133, 0, 0.2) inset, 0 0 22px rgba(255, 133, 0, 0.3);
-            padding: 32px 36px 36px 36px;
+            border-left: 11px solid;    /* 7 * 1.65 ≈ 11.55，取整11 */
+            box-shadow: 0 46px 74px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 133, 0, 0.2) inset, 0 0 36px rgba(255, 133, 0, 0.3);
+            padding: 53px 59px 59px 59px;  /* 32/36 放大 */
             clip-path: polygon(0 0, 98% 0, 100% 3%, 100% 100%, 2% 100%, 0 97%);
             backdrop-filter: blur(1px);
             position: relative;
@@ -70,13 +70,11 @@
         /* 品牌主题 */
         .equipment-card.brand {
             border-left-color: var(--gold);
-            box-shadow: 0 28px 45px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 204, 0, 0.3) inset, 0 0 22px rgba(255, 204, 0, 0.2);
+            box-shadow: 0 46px 74px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 204, 0, 0.3) inset, 0 0 36px rgba(255, 204, 0, 0.2);
         }
         .equipment-card.brand .equipment-name {
-            background: linear-gradient(135deg, #fff, var(--gold));
-            background-clip: text;
-            -webkit-background-clip: text;
-            color: transparent;
+            color: var(--gold);
+            background: none;
         }
         .equipment-card.brand .effect-piece {
             color: var(--gold);
@@ -86,17 +84,19 @@
             border-left-color: var(--gold);
             color: var(--gold);
         }
+        .equipment-card.brand .equipment-icon {
+            border: 3px solid var(--gold);
+            box-shadow: 0 0 13px rgba(255, 204, 0, 0.4);
+        }
 
         /* 装备组主题 */
         .equipment-card.gearset {
             border-left-color: var(--green);
-            box-shadow: 0 28px 45px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(160, 255, 160, 0.3) inset, 0 0 22px rgba(160, 255, 160, 0.2);
+            box-shadow: 0 46px 74px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(160, 255, 160, 0.3) inset, 0 0 36px rgba(160, 255, 160, 0.2);
         }
         .equipment-card.gearset .equipment-name {
-            background: linear-gradient(135deg, #fff, var(--green));
-            background-clip: text;
-            -webkit-background-clip: text;
-            color: transparent;
+            color: var(--green);
+            background: none;
         }
         .equipment-card.gearset .effect-piece {
             color: var(--green);
@@ -106,90 +106,119 @@
             border-left-color: var(--green);
             color: var(--green);
         }
+        .equipment-card.gearset .equipment-icon {
+            border: 3px solid var(--green);
+            box-shadow: 0 0 13px rgba(160, 255, 160, 0.4);
+        }
         .equipment-card.gearset .talent-name {
             color: var(--green-deep);
         }
 
         .deco-dots {
             position: absolute;
-            top: 20px;
-            right: 28px;
+            top: 33px;
+            right: 46px;
             display: flex;
-            gap: 8px;
+            gap: 13px;
         }
         .dot {
-            width: 7px;
-            height: 7px;
+            width: 11px;
+            height: 11px;
             background: var(--isac-orange);
-            box-shadow: 0 0 5px var(--isac-orange);
-            border-radius: 1px;
+            box-shadow: 0 0 8px var(--isac-orange);
+            border-radius: 2px;
         }
 
+        /* 头部布局 */
         .equipment-header {
             display: flex;
-            justify-content: space-between;
-            align-items: baseline;
-            border-bottom: 2px solid var(--border-glow);
-            padding-bottom: 1rem;
-            margin-bottom: 1.5rem;
+            gap: 2rem;
+            align-items: stretch;
+            border-bottom: 3px solid var(--border-glow);
+            padding-bottom: 1.6rem;
+            margin-bottom: 2.5rem;
             flex-wrap: wrap;
+        }
+        .equipment-icon {
+            background: #11161f;
+            border-radius: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 13px;
+            flex-shrink: 0;
+        }
+        .equipment-icon img {
+            max-width: 106px;       /* 64 * 1.65 */
+            max-height: 106px;
+            width: auto;
+            height: auto;
+            object-fit: contain;
         }
         .equipment-title {
             flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
         }
         .equipment-name {
-            font-size: 2.4rem;
+            font-size: 3.3rem;      /* 2rem * 1.65 */
             font-weight: 800;
-            margin-bottom: 0.2rem;
-            letter-spacing: 1px;
+            margin-bottom: 0.25rem;
+            letter-spacing: 1.5px;
+            line-height: 1.2;
         }
         .equipment-eng {
-            font-size: 1rem;
+            font-size: 1.4rem;      /* 0.85rem * 1.65 */
             color: var(--isac-orange);
             font-family: 'Courier New', monospace;
             text-transform: uppercase;
+            margin-bottom: 0.3rem;
         }
         .equipment-type {
             display: inline-block;
-            margin-top: 0.4rem;
-            padding: 0.2rem 0.8rem;
-            font-size: 0.7rem;
+            width: fit-content;
+            max-width: 100%;
+            margin-top: 0.2rem;
+            padding: 0.33rem 1.3rem;
+            font-size: 1.15rem;     /* 0.7rem * 1.65 */
             font-weight: bold;
-            border-left: 3px solid;
-            border-radius: 0 4px 4px 0;
+            border-left: 5px solid;
+            border-radius: 0 7px 7px 0;
         }
 
         .effect-panel {
             background: var(--panel-bg);
-            border-radius: 14px;
-            padding: 1.2rem 1.5rem;
-            margin-bottom: 1.5rem;
+            border-radius: 23px;    /* 14 * 1.65 */
+            padding: 1.65rem 2.1rem;
+            margin-bottom: 2rem;
             border: 1px solid rgba(255, 133, 0, 0.2);
         }
         .panel-title {
-            font-size: 0.8rem;
+            font-size: 1.24rem;     /* 0.75rem * 1.65 */
             text-transform: uppercase;
             color: var(--isac-orange);
-            letter-spacing: 2px;
-            margin-bottom: 1rem;
-            border-left: 3px solid var(--isac-orange);
-            padding-left: 12px;
+            letter-spacing: 3px;
+            margin-bottom: 1.3rem;
+            border-left: 5px solid var(--isac-orange);
+            padding-left: 20px;
             font-weight: bold;
         }
         .effect-line {
             display: flex;
             align-items: baseline;
-            margin-bottom: 0.8rem;
+            margin-bottom: 1rem;
             flex-wrap: wrap;
         }
         .effect-piece {
             font-weight: bold;
-            width: 80px;
+            width: 107px;           /* 65 * 1.65 */
             flex-shrink: 0;
+            font-size: 1rem;
         }
         .effect-text {
             color: var(--text-primary);
-            font-size: 0.95rem;
+            font-size: 1rem;
             line-height: 1.5;
             flex: 1;
         }
@@ -197,46 +226,48 @@
         .talents-grid {
             display: flex;
             flex-wrap: wrap;
-            gap: 1rem;
+            gap: 1.3rem;
             margin-top: 0.5rem;
         }
         .talent-item {
             background: rgba(0, 0, 0, 0.35);
-            border-radius: 12px;
-            padding: 0.8rem 1rem;
+            border-radius: 16px;
+            padding: 1rem 1.3rem;
             flex: 1;
-            min-width: 150px;
+            min-width: 230px;
             border: 1px solid rgba(255, 133, 0, 0.3);
         }
         .talent-item .talent-label {
-            font-size: 0.7rem;
+            font-size: 1.07rem;    /* 0.65rem * 1.65 */
             text-transform: uppercase;
             color: var(--green);
-            letter-spacing: 1px;
+            letter-spacing: 1.5px;
             margin-bottom: 6px;
         }
         .talent-name {
-            font-size: 1rem;
+            font-size: 1.5rem;      /* 0.9rem * 1.65 */
             font-weight: bold;
         }
         .talent-desc {
-            font-size: 0.7rem;
+            font-size: 1.07rem;
             color: var(--text-dim);
-            margin-top: 6px;
+            margin-top: 8px;
             line-height: 1.4;
         }
 
         .footer-divider {
-            margin-top: 1.5rem;
-            padding-top: 0.8rem;
-            border-top: 1px solid var(--border-glow);
+            margin-top: 2rem;
+            padding-top: 1rem;
+            border-top: 2px solid var(--border-glow);
             text-align: right;
-            font-size: 0.65rem;
+            font-size: 1rem;
             color: var(--text-dim);
         }
 
-        @media (max-width: 960px) {
-            body { width: auto; padding: 24px; }
+        @media (max-width: 1500px) {
+            body { width: auto; padding: 40px; }
+            .equipment-name { font-size: 2.5rem; }
+            .equipment-icon img { max-width: 80px; max-height: 80px; }
         }
     </style>
 </head>
@@ -248,6 +279,11 @@
     </div>
 
     <div class="equipment-header">
+        <div class="equipment-icon">
+            <img src="https://cdn.jsdelivr.net/gh/MuFen-mker/astrbot_plugin_TheDivision2_DataAPI@main/assets/Main%20icons/{{ group.name_zh }}.png" 
+                 alt="{{ group.name_zh }}"
+                 onerror="this.src='https://placehold.co/106x106/ff8500/111?text=?'">
+        </div>
         <div class="equipment-title">
             <div class="equipment-name">{{ group.name_zh }}</div>
             <div class="equipment-eng">{{ group.name_en }}</div>
@@ -285,6 +321,7 @@
                 <div class="talent-desc">{{ group.set_talent_desc or '暂无描述' }}</div>
             </div>
             {% endif %}
+
             {% if group.enhancetalent_chestarmor and group.enhancetalent_chestarmor != '无' %}
             <div class="talent-item">
                 <div class="talent-label">🛡️ 胸甲增强天赋</div>
@@ -292,6 +329,7 @@
                 <div class="talent-desc">{{ group.enhancetalent_chestarmor_desc or '暂无描述' }}</div>
             </div>
             {% endif %}
+
             {% if group.enhancetalent_backpack and group.enhancetalent_backpack != '无' %}
             <div class="talent-item">
                 <div class="talent-label">🎒 背包增强天赋</div>
@@ -301,7 +339,7 @@
             {% endif %}
         </div>
         {% if not group.set_talent and not group.enhancetalent_chestarmor and not group.enhancetalent_backpack %}
-        <div style="color: var(--text-dim); font-size: 0.8rem; text-align: center;">该装备组暂无专属天赋加成</div>
+        <div style="color: var(--text-dim); font-size: 1rem; text-align: center;">该装备组暂无专属天赋加成</div>
         {% endif %}
     </div>
     {% endif %}
