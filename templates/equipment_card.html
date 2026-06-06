@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ISAC · 装备数据库</title>
+    <title>ISAC · 套装数据库</title>
     <style>
         * {
             margin: 0;
@@ -221,6 +221,9 @@
             font-size: 1rem;
             line-height: 1.5;
             flex: 1;
+            white-space: pre-wrap;      /* 保留换行，自动换行 */
+            word-wrap: break-word;
+            overflow-wrap: break-word;
         }
 
         .talents-grid {
@@ -256,12 +259,13 @@
         }
 
         .footer-divider {
-            margin-top: 2rem;
-            padding-top: 1rem;
-            border-top: 2px solid var(--border-glow);
-            text-align: right;
-            font-size: 1rem;
+            font-size: 1.07rem;
             color: var(--text-dim);
+            margin-top: 8px;
+            line-height: 1.4;
+            white-space: pre-wrap;      /* 保留换行，自动换行 */
+            word-wrap: break-word;
+            overflow-wrap: break-word;
         }
 
         @media (max-width: 1500px) {
@@ -296,7 +300,7 @@
 
     <!-- 套装加成 -->
     <div class="effect-panel">
-        <div class="panel-title">📋 套装加成</div>
+        <div class="panel-title">套装加成</div>
         {% set effect_lines = group.effect.strip().split('\n') if group.effect else [] %}
         {% set start_num = 1 if group.type == '品牌' else 2 %}
         {% for line in effect_lines %}
@@ -316,7 +320,7 @@
         <div class="talents-grid">
             {% if group.set_talent and group.set_talent != '无' %}
             <div class="talent-item">
-                <div class="talent-label">🔷 四件套天赋</div>
+                <div class="talent-label">装备组天赋</div>
                 <div class="talent-name">{{ group.set_talent }}</div>
                 <div class="talent-desc">{{ group.set_talent_desc or '暂无描述' }}</div>
             </div>
@@ -324,7 +328,7 @@
 
             {% if group.enhancetalent_chestarmor and group.enhancetalent_chestarmor != '无' %}
             <div class="talent-item">
-                <div class="talent-label">🛡️ 胸甲增强天赋</div>
+                <div class="talent-label">胸甲增强天赋</div>
                 <div class="talent-name">{{ group.enhancetalent_chestarmor }}</div>
                 <div class="talent-desc">{{ group.enhancetalent_chestarmor_desc or '暂无描述' }}</div>
             </div>
@@ -332,7 +336,7 @@
 
             {% if group.enhancetalent_backpack and group.enhancetalent_backpack != '无' %}
             <div class="talent-item">
-                <div class="talent-label">🎒 背包增强天赋</div>
+                <div class="talent-label">背包增强天赋</div>
                 <div class="talent-name">{{ group.enhancetalent_backpack }}</div>
                 <div class="talent-desc">{{ group.enhancetalent_backpack_desc or '暂无描述' }}</div>
             </div>
