@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ISAC · 套装数据库</title>
+    <title>ISAC · 装备数据库</title>
     <style>
         * {
             margin: 0;
@@ -19,7 +19,9 @@
             --text-dim: rgba(255, 255, 255, 0.7);
             --panel-bg: rgba(20, 20, 28, 0.75);
             --gold: #ffcc00;
+            --gold-glow: rgba(255, 204, 0, 0.3);
             --green: #a0ffa0;
+            --green-glow: rgba(160, 255, 160, 0.2);
             --green-deep: #66ff66;
         }
 
@@ -217,11 +219,11 @@
             font-size: 1rem;
             font-weight: bold;
         }
-        .talent-desc-placeholder {
+        .talent-desc {
             font-size: 0.7rem;
             color: var(--text-dim);
             margin-top: 6px;
-            font-style: italic;
+            line-height: 1.4;
         }
 
         .footer-divider {
@@ -239,8 +241,12 @@
     </style>
 </head>
 <body>
+<div class="scanline"></div>
 <div class="equipment-card {{ 'brand' if group.type == '品牌' else 'gearset' }}">
-    <!-- 页眉区域：显示装备名称和类型 -->
+    <div class="deco-dots">
+        <div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div>
+    </div>
+
     <div class="equipment-header">
         <div class="equipment-title">
             <div class="equipment-name">{{ group.name_zh }}</div>
@@ -252,20 +258,22 @@
         </div>
     </div>
 
-    <!-- 套装加成面板 -->
+    <!-- 套装加成 -->
     <div class="effect-panel">
         <div class="panel-title">📋 套装加成</div>
         {% set effect_lines = group.effect.strip().split('\n') if group.effect else [] %}
         {% set start_num = 1 if group.type == '品牌' else 2 %}
         {% for line in effect_lines %}
+            {% if line.strip() %}
             <div class="effect-line">
                 <span class="effect-piece">{{ start_num + loop.index0 }}件：</span>
                 <span class="effect-text">{{ line.strip() }}</span>
             </div>
+            {% endif %}
         {% endfor %}
     </div>
 
-    <!-- 天赋配置面板（仅装备组显示） -->
+    <!-- 天赋区域（仅装备组） -->
     {% if group.type == '装备组' %}
     <div class="effect-panel">
         <div class="panel-title">✨ 天赋配置</div>
@@ -292,6 +300,9 @@
             </div>
             {% endif %}
         </div>
+        {% if not group.set_talent and not group.enhancetalent_chestarmor and not group.enhancetalent_backpack %}
+        <div style="color: var(--text-dim); font-size: 0.8rem; text-align: center;">该装备组暂无专属天赋加成</div>
+        {% endif %}
     </div>
     {% endif %}
 
