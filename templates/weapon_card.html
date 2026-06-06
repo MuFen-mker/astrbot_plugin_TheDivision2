@@ -17,7 +17,32 @@
         .weapon-icon { width: 112px; height: 112px; background: #11161f; border: 3px solid var(--isac-orange); border-radius: 20px; display: flex; align-items: center; justify-content: center; padding: 12px; flex-shrink: 0; }
         .weapon-icon img { max-width: 100%; max-height: 100%; object-fit: contain; }
         .weapon-title { flex: 1; }
-        .weapon-name { font-size: 2.8rem; font-weight: 800; background: linear-gradient(135deg, #fff, #ffc285); background-clip: text; -webkit-background-clip: text; color: transparent; margin-bottom: 0.3rem; letter-spacing: 1px; }
+        .weapon-name {
+            font-size: 2.8rem;
+            font-weight: 800;
+            margin-bottom: 0.3rem;
+            letter-spacing: 1px;
+        }
+        .quality-exotic {
+            background: linear-gradient(135deg, #ff6666, #cc0000);
+            background-clip: text;
+            -webkit-background-clip: text;
+            color: transparent;
+            text-shadow: 0 0 8px rgba(255,0,0,0.6);
+        }
+        .quality-named {
+            background: linear-gradient(135deg, #fff5cc, #ffb347);
+            background-clip: text;
+            -webkit-background-clip: text;
+            color: transparent;
+            text-shadow: 0 0 5px rgba(255,180,0,0.5);
+        }
+        .quality-normal {
+            background: linear-gradient(135deg, #ffffff, #ffc285);
+            background-clip: text;
+            -webkit-background-clip: text;
+            color: transparent;
+        }
         .weapon-eng { font-size: 1.2rem; color: var(--isac-orange); font-family: 'Courier New', monospace; text-transform: uppercase; }
         .weapon-quality { display: inline-block; margin-top: 0.4rem; background: rgba(255, 133, 0, 0.2); border-left: 3px solid var(--isac-orange); padding: 0.2rem 0.8rem; font-size: 0.7rem; font-weight: bold; color: #ffc285; }
         .two-columns { display: flex; gap: 2.2rem; margin-bottom: 2rem; flex-wrap: wrap; }
@@ -116,7 +141,12 @@
                  onerror="this.src='https://placehold.co/112x112/ff8500/111?text=?'">
         </div>
         <div class="weapon-title">
-            <div class="weapon-name">{{ weapon.name_zh }}</div>
+            <div class="weapon-name 
+                {% if weapon.quality == '奇特' %}quality-exotic
+                {% elif weapon.quality == '具名' %}quality-named
+                {% else %}quality-normal{% endif %}">
+                {{ weapon.name_zh }}
+            </div>
             <div class="weapon-eng">{{ weapon.name_en }}</div>
             <div class="weapon-quality">
                 {% if weapon.quality == '奇特' %}✨ 奇特武器
