@@ -1199,15 +1199,18 @@ class TheDivision2Plugin(Star):
                 }
         conn.close()
 
+        logger.info(f"attr_map sample: {list(attr_map.items())[:3]}")
         # ------------------- 4. 构建属性列表（供模板使用） -------------------
         attributes_list = []
         for attr_key in gear['attributes']:
             info = attr_map.get(attr_key, {})
+            # 重要：保留原始的 max_value 字符串（如 "0.15"）
+            max_value_raw = info.get('max_value', '0')
             attributes_list.append({
                 'key': attr_key,
                 'name': info.get('entry_name_zh', attr_key),
                 'icon': info.get('icon', '武器属性.png'),
-                'max_value': info.get('max_value', '0'),
+                'max_value': max_value_raw,   # 直接使用原始字符串
                 'named': info.get('named', 'FALSE') == 'TRUE'
             })
 

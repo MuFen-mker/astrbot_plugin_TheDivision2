@@ -65,14 +65,11 @@
             position: relative;
         }
 
-        /* 品质主题 */
         .gear-card.named {
             border-left-color: var(--named-color);
             box-shadow: 0 46px 74px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 204, 0, 0.3) inset, 0 0 36px rgba(255, 204, 0, 0.2);
         }
-        .gear-card.named .gear-name {
-            color: var(--named-color);
-        }
+        .gear-card.named .gear-name { color: var(--named-color); }
         .gear-card.named .brand-badge {
             background: rgba(255, 204, 0, 0.2);
             border-left-color: var(--named-color);
@@ -87,9 +84,7 @@
             border-left-color: var(--exotic-color);
             box-shadow: 0 46px 74px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 85, 85, 0.3) inset, 0 0 36px rgba(255, 85, 85, 0.2);
         }
-        .gear-card.exotic .gear-name {
-            color: var(--exotic-color);
-        }
+        .gear-card.exotic .gear-name { color: var(--exotic-color); }
         .gear-card.exotic .brand-badge {
             background: rgba(255, 85, 85, 0.2);
             border-left-color: var(--exotic-color);
@@ -104,9 +99,7 @@
             border-left-color: var(--gearset-color);
             box-shadow: 0 46px 74px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(160, 255, 160, 0.3) inset, 0 0 36px rgba(160, 255, 160, 0.2);
         }
-        .gear-card.gearset .gear-name {
-            color: var(--gearset-color);
-        }
+        .gear-card.gearset .gear-name { color: var(--gearset-color); }
         .gear-card.gearset .brand-badge {
             background: rgba(160, 255, 160, 0.2);
             border-left-color: var(--gearset-color);
@@ -208,7 +201,7 @@
         }
         .attr-row {
             display: flex;
-            align-items: baseline;
+            align-items: center;
             margin-bottom: 1rem;
             flex-wrap: wrap;
         }
@@ -255,10 +248,29 @@
             margin-top: 0.5rem;
             border: 1px dashed rgba(255, 133, 0, 0.5);
         }
-        .talent-placeholder {
+        .gear-card.named .talent-name {
+            color: var(--named-color);
+            margin-bottom: 0.3rem;
+            font-size: 1.3rem;
+            font-weight: bold;
+        }
+        .gear-card.exotic .talent-name {
+            color: var(--exotic-color);
+            margin-bottom: 0.3rem;
+            font-size: 1.3rem;
+            font-weight: bold;
+        }
+        .gear-card.gearset .talent-name {
+            color: var(--gearset-color);
+            margin-bottom: 0.3rem;
+            font-size: 1.3rem;
+            font-weight: bold;
+        }
+        .talent-desc {
             color: var(--text-dim);
             font-size: 1rem;
-            text-align: center;
+            white-space: pre-wrap;
+            line-height: 1.4;
         }
 
         .footer-divider {
@@ -301,28 +313,39 @@
     <div class="attributes-panel">
         <div class="panel-title">装备属性</div>
         {% for attr in gear.attributes %}
-        {% set attr_info = attr_map.get(attr.key, {}) %}
-        {% set icon_name = attr_info.get('icon', '武器属性.png') %}
-        {% set display_name = attr_info.get('entry_name_zh', attr.key) %}
-        {% set max_val = attr_info.get('max_value', '0') %}
-        {% set is_named = attr_info.get('named', 'FALSE') == 'TRUE' %}
+        {% set info = attr_map.get(attr.key, {}) %}
+        {% set icon_name = info.get('icon', '武器属性.png') %}
+        {% set display_name = info.get('entry_name_zh', attr.key) %}
+        {% set max_val_raw = info.get('max_value', '0')|string|trim %}
+        {% set is_named = info.get('named', 'FALSE') == 'TRUE' %}
 
-        {# 处理显示值和原型 #}
-        {% if max_val == '0' %}
-            {% set value_str = '-' %}
+        {% if max_val_raw == '0' or max_val_raw == '0.0' or max_val_raw == '0%' or max_val_raw == '0.0%' %}
+            {% set display_value = '-' %}
             {% set show_proto = false %}
         {% else %}
-            {# 判断是否为百分比（数值小于1且不是整数） #}
-            {% set num_val = max_val|float %}
-            {% if num_val < 1 and num_val > 0 %}
-                {% set value_str = (num_val * 100)|round(1)|string + '%' %}
-                {% set proto_val = (num_val * 1.5 * 100)|round(1)|string + '%' %}
+            {# 提取数字和判断是否为百分比 #}
+            {% if '%' in max_val_raw %}
+                {% set is_percent = true %}
+                {% set num_str = max_val_raw|replace('%', '')|trim %}
             {% else %}
-                {% set value_str = num_val|string %}
-                {% set proto_val = (num_val * 1.5)|round(1)|string %}
+                {% set is_percent = false %}
+                {% set num_str = max_val_raw %}
+            {% endif %}
+            {% set num_val = num_str|float %}
+            {% if is_percent %}
+                {% set display_value = num_str ~ '%' %}
+                {% set proto_val = (num_val * 1.5)|round(1) ~ '%' %}
+            {% else %}
+                {% if num_val.is_integer() %}
+                    {% set display_value = num_val|int %}
+                {% else %}
+                    {% set display_value = num_val|round(1) %}
+                {% endif %}
+                {% set proto_val = (num_val * 1.5)|round(1) %}
             {% endif %}
             {% set show_proto = gear.quality != '奇特' %}
         {% endif %}
+
         <div class="attr-row">
             <div class="attr-label">
                 <img src="https://cdn.jsdelivr.net/gh/MuFen-mker/astrbot_plugin_TheDivision2_DataAPI@main/assets/Main%20icons/{{ icon_name }}" 
@@ -331,11 +354,11 @@
             </div>
             <div class="attr-value">
                 {% if is_named %}
-                <span class="special-value">{{ value_str }}</span>
+                <span class="special-value">{{ display_value }}</span>
                 {% else %}
-                {{ value_str }}
+                {{ display_value }}
                 {% endif %}
-                {% if show_proto and max_val != '0' %}
+                {% if show_proto and display_value != '-' %}
                 <span class="proto-value">原型 {{ proto_val }}</span>
                 {% endif %}
             </div>
@@ -343,14 +366,12 @@
         {% endfor %}
     </div>
 
-    <!-- 天赋区域（仅当 talent 为 True 时显示） -->
+    <!-- 天赋区域 -->
     {% if gear.talent %}
     <div class="talent-panel">
         <div class="panel-title">✨ 天赋</div>
-        <div class="talent-item" style="background: rgba(0,0,0,0.3); padding: 0.8rem;">
-            <div class="talent-name" style="color: var(--gold); font-size: 1.2rem;">{{ gear.talent_name }}</div>
-            <div class="talent-desc" style="color: var(--text-dim); margin-top: 8px; font-size: 0.9rem; white-space: pre-wrap;">{{ gear.talent_desc or '暂无描述' }}</div>
-        </div>
+        <div class="talent-name">{{ gear.talent_name }}</div>
+        <div class="talent-desc">{{ gear.talent_desc or '暂无描述' }}</div>
     </div>
     {% endif %}
 
