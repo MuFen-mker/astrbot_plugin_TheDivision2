@@ -1128,5 +1128,132 @@ class TheDivision2Plugin(Star):
             logger.error(f"装备卡片渲染失败: {e}")
             yield event.plain_result("生成图片失败，请稍后重试")
     
+    @filter.command("装备")
+    async def gear_query(self, event: AstrMessageEvent, name: str = None):
+        if not name:
+            yield event.plain_result("请提供装备名称，例如：/装备 魔鬼回报")
+            return
+        gear_name = name.strip()
+
+        db_path = os.path.join(os.path.dirname(__file__), "data", "data.db")
+        conn = sqlite3.connect(db_path)
+        conn.row_factory = sqlite3.Row
+        cur = conn.cursor()
+
+        # ------------------- 1. 查询装备（支持别名） -------------------
+        # 精确匹配
+        cur.execute("SELECT * FROM gear WHERE name_zh = ? OR name_en = ?", (gear_name, gear_name))
+        row = cur.fetchone()
+        if not row:
+            # 别名匹配：遍历 alias 字段（换行分隔）
+            cur.execute("SELECT name_zh, alias FROM gear")
+            rows = cur.fetchall()
+            for r in rows:
+                alias_str = r['alias']
+                if alias_str:
+                    aliases = [a.strip() for a in alias_str.split('\n') if a.strip()]
+                    if gear_name in aliases:
+                        cur.execute("SELECT * FROM gear WHERE name_zh = ?", (r['name_zh'],))
+                        row = cur.fetchone()
+                        break
+        if not row:
+            conn.close()
+            yield event.plain_result(f"未找到名为「{gear_name}」的装备")
+            return
+        gear = dict(row)
+
+        # 解析 attributes JSON
+        if gear.get('attributes'):
+            try:
+                gear['attributes'] = json.loads(gear['attributes'])
+            except:
+                gear['attributes'] = []
+        else:
+            gear['attributes'] = []
+
+        # ------------------- 2. 查询 gear_attributes 映射 -------------------
+        cur.execute("SELECT key, type, icon, entry_name_zh, max_value, named FROM gear_attributes")
+        attr_rows = cur.fetchall()
+        attr_map = {}
+        for ar in attr_rows:
+            attr_map[ar['key']] = {
+                'type': ar['type'],
+                'icon': ar['icon'],
+                'entry_name_zh': ar['entry_name_zh'],
+                'max_value': ar['max_value'],
+                'named': ar['named']   # "TRUE"/"FALSE"
+            }
+
+        # ------------------- 3. 查询天赋（如果 gear.talent 为 "TRUE"） -------------------
+        talent_data = None
+        if gear.get('talent') == 'TRUE':
+            # 模糊匹配 talent.type 字段，包含装备名称
+            cur.execute("SELECT name_zh, name_en, `icon path`, description FROM talent WHERE type LIKE ? LIMIT 1", (f'%{gear["name_zh"]}%',))
+            t_row = cur.fetchone()
+            if t_row:
+                talent_data = {
+                    'name_zh': t_row['name_zh'],
+                    'name_en': t_row['name_en'],
+                    'icon_path': t_row['icon path'],
+                    'description': t_row['description']
+                }
+        conn.close()
+
+        # ------------------- 4. 构建属性列表（供模板使用） -------------------
+        attributes_list = []
+        for attr_key in gear['attributes']:
+            info = attr_map.get(attr_key, {})
+            attributes_list.append({
+                'key': attr_key,
+                'name': info.get('entry_name_zh', attr_key),
+                'icon': info.get('icon', '武器属性.png'),
+                'max_value': info.get('max_value', '0'),
+                'named': info.get('named', 'FALSE') == 'TRUE'
+            })
+
+        # ------------------- 5. 品质映射到 CSS 类 -------------------
+        quality_to_class = {
+            '具名': 'named',
+            '奇特': 'exotic',
+            '装备组': 'gearset'
+        }
+        quality_class = quality_to_class.get(gear['quality'], 'named')
+
+        # ------------------- 6. 准备模板数据 -------------------
+        template_data = {
+            'gear': {
+                'name_zh': gear['name_zh'],
+                'name_en': gear['name_en'],
+                'part': gear['part'],
+                'equipment': gear['equipment'],
+                'quality': gear['quality'],
+                'quality_class': quality_class,
+                'attributes': attributes_list,
+                'talent': talent_data is not None,
+                'talent_name': talent_data['name_zh'] if talent_data else None,
+                'talent_desc': talent_data['description'] if talent_data else None
+            },
+            'attr_map': attr_map
+        }
+
+        # ------------------- 7. 渲染模板 -------------------
+        template_path = os.path.join(os.path.dirname(__file__), "templates", "gear_card.html")
+        if not os.path.exists(template_path):
+            yield event.plain_result("装备卡片模板文件未找到")
+            return
+        with open(template_path, "r", encoding="utf-8") as f:
+            template_str = f.read()
+        template = Template(template_str)
+        html = template.render(**template_data)
+
+        # ------------------- 8. 生成图片并发送 -------------------
+        options = {"type": "png", "full_page": True, "scale": "css", "omit_background": True}
+        try:
+            img_url = await self.html_render(html, {}, options=options)
+            yield event.image_result(img_url)
+        except Exception as e:
+            logger.error(f"装备卡片渲染失败: {e}")
+            yield event.plain_result("生成图片失败，请稍后重试")
+
     async def terminate(self):
         pass

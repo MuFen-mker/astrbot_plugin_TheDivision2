@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ISAC · 装备数据库</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --isac-orange: #ff8500;
+            --bg-dark: rgba(12, 12, 18, 0.94);
+            --border-glow: rgba(255, 133, 0, 0.4);
+            --text-primary: #ffffff;
+            --text-dim: rgba(255, 255, 255, 0.7);
+            --panel-bg: rgba(20, 20, 28, 0.75);
+            --named-color: #ffcc00;
+            --exotic-color: #ff5555;
+            --gearset-color: #a0ffa0;
+        }
+
+        html {
+            background-color: #0a0a0f;
+            background-image: 
+                radial-gradient(circle at 30% 20%, rgba(255, 133, 0, 0.12) 0%, transparent 70%),
+                linear-gradient(0deg, transparent 0px, transparent 31px, rgba(255, 133, 0, 0.1) 32px, transparent 33px),
+                linear-gradient(90deg, transparent 0px, transparent 31px, rgba(255, 133, 0, 0.1) 32px, transparent 33px);
+            background-size: auto, 100% 64px, 64px 100%;
+            background-repeat: no-repeat, repeat, repeat;
+        }
+
+        body {
+            width: 1419px;
+            margin: 0 auto;
+            padding: 66px;
+            background: transparent;
+            font-family: 'Segoe UI', 'Orbitron', 'Rajdhani', 'Roboto', sans-serif;
+        }
+
+        .scanline {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(to bottom, transparent 50%, rgba(0, 0, 0, 0.1) 51%);
+            background-size: 100% 6px;
+            pointer-events: none;
+            opacity: 0.4;
+            z-index: 10;
+        }
+
+        .gear-card {
+            background: var(--bg-dark);
+            width: 100%;
+            border-left: 11px solid;
+            box-shadow: 0 46px 74px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 133, 0, 0.2) inset, 0 0 36px rgba(255, 133, 0, 0.3);
+            padding: 53px 59px 59px 59px;
+            clip-path: polygon(0 0, 98% 0, 100% 3%, 100% 100%, 2% 100%, 0 97%);
+            backdrop-filter: blur(1px);
+            position: relative;
+        }
+
+        /* 品质主题 */
+        .gear-card.named {
+            border-left-color: var(--named-color);
+            box-shadow: 0 46px 74px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 204, 0, 0.3) inset, 0 0 36px rgba(255, 204, 0, 0.2);
+        }
+        .gear-card.named .gear-name {
+            color: var(--named-color);
+        }
+        .gear-card.named .brand-badge {
+            background: rgba(255, 204, 0, 0.2);
+            border-left-color: var(--named-color);
+            color: var(--named-color);
+        }
+        .gear-card.named .gear-icon {
+            border: 3px solid var(--named-color);
+            box-shadow: 0 0 13px rgba(255, 204, 0, 0.4);
+        }
+
+        .gear-card.exotic {
+            border-left-color: var(--exotic-color);
+            box-shadow: 0 46px 74px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 85, 85, 0.3) inset, 0 0 36px rgba(255, 85, 85, 0.2);
+        }
+        .gear-card.exotic .gear-name {
+            color: var(--exotic-color);
+        }
+        .gear-card.exotic .brand-badge {
+            background: rgba(255, 85, 85, 0.2);
+            border-left-color: var(--exotic-color);
+            color: var(--exotic-color);
+        }
+        .gear-card.exotic .gear-icon {
+            border: 3px solid var(--exotic-color);
+            box-shadow: 0 0 13px rgba(255, 85, 85, 0.4);
+        }
+
+        .gear-card.gearset {
+            border-left-color: var(--gearset-color);
+            box-shadow: 0 46px 74px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(160, 255, 160, 0.3) inset, 0 0 36px rgba(160, 255, 160, 0.2);
+        }
+        .gear-card.gearset .gear-name {
+            color: var(--gearset-color);
+        }
+        .gear-card.gearset .brand-badge {
+            background: rgba(160, 255, 160, 0.2);
+            border-left-color: var(--gearset-color);
+            color: var(--gearset-color);
+        }
+        .gear-card.gearset .gear-icon {
+            border: 3px solid var(--gearset-color);
+            box-shadow: 0 0 13px rgba(160, 255, 160, 0.4);
+        }
+
+        .deco-dots {
+            position: absolute;
+            top: 33px;
+            right: 46px;
+            display: flex;
+            gap: 13px;
+        }
+        .dot {
+            width: 11px;
+            height: 11px;
+            background: var(--isac-orange);
+            box-shadow: 0 0 8px var(--isac-orange);
+            border-radius: 2px;
+        }
+
+        .gear-header {
+            display: flex;
+            gap: 2rem;
+            align-items: stretch;
+            border-bottom: 3px solid var(--border-glow);
+            padding-bottom: 1.6rem;
+            margin-bottom: 2.5rem;
+            flex-wrap: wrap;
+        }
+        .gear-icon {
+            background: #11161f;
+            border-radius: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 13px;
+            flex-shrink: 0;
+        }
+        .gear-icon img {
+            max-width: 106px;
+            max-height: 106px;
+            width: auto;
+            height: auto;
+            object-fit: contain;
+        }
+        .gear-title {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+        .gear-name {
+            font-size: 3.3rem;
+            font-weight: 800;
+            margin-bottom: 0.25rem;
+            letter-spacing: 1.5px;
+            line-height: 1.2;
+        }
+        .gear-eng {
+            font-size: 1.4rem;
+            color: var(--isac-orange);
+            font-family: 'Courier New', monospace;
+            text-transform: uppercase;
+            margin-bottom: 0.3rem;
+        }
+        .brand-badge {
+            display: inline-block;
+            width: fit-content;
+            max-width: 100%;
+            margin-top: 0.2rem;
+            padding: 0.33rem 1.3rem;
+            font-size: 1.15rem;
+            font-weight: bold;
+            border-left: 5px solid;
+            border-radius: 0 7px 7px 0;
+        }
+
+        .attributes-panel {
+            background: var(--panel-bg);
+            border-radius: 23px;
+            padding: 1.65rem 2.1rem;
+            margin-bottom: 2rem;
+            border: 1px solid rgba(255, 133, 0, 0.2);
+        }
+        .panel-title {
+            font-size: 1.24rem;
+            text-transform: uppercase;
+            color: var(--isac-orange);
+            letter-spacing: 3px;
+            margin-bottom: 1.3rem;
+            border-left: 5px solid var(--isac-orange);
+            padding-left: 20px;
+            font-weight: bold;
+        }
+        .attr-row {
+            display: flex;
+            align-items: baseline;
+            margin-bottom: 1rem;
+            flex-wrap: wrap;
+        }
+        .attr-label {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            width: 220px;
+            flex-shrink: 0;
+        }
+        .attr-label img {
+            width: 28px;
+            height: 28px;
+            object-fit: contain;
+        }
+        .attr-name {
+            font-size: 1rem;
+            color: var(--text-dim);
+        }
+        .attr-value {
+            font-size: 1.1rem;
+            font-weight: bold;
+            color: var(--text-primary);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        .proto-value {
+            font-size: 0.9rem;
+            color: #c77dff;
+            background: rgba(199, 125, 255, 0.2);
+            padding: 0.1rem 0.6rem;
+            border-radius: 20px;
+        }
+        .special-value {
+            color: var(--named-color);
+        }
+
+        .talent-panel {
+            background: var(--panel-bg);
+            border-radius: 23px;
+            padding: 1.2rem 2.1rem;
+            margin-top: 0.5rem;
+            border: 1px dashed rgba(255, 133, 0, 0.5);
+        }
+        .talent-placeholder {
+            color: var(--text-dim);
+            font-size: 1rem;
+            text-align: center;
+        }
+
+        .footer-divider {
+            margin-top: 2rem;
+            padding-top: 1rem;
+            border-top: 2px solid var(--border-glow);
+            text-align: right;
+            font-size: 1rem;
+            color: var(--text-dim);
+        }
+
+        @media (max-width: 1500px) {
+            body { width: auto; padding: 40px; }
+            .gear-name { font-size: 2.5rem; }
+            .gear-icon img { max-width: 80px; max-height: 80px; }
+        }
+    </style>
+</head>
+<body>
+<div class="scanline"></div>
+<div class="gear-card {{ gear.quality_class }}">
+    <div class="deco-dots">
+        <div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div>
+    </div>
+
+    <div class="gear-header">
+        <div class="gear-icon">
+            <img src="https://cdn.jsdelivr.net/gh/MuFen-mker/astrbot_plugin_TheDivision2_DataAPI@main/assets/Main%20icons/{{ gear.equipment }}.png" 
+                 alt="{{ gear.equipment }}"
+                 onerror="this.src='https://placehold.co/106x106/ff8500/111?text=?'">
+        </div>
+        <div class="gear-title">
+            <div class="gear-name">{{ gear.name_zh }}</div>
+            <div class="gear-eng">{{ gear.name_en }}</div>
+            <div class="brand-badge">🏷️ {{ gear.equipment }} · {{ gear.part }}</div>
+        </div>
+    </div>
+
+    <!-- 属性列表 -->
+    <div class="attributes-panel">
+        <div class="panel-title">装备属性</div>
+        {% for attr in gear.attributes %}
+        {% set attr_info = attr_map.get(attr.key, {}) %}
+        {% set icon_name = attr_info.get('icon', '武器属性.png') %}
+        {% set display_name = attr_info.get('entry_name_zh', attr.key) %}
+        {% set max_val = attr_info.get('max_value', '0') %}
+        {% set is_named = attr_info.get('named', 'FALSE') == 'TRUE' %}
+
+        {# 处理显示值和原型 #}
+        {% if max_val == '0' %}
+            {% set value_str = '-' %}
+            {% set show_proto = false %}
+        {% else %}
+            {# 判断是否为百分比（数值小于1且不是整数） #}
+            {% set num_val = max_val|float %}
+            {% if num_val < 1 and num_val > 0 %}
+                {% set value_str = (num_val * 100)|round(1)|string + '%' %}
+                {% set proto_val = (num_val * 1.5 * 100)|round(1)|string + '%' %}
+            {% else %}
+                {% set value_str = num_val|string %}
+                {% set proto_val = (num_val * 1.5)|round(1)|string %}
+            {% endif %}
+            {% set show_proto = gear.quality != '奇特' %}
+        {% endif %}
+        <div class="attr-row">
+            <div class="attr-label">
+                <img src="https://cdn.jsdelivr.net/gh/MuFen-mker/astrbot_plugin_TheDivision2_DataAPI@main/assets/Main%20icons/{{ icon_name }}" 
+                     alt="{{ display_name }}" onerror="this.src='https://placehold.co/28x28/ff8500/111?text=?'">
+                <span class="attr-name">{{ display_name }}</span>
+            </div>
+            <div class="attr-value">
+                {% if is_named %}
+                <span class="special-value">{{ value_str }}</span>
+                {% else %}
+                {{ value_str }}
+                {% endif %}
+                {% if show_proto and max_val != '0' %}
+                <span class="proto-value">原型 {{ proto_val }}</span>
+                {% endif %}
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- 天赋区域（仅当 talent 为 True 时显示） -->
+    {% if gear.talent %}
+    <div class="talent-panel">
+        <div class="panel-title">✨ 天赋</div>
+        <div class="talent-item" style="background: rgba(0,0,0,0.3); padding: 0.8rem;">
+            <div class="talent-name" style="color: var(--gold); font-size: 1.2rem;">{{ gear.talent_name }}</div>
+            <div class="talent-desc" style="color: var(--text-dim); margin-top: 8px; font-size: 0.9rem; white-space: pre-wrap;">{{ gear.talent_desc or '暂无描述' }}</div>
+        </div>
+    </div>
+    {% endif %}
+
+    <div class="footer-divider">
+        <span>◈ ISAC 战术分析 · 装备数据基于实时校表 ◈</span>
+    </div>
+</div>
+</body>
+</html>
