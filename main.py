@@ -602,7 +602,7 @@ class TheDivision2Plugin(Star):
         cache_dir = Path(get_astrbot_data_path()) / "plugin_data" / self.name / "cache"
         cache_dir.mkdir(parents=True, exist_ok=True)
         cache_file = cache_dir / "weekly_vendor.jpg"
-        cache_ttl = 3600
+        cache_ttl = 3600  # 1小时
 
         # 检查缓存是否有效
         if cache_file.exists():
@@ -611,7 +611,8 @@ class TheDivision2Plugin(Star):
                 logger.info("使用缓存的周商图片")
                 yield event.image_result(str(cache_file))
                 return
-
+            else:
+                logger.info("缓存已过期，重新生成")
         # 1. 获取原始 JSON 数据
         url = "https://raw.githubusercontent.com/MuFen-mker/astrbot_plugin_TheDivision2_DataAPI/refs/heads/main/all_vendors.json"
         try:
@@ -626,193 +627,218 @@ class TheDivision2Plugin(Star):
             yield event.plain_result("网络错误，请稍后重试")
             return
 
-        # 2. 数据库连接及辅助函数（内嵌）
-        db_path = os.path.join(os.path.dirname(__file__), "data", "data.db")
-        conn = sqlite3.connect(db_path)
-        conn.row_factory = sqlite3.Row
-        cur = conn.cursor()
+        # 2. 加载翻译文件
+        trans_path = os.path.join(os.path.dirname(__file__), "translations.json")
+        try:
+            with open(trans_path, "r", encoding="utf-8") as f:
+                groups = json.load(f)
+        except Exception as e:
+            logger.error(f"加载翻译文件失败：{e}")
+            yield event.plain_result("翻译文件加载失败")
+            return
 
-        # ---------- 缓存所有属性最大值 ----------
-        # 武器属性缓存 (key, type) -> max_value (数值)
-        weapon_attr_max = {}
-        cur.execute("SELECT key, type, max_value FROM weapon_attributes")
-        for row in cur.fetchall():
-            key, typ, val = row['key'], row['type'], row['max_value']
-            num = 0.0
-            if val:
-                try:
-                    num = float(val.replace('%', '').strip())
-                except:
-                    num = 0.0
-            weapon_attr_max[(key, typ)] = num
+        # 分类映射表
+        armor_map = {}
+        weapon_map = {}
+        brand_map = {}
+        part_map = {}
+        attributes_map = {}
+        talent_map = {}
+        mods_map = {}
+        skill_map = {}
+        merchant_map = {}
+        predefined_id = {}
+        attr_max_map = {}
 
-        # 护甲属性缓存 (key, type) -> max_value
-        gear_attr_max = {}
-        cur.execute("SELECT key, type, max_value FROM gear_attributes")
-        for row in cur.fetchall():
-            key, typ, val = row['key'], row['type'], row['max_value']
-            num = 0.0
-            if val:
-                try:
-                    num = float(val.replace('%', '').strip())
-                except:
-                    num = 0.0
-            gear_attr_max[(key, typ)] = num
+        for group_name, items in groups.items():
+            if not isinstance(items, list):
+                continue
+            for item in items:
+                if "en" not in item or "zh" not in item:
+                    continue
+                if group_name == "armor":
+                    armor_map[item["en"]] = item["zh"]
+                elif group_name == "weapon":
+                    weapon_map[item["en"]] = item["zh"]
+                elif group_name == "brand":
+                    brand_map[item["en"]] = item["zh"]
+                elif group_name == "part":
+                    part_map[item["en"]] = item["zh"]
+                elif group_name == "attributes":
+                    attributes_map[item["en"]] = item["zh"]
+                    if "max" in item:
+                        key_clean = re.sub(r'\s+', '', item["zh"])
+                        attr_max_map[key_clean] = item["max"]
+                elif group_name == "talent":
+                    talent_map[item["en"]] = item["zh"]
+                    if "id" in item:
+                        predefined_id[item["en"]] = item["id"]
+                elif group_name == "mods":
+                    mods_map[item["en"]] = item["zh"]
+                elif group_name == "skill":
+                    skill_map[item["en"]] = item["zh"]
+                elif group_name == "merchant":
+                    merchant_map[item["en"]] = item["zh"]
 
-        # 模组属性缓存 (attributes_en) -> max_value
-        mod_attr_max = {}
-        cur.execute("SELECT attributes_en, max_value FROM mods_attributes")
-        for row in cur.fetchall():
-            key, val = row['attributes_en'], row['max_value']
-            num = 0.0
-            if val:
-                try:
-                    num = float(val.replace('%', '').strip())
-                except:
-                    num = 0.0
-            mod_attr_max[key] = num
+        USE_PREDEFINED_MAX_FOR = ["暴击机率","暴击伤害","爆头伤害","武器控制力","危害防护","爆炸抗性","装甲回复","技能加速","技能伤害","状态效果","修复技能","武器伤害","技能分阶","装甲"]
+        USE_PREDEFINED_MAX_FOR_CLEAN = [re.sub(r'\s+', '', name) for name in USE_PREDEFINED_MAX_FOR]
 
-        # ---------- 翻译辅助函数（使用数据库查询，无硬编码）----------
-        def get_translation(en_name):
-            cur.execute("SELECT name_zh FROM translations WHERE name_en = ?", (en_name,))
-            row = cur.fetchone()
-            return row['name_zh'] if row else en_name
+        SPECIAL_ATTRIBUTE2_MAX = {
+            "生命值伤害": 21,
+            "暴击机率": 21,
+            "对装甲的伤害": 12,
+            "暴击伤害": 17,
+            "爆头伤害": 111,
+            "对离开掩体目标的伤害": 12
+        }
 
-        def get_weapon_name_zh(en_name):
-            cur.execute("SELECT name_zh FROM weapon WHERE name_en = ?", (en_name,))
-            row = cur.fetchone()
-            return row['name_zh'] if row else en_name
+        SPECIAL_ATTRIBUTE3_MAX = {
+            "生命值伤害": 10,
+            "暴击机率": 9.5,
+            "对装甲的伤害": 6,
+            "暴击伤害": 10,
+            "爆头伤害": 10,
+            "对离开掩体目标的伤害": 10
+        }
 
-        def get_gear_name_zh(en_name):
-            cur.execute("SELECT name_zh FROM gear WHERE name_en = ?", (en_name,))
-            row = cur.fetchone()
-            return row['name_zh'] if row else en_name
-
-        def get_brand_name_zh(en_name):
-            cur.execute("SELECT name_zh FROM equipment_group WHERE name_en = ?", (en_name,))
-            row = cur.fetchone()
-            return row['name_zh'] if row else en_name
-
-        def get_talent_name_zh(en_name):
-            cur.execute("SELECT name_zh FROM talent WHERE name_en = ?", (en_name,))
-            row = cur.fetchone()
-            return row['name_zh'] if row else en_name
-
-        def get_mod_name_zh(en_name):
-            cur.execute("SELECT name_zh FROM mods WHERE name_en = ?", (en_name,))
-            row = cur.fetchone()
-            return row['name_zh'] if row else en_name
-
-        # 属性中文名查询（武器和护甲都使用 gear_attributes 的 entry_name_zh）
-        def get_attr_zh(attr_key):
-            cur.execute("SELECT entry_name_zh FROM gear_attributes WHERE key = ?", (attr_key,))
-            row = cur.fetchone()
-            return row['entry_name_zh'] if row else attr_key
-
-        def get_mod_attr_zh(attr_en):
-            cur.execute("SELECT attributes_zh FROM mods_attributes WHERE attributes_en = ?", (attr_en,))
-            row = cur.fetchone()
-            return row['attributes_zh'] if row else attr_en
-
-        # ---------- 递归翻译函数（核心）----------
-        def translate_value(obj, context=None, key=None, item_type=None):
-            if isinstance(obj, dict):
-                # 检测物品类型
-                if 'gears' in obj:
-                    item_type = 'gear'
-                elif 'weapons' in obj:
-                    item_type = 'weapon'
-                elif 'mods' in obj:
-                    item_type = 'mod'
-
-                new_dict = {}
-                for k, v in obj.items():
-                    # ---------- 武器属性 ----------
-                    if item_type == 'weapon' and k == 'attributes' and isinstance(v, list):
-                        # 武器属性数组：最后一条是次要属性
-                        attr_list = v
-                        total = len(attr_list)
-                        translated = []
-                        for idx, attr_key in enumerate(attr_list):
-                            attr_type = 'secondary' if idx == total - 1 else 'core'
-                            # 查询最大值
-                            max_num = weapon_attr_max.get((attr_key, attr_type), 0.0)
-                            attr_zh = get_attr_zh(attr_key)
-                            translated.append(attr_zh)
-                            # 存储最大值（供后续进度条使用）
-                            new_dict[f'attr_{idx}_max'] = max_num
-                        new_dict[k] = translated
-                    # ---------- 护甲属性 ----------
-                    elif item_type == 'gear' and k in ('Core', 'attribute1', 'attribute2', 'attribute3', 'attributes'):
-                        if k == 'Core':
-                            attr_type = 'gear_core'
-                        else:
-                            attr_type = 'gear_secondary'
-                        max_num = gear_attr_max.get((v, attr_type), 0.0)
-                        attr_zh = get_attr_zh(v)
-                        new_dict[k] = attr_zh
-                        new_dict[f'{k}_max'] = max_num
-                    # ---------- 模组属性 ----------
-                    elif item_type == 'mod' and k == 'attributes':
-                        max_num = mod_attr_max.get(v, 0.0)
-                        attr_zh = get_mod_attr_zh(v)
-                        new_dict[k] = attr_zh
-                        new_dict[f'{k}_max'] = max_num
-                    # ---------- 名称翻译 ----------
-                    elif k == 'name':
-                        if context == 'gears':
-                            new_dict[k] = get_gear_name_zh(v)
-                        elif context == 'weapons':
-                            new_dict[k] = get_weapon_name_zh(v)
-                        elif context == 'mods':
-                            new_dict[k] = get_mod_name_zh(v)
-                        else:
-                            new_dict[k] = v
-                    # ---------- 品牌 ----------
-                    elif k == 'brand':
-                        new_dict[k] = get_brand_name_zh(v)
-                    # ---------- 类型（部位/技能）----------
-                    elif k == 'type':
-                        if context == 'mods':
-                            new_dict[k] = get_translation(v)  # 技能名
-                        else:
-                            new_dict[k] = get_translation(v)  # 部位名
-                    # ---------- 天赋 ----------
-                    elif k == 'talent':
-                        new_dict[k] = get_talent_name_zh(v)
-                    # ---------- 递归处理嵌套 ----------
+        # 递归翻译函数（带分类映射）
+        def translate_value(obj, context=None, key=None):
+            if isinstance(obj, str):
+                # 根据字段名和上下文选择映射表
+                target_map = None
+                if key == 'name':
+                    if context == 'gears':
+                        target_map = armor_map
+                    elif context == 'weapons':
+                        target_map = weapon_map
+                    elif context == 'mods':
+                        target_map = mods_map
+                elif key == 'brand':
+                    target_map = brand_map
+                elif key == 'type':
+                    if context == 'mods':
+                        target_map = skill_map
                     else:
-                        sub_context = context
-                        if k == 'gears':
-                            sub_context = 'gears'
-                        elif k == 'weapons':
-                            sub_context = 'weapons'
-                        elif k == 'mods':
-                            sub_context = 'mods'
-                        new_dict[k] = translate_value(v, sub_context, k, item_type)
-                return new_dict
+                        target_map = part_map
+                elif key in ('Core', 'attribute1', 'attribute2', 'attribute3', 'attributes'):
+                    target_map = attributes_map
+                elif key == 'talent':
+                    target_map = talent_map
+
+                if target_map:
+                    result = obj
+                    for en_word in sorted(target_map.keys(), key=len, reverse=True):
+                        if en_word in result:
+                            result = result.replace(en_word, target_map[en_word])
+                    return result
+                else:
+                    return obj
             elif isinstance(obj, list):
-                return [translate_value(item, context, key, item_type) for item in obj]
+                return [translate_value(item, context, key) for item in obj]
+            elif isinstance(obj, dict):
+                new_dict = {}
+                current_context = context
+                for k, v in obj.items():
+                    # 更新上下文
+                    if k == 'gears':
+                        sub_context = 'gears'
+                    elif k == 'weapons':
+                        sub_context = 'weapons'
+                    elif k == 'mods':
+                        sub_context = 'mods'
+                    else:
+                        sub_context = current_context
+                    # 递归，并传递字段名 k
+                    new_dict[k] = translate_value(v, sub_context, k)
+
+                    # 处理 talent 添加 id
+                    if k == "talent":
+                        original = v
+                        translated = new_dict[k]
+                        if original in predefined_id:
+                            raw_id = predefined_id[original]
+                        elif "Perfect" in original or "Perfectly" in original:
+                            id_candidate = re.sub(r'^完美\s*', '', translated)
+                            raw_id = id_candidate if id_candidate else translated
+                        else:
+                            raw_id = translated
+                        new_dict["id"] = raw_id.replace(' ', '_')
+
+                    # 处理属性字段添加 max
+                    if k in ['Core', 'attribute1', 'attribute2', 'attribute3', 'attributes']:
+                        translated_val = new_dict[k]
+                        num_match = re.search(r'([\d,]+(?:\.\d+)?)', translated_val)
+                        if num_match:
+                            raw_num = num_match.group(1).replace(',', '')
+                            try:
+                                extracted_num = float(raw_num)
+                            except ValueError:
+                                extracted_num = 0
+                        else:
+                            extracted_num = 0
+
+                        # 提取属性名称
+                        attr_name_clean = None
+                        attr_match = re.search(r'\d+(?:\.\d+)?%\s*(.+)', translated_val)
+                        if attr_match:
+                            attr_name = attr_match.group(1).strip()
+                            attr_name_clean = re.sub(r'\s+', '', attr_name)
+                        else:
+                            name_match = re.search(r'[^\d,\s%]+(?:\s+[^\d,\s%]+)*', translated_val)
+                            if name_match:
+                                attr_name = name_match.group(0).strip()
+                                attr_name_clean = re.sub(r'\s+', '', attr_name)
+
+                        if attr_name_clean:
+                            use_predefined = False
+                            if current_context == 'gears':
+                                if attr_name_clean in USE_PREDEFINED_MAX_FOR_CLEAN:
+                                    use_predefined = True
+                            else:
+                                use_predefined = True
+
+                            if current_context == 'weapons' and k == 'attribute2':
+                                is_pistol = False
+                                if 'attribute1' in new_dict and "手枪伤害" in new_dict['attribute1']:
+                                    is_pistol = True
+                                if is_pistol:
+                                    rule_map = SPECIAL_ATTRIBUTE3_MAX
+                                else:
+                                    rule_map = SPECIAL_ATTRIBUTE2_MAX
+                                if attr_name_clean in rule_map:
+                                    value_num = max(extracted_num, rule_map[attr_name_clean])
+                                elif use_predefined and attr_name_clean in attr_max_map:
+                                    value_num = max(extracted_num, attr_max_map[attr_name_clean])
+                                else:
+                                    value_num = extracted_num
+                            elif current_context == 'weapons' and k == 'attribute3':
+                                if attr_name_clean in SPECIAL_ATTRIBUTE3_MAX:
+                                    value_num = max(extracted_num, SPECIAL_ATTRIBUTE3_MAX[attr_name_clean])
+                                elif use_predefined and attr_name_clean in attr_max_map:
+                                    value_num = max(extracted_num, attr_max_map[attr_name_clean])
+                                else:
+                                    value_num = extracted_num
+                            else:
+                                if use_predefined and attr_name_clean in attr_max_map:
+                                    value_num = max(extracted_num, attr_max_map[attr_name_clean])
+                                else:
+                                    value_num = extracted_num
+                        else:
+                            value_num = extracted_num
+                        new_dict[f"{k}_max"] = value_num
+                return new_dict
             else:
                 return obj
 
-        # ---------- 翻译商人名称并处理数据 ----------
-        translated_data = {}
-        for merchant_en, vendor_data in data.items():
-            merchant_zh = get_translation(merchant_en)
-            translated_data[merchant_zh] = translate_value(vendor_data)
+        # 翻译整个数据
+        translated_data = translate_value(data)
 
-        conn.close()
-
-        # ---------- 后续处理（提取数字、颜色、进度条等，复用原有逻辑）----------
-        # 注意：这里去掉了所有硬编码的 max 映射和特殊规则，
-        # 因为每个属性都已经有 _max 字段，可以直接使用。
-
+        # 提取数字和颜色的辅助函数
         def extract_number(s):
             match = re.search(r'([\d,]+(?:\.\d+)?)', s)
             if match:
                 return float(match.group(1).replace(',', ''))
-            return 0.0
+            return 0
 
         def get_attribute_color(attr_str):
             if any(kw in attr_str for kw in ['装甲回复', '危害防护', '爆炸抗性', '生命值']):
@@ -824,48 +850,49 @@ class TheDivision2Plugin(Star):
             else:
                 return '#fba000'
 
-        # 预处理数据：添加数值、颜色等（使用从数据库获取的 _max 字段）
+        # 预处理数据（添加数值、颜色等）
         for vendor_data in translated_data.values():
             # 护甲
             for gear in vendor_data.get('gears', []):
-                gear['Core_value'] = extract_number(gear.get('Core', ''))
-                if '装甲' in gear.get('Core', ''):
+                gear['Core_value'] = extract_number(gear['Core'])
+                if '装甲' in gear['Core']:
                     gear['gradient_color'] = '#289eff'
                     gear['Core_color'] = '#289eff'
-                elif '武器伤害' in gear.get('Core', ''):
+                elif '武器伤害' in gear['Core']:
                     gear['gradient_color'] = '#ff2e2e'
                     gear['Core_color'] = '#ff2e2e'
-                elif '技能分阶' in gear.get('Core', ''):
+                elif '技能分阶' in gear['Core']:
                     gear['gradient_color'] = '#f18600'
                     gear['Core_color'] = '#f18600'
                 else:
                     gear['gradient_color'] = '#289eff'
                     gear['Core_color'] = '#289eff'
 
-                for attr in ['attribute1', 'attribute2', 'attribute3']:
-                    if gear.get(attr) and gear[attr] != '-':
-                        gear[f'{attr}_value'] = extract_number(gear[attr])
-                        gear[f'{attr}_color'] = get_attribute_color(gear[attr])
+                if gear.get('attribute1') and gear['attribute1'] != '-':
+                    gear['attribute1_value'] = extract_number(gear['attribute1'])
+                    gear['attribute1_color'] = get_attribute_color(gear['attribute1'])
+                if gear.get('attribute2') and gear['attribute2'] != '-':
+                    gear['attribute2_value'] = extract_number(gear['attribute2'])
+                    gear['attribute2_color'] = get_attribute_color(gear['attribute2'])
 
             # 武器
             for weapon in vendor_data.get('weapons', []):
-                for i in range(3):  # attribute1, attribute2, attribute3
-                    attr_key = f'attribute{i+1}'
-                    if weapon.get(attr_key) and weapon[attr_key] != '-':
-                        weapon[f'{attr_key}_value'] = extract_number(weapon[attr_key])
+                for attr in ['attribute1', 'attribute2', 'attribute3']:
+                    if weapon.get(attr) and weapon[attr] != '-':
+                        weapon[f'{attr}_value'] = extract_number(weapon[attr])
 
             # 模组
             for mod in vendor_data.get('mods', []):
                 if mod.get('type') == '护甲模组':
-                    mod['attributes_value'] = extract_number(mod.get('attributes', ''))
-                    mod['attributes_color'] = get_attribute_color(mod.get('attributes', ''))
-                    if '攻击协定' in mod.get('name', ''):
+                    mod['attributes_value'] = extract_number(mod['attributes'])
+                    mod['attributes_color'] = get_attribute_color(mod['attributes'])
+                    if '攻击协定' in mod['name']:
                         mod['gradient_color'] = '#770000'
                         mod['icon_prefix'] = '攻击协定'
-                    elif '防御协定' in mod.get('name', ''):
+                    elif '防御协定' in mod['name']:
                         mod['gradient_color'] = '#003f73'
                         mod['icon_prefix'] = '防御协定'
-                    elif '性能协定' in mod.get('name', ''):
+                    elif '性能协定' in mod['name']:
                         mod['gradient_color'] = '#ab5f00'
                         mod['icon_prefix'] = '性能协定'
                     else:
@@ -883,16 +910,15 @@ class TheDivision2Plugin(Star):
             return
 
         template = Template(template_str)
-        html = template.render(data=translated_data, vendor_name_map={})  # 商人名称已翻译
+        html = template.render(data=translated_data, vendor_name_map=merchant_map)
 
-        # 生成图片并缓存
         options = {
             "type": "jpeg",
             "quality": 75,
             "device_scale_factor": 1,
         }
         try:
-            img_url = await self.html_render(html, {}, options=options)
+            img_url = await self.html_render(html, {},options=options)  # 可加 options
         except Exception as e:
             logger.error(f"图片渲染失败: {e}")
             yield event.plain_result("生成图片失败，请稍后重试")
