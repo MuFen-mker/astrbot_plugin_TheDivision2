@@ -636,7 +636,7 @@ class TheDivision2Plugin(Star):
             "omit_background": True
         }
         imgurl = await self.html_render(html, {}, options=options)
-        yield event.plain_result("UID:" + uid)
+        yield event.plain_result("UID:\n" + uid)
         yield event.image_result(imgurl)  
 
     @filter.command("周商")
