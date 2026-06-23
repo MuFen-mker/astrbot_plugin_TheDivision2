@@ -21,13 +21,15 @@ class TheDivision2Plugin(Star):
         if config is None:
             base = "http://127.0.0.1:8080"
             self.data_source = "ubi-go"
+            self.default_platform = "uplay"   # 添加默认平台
         else:
             base = config.get("api_base_url", "http://127.0.0.1:8080")
             ds = config.get("data_source", "ubi-go")
-            # 规范化数据源值
             self.data_source = ds if ds in ("tracker", "ubi-go") else "tracker"
+            self.default_platform = config.get("default_platform", "uplay")  # 读取配置，默认 uplay
+
         self.api_base_url = base.rstrip('/')
-        logger.info(f"后端基础地址: {self.api_base_url}, 数据源: {self.data_source}")
+        logger.info(f"后端基础地址: {self.api_base_url}, 数据源: {self.data_source}, 默认平台: {self.default_platform}")
     
     #天赋查询方法
     def get_talent_data(self, talent_name: str):
@@ -254,7 +256,28 @@ class TheDivision2Plugin(Star):
         return equipment
 
     @filter.command("数据查询")
-    async def on_query(self, event: AstrMessageEvent, username: str):
+    async def on_query(self, event: AstrMessageEvent, username: str, platform_arg: str = None):
+        # 平台映射
+        platform_map = {
+            'uplay': 'uplay',
+            'ubi': 'uplay',
+            'xbl': 'xbl',
+            'xbox': 'xbl',
+            'psn': 'psn',
+            'ps': 'psn'
+        }
+
+        platform = None
+        if platform_arg:
+            p = platform_arg.lower().strip()
+            platform = platform_map.get(p)
+
+        if not platform:
+            platform = self.default_platform
+
+        username = username.strip()
+        logger.info(f"解析后平台: {platform}, 玩家标识: {username}")
+
         if self.data_source == "tracker":
             platform = "ubi"
             def build_tracker_url(platform: str, username: str) -> str:
@@ -388,61 +411,62 @@ class TheDivision2Plugin(Star):
             logger.info(f"数据字典已生成，数据来源：tracker.gg")
 
         elif self.data_source == "ubi-go":
-            # 通过 profile 接口获取玩家信息
-            player_name = None
-            uid = None
-            profile_error = None
+            # 平台配置（只需用于获取 game_id）
+            platforms = {
+                "uplay": "60859c37-949d-49e2-8fc8-6d8dc40f1a9e",
+                "xbl":   "902e9524-f2bb-4039-8dc5-a36f7d261987",
+                "psn":   "8aecdffb-6372-48b6-a684-8085a288069f"
+            }
+            # 确保平台合法
+            if platform not in platforms:
+                platform = "uplay"
 
-            # 将输入作为玩家名查询
-            profile_url = f"{self.api_base_url}/profile?username={username}&platform=uplay"
+            game_id = platforms[platform]
+
+            found = False
+            player_name = None
+            uid = None                # ProfileId，用于后续所有查询和展示
+            user_id_for_avatar = None # UserId，仅用于头像
+
+            # 1. 尝试通过玩家名查询指定平台
+            profile_url = f"{self.api_base_url}/profile?username={username}&platform={platform}"
             try:
                 async with aiohttp.ClientSession() as session:
                     async with session.get(profile_url, timeout=10) as resp:
                         if resp.status == 200:
-                            profile_data = await resp.json()
-                            if profile_data.get("success") and profile_data.get("data"):
-                                data = profile_data["data"]
-                                uid = data.get("UserId")
+                            data = (await resp.json()).get("data", {})
+                            uid = data.get("ProfileId") or data.get("IdOnPlatform")
+                            if uid:
                                 player_name = data.get("NameOnPlatform")
-                                logger.info(f"通过玩家名 '{username}' 获取到 UID: {uid}, 玩家名: {player_name}")
-                            else:
-                                profile_error = "Profile 返回数据为空"
-                        else:
-                            profile_error = f"状态码 {resp.status}"
+                                user_id_for_avatar = data.get("UserId")
+                                found = True
+                                logger.info(f"通过玩家名 '{username}' 在平台 {platform} 查询成功，ProfileId: {uid}, 玩家名: {player_name}, UserId(头像用): {user_id_for_avatar}")
             except Exception as e:
-                profile_error = str(e)
-                logger.warning(f"通过玩家名查询 profile 异常: {e}")
+                logger.warning(f"玩家名查询异常: {e}")
 
-            # 如果通过玩家名没获取到 uid，尝试将输入作为 UID 直接查询
-            if not uid:
-                logger.info(f"尝试将输入作为 UID 查询: {username}")
-                profile_url = f"{self.api_base_url}/profile?uid={username}&platform=uplay"
+            # 2. 如果未找到，尝试将输入作为 ProfileId 查询
+            if not found:
+                profile_url = f"{self.api_base_url}/profile?uid={username}&platform={platform}"
                 try:
                     async with aiohttp.ClientSession() as session:
                         async with session.get(profile_url, timeout=10) as resp:
                             if resp.status == 200:
-                                profile_data = await resp.json()
-                                if profile_data.get("success") and profile_data.get("data"):
-                                    data = profile_data["data"]
-                                    uid = data.get("UserId")
+                                data = (await resp.json()).get("data", {})
+                                uid = data.get("ProfileId") or data.get("IdOnPlatform")
+                                if uid:
                                     player_name = data.get("NameOnPlatform")
-                                    logger.info(f"通过 UID '{username}' 查询到玩家名: {player_name}, UID: {uid}")
-                                else:
-                                    profile_error = "Profile (via UID) 返回数据为空"
-                            else:
-                                profile_error = f"状态码 {resp.status} (via UID)"
+                                    user_id_for_avatar = data.get("UserId")
+                                    found = True
+                                    logger.info(f"通过 ProfileId '{username}' 在平台 {platform} 查询成功，玩家名: {player_name}, ProfileId: {uid}, UserId(头像用): {user_id_for_avatar}")
                 except Exception as e:
-                    profile_error = str(e)
-                    logger.warning(f"通过 UID 查询 profile 异常: {e}")
+                    logger.warning(f"ProfileId 查询异常: {e}")
 
-            # 如果两次尝试都失败，返回错误
-            if not uid:
-                logger.error(f"无法获取玩家信息，输入: {username}, 错误: {profile_error}")
-                yield event.plain_result(f"未找到该玩家，请检查输入的是正确的玩家名或 UID")
+            if not found or not uid or not user_id_for_avatar:
+                yield event.plain_result(f"未在 {platform} 平台找到该玩家，请检查输入")
                 return
 
-            # 使用 UID 获取统计数据
-            stats_url = f"{self.api_base_url}/stats?gameId=60859c37-949d-49e2-8fc8-6d8dc40f1a9e&platform=uplay&uids={uid}"
+            # 使用 ProfileId (uid) 请求统计数据
+            stats_url = f"{self.api_base_url}/stats?gameId={game_id}&platform={platform}&uids={uid}"
             try:
                 async with aiohttp.ClientSession() as session:
                     async with session.get(stats_url, timeout=10) as resp:
@@ -461,7 +485,14 @@ class TheDivision2Plugin(Star):
                 logger.error(f"请求统计异常: {e}")
                 yield event.plain_result("网络错误，请稍后重试")
                 return
-            
+
+            # 直接取第一个元素（因为只查询了一个 UID）
+            player_data = data_list[0].get("stats")
+            if not player_data:
+                yield event.plain_result("玩家统计数据为空")
+                return
+
+            # ========== 数据解析 ==========
             #时间格式化函数
             def format_duration(seconds):
                 try:
@@ -481,7 +512,7 @@ class TheDivision2Plugin(Star):
                 if s:
                     parts.append(f"{s}秒")
                 return "".join(parts) if parts else "0秒"
-            
+
             #武器击杀求和
             def get_weapon_total(stats_obj, family):
                 total = 0
@@ -490,11 +521,10 @@ class TheDivision2Plugin(Star):
                     if key.startswith(prefix):
                         total += int(value.get("value", 0))
                 return total
-            
-            player_data = stats_data["data"][0]["stats"]
-            #===================
+
+            #=================== 提取各项数据 ===================
             #头像
-            avatar_url = f"https://ubisoft-avatars.akamaized.net/{uid}/default_146_146.png"
+            avatar_url = f"https://ubisoft-avatars.akamaized.net/{user_id_for_avatar}/default_146_146.png"
             logger.info(f"avatar_url type: {type(avatar_url)}, value: {avatar_url}")
             #等级
             Level = player_data.get("LatestLevel.rankType.NormalXP", {}).get("value", "0")
@@ -562,16 +592,21 @@ class TheDivision2Plugin(Star):
             hit = int(player_data.get("SumHits", {}).get("value", "0"))
             #身体命中数
             bodyHit = hit - Headshots
-            #头部命中率
-            HeadHitRate = f"{Headshots/hit*100:.1f}%"
-            #爆头和身体命中比
-            HeadshotToBodyshotRatio = f"{((lambda r: f'{int(r)}' if r.is_integer() else f'{r:.1f}')(bodyHit/Headshots))}次身体:1次头部"
-            #每小时击杀数
-            KillRatePerHour = int(NpcKills/gametime)
-            #每小时爆头命中数
-            HourlyHeadcountHits = int(Headshots/gametime)
-            #每小时身体命中数
-            HourlyBodyHits = int(bodyHit/gametime)
+            #头部命中率（防除零）
+            HeadHitRate = f"{Headshots/hit*100:.1f}%" if hit > 0 else "0.0%"
+            #爆头和身体命中比（防除零）
+            if Headshots > 0:
+                ratio = bodyHit / Headshots
+                ratio_str = f"{int(ratio)}" if ratio.is_integer() else f"{ratio:.1f}"
+                HeadshotToBodyshotRatio = f"{ratio_str}次身体:1次头部"
+            else:
+                HeadshotToBodyshotRatio = "0次身体:1次头部"
+            #每小时击杀数（防除零）
+            KillRatePerHour = int(NpcKills / gametime) if gametime > 0 else 0
+            #每小时爆头命中数（防除零）
+            HourlyHeadcountHits = int(Headshots / gametime) if gametime > 0 else 0
+            #每小时身体命中数（防除零）
+            HourlyBodyHits = int(bodyHit / gametime) if gametime > 0 else 0
             #当日击杀数
             DailyKills = player_data.get("npckillsperiodic", {}).get("value", "0")
             #当日爆头数

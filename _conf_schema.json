@@ -11,5 +11,12 @@
         "hint": "tracker: 使用 tracker.gg 网站数据；ubi-go: 使用自建后端 API",
         "default": "tracker",
         "enum": ["tracker.gg", "ubi-go"]
+    },
+    "default_platform": {
+        "description": "默认查询平台（当用户未指定时使用）",
+        "type": "string",
+        "hint": "可选 uplay / xbl / psn",
+        "default": "uplay",
+        "enum": ["uplay", "xbl", "psn"]
     }
 }
