@@ -388,38 +388,74 @@ class TheDivision2Plugin(Star):
             logger.info(f"数据字典已生成，数据来源：tracker.gg")
 
         elif self.data_source == "ubi-go":
-            # 1. 尝试获取玩家 UID
+            # 通过 profile 接口获取玩家信息
+            player_name = None
             uid = None
-            # 先尝试作为玩家名
+            profile_error = None
+
+            # 将输入作为玩家名查询
             profile_url = f"{self.api_base_url}/profile?username={username}&platform=uplay"
             try:
                 async with aiohttp.ClientSession() as session:
                     async with session.get(profile_url, timeout=10) as resp:
                         if resp.status == 200:
                             profile_data = await resp.json()
-                            uid = profile_data.get("data", {}).get("UserId")
-                            if uid:
-                                logger.info(f"通过玩家名获取到 UID: {uid}")
+                            if profile_data.get("success") and profile_data.get("data"):
+                                data = profile_data["data"]
+                                uid = data.get("UserId")
+                                player_name = data.get("NameOnPlatform")
+                                logger.info(f"通过玩家名 '{username}' 获取到 UID: {uid}, 玩家名: {player_name}")
+                            else:
+                                profile_error = "Profile 返回数据为空"
+                        else:
+                            profile_error = f"状态码 {resp.status}"
             except Exception as e:
-                logger.warning(f"请求 profile 异常（可能输入为 UID）: {e}")
+                profile_error = str(e)
+                logger.warning(f"通过玩家名查询 profile 异常: {e}")
 
-            # 如果未获取到 uid，则直接将输入作为 UID 尝试
+            # 如果通过玩家名没获取到 uid，尝试将输入作为 UID 直接查询
             if not uid:
-                logger.info(f"未能通过玩家名获取 UID，尝试将输入作为 UID: {username}")
-                uid = username
+                logger.info(f"尝试将输入作为 UID 查询: {username}")
+                profile_url = f"{self.api_base_url}/profile?uid={username}&platform=uplay"
+                try:
+                    async with aiohttp.ClientSession() as session:
+                        async with session.get(profile_url, timeout=10) as resp:
+                            if resp.status == 200:
+                                profile_data = await resp.json()
+                                if profile_data.get("success") and profile_data.get("data"):
+                                    data = profile_data["data"]
+                                    uid = data.get("UserId")
+                                    player_name = data.get("NameOnPlatform")
+                                    logger.info(f"通过 UID '{username}' 查询到玩家名: {player_name}, UID: {uid}")
+                                else:
+                                    profile_error = "Profile (via UID) 返回数据为空"
+                            else:
+                                profile_error = f"状态码 {resp.status} (via UID)"
+                except Exception as e:
+                    profile_error = str(e)
+                    logger.warning(f"通过 UID 查询 profile 异常: {e}")
 
-            # 2. 使用 UID 获取统计数据
+            # 如果两次尝试都失败，返回错误
+            if not uid:
+                logger.error(f"无法获取玩家信息，输入: {username}, 错误: {profile_error}")
+                yield event.plain_result(f"未找到该玩家，请检查输入的是正确的玩家名或 UID")
+                return
+
+            # 使用 UID 获取统计数据
             stats_url = f"{self.api_base_url}/stats?gameId=60859c37-949d-49e2-8fc8-6d8dc40f1a9e&platform=uplay&uids={uid}"
             try:
                 async with aiohttp.ClientSession() as session:
                     async with session.get(stats_url, timeout=10) as resp:
                         if resp.status != 200:
-                            yield event.plain_result(f"获取统计数据失败（状态码：{resp.status}），请检查玩家名或UID是否正确")
+                            yield event.plain_result(f"获取统计数据失败，状态码：{resp.status}")
                             return
                         stats_data = await resp.json()
-                        # 检查是否返回了数据（根据实际 API 结构判断）
-                        if not stats_data.get("data") or not stats_data["data"].get(uid):
-                            yield event.plain_result("未找到该玩家的数据，请确认输入的是正确的玩家名或UID")
+                        if not stats_data.get("success"):
+                            yield event.plain_result(f"统计数据接口返回失败: {stats_data.get('message', '未知错误')}")
+                            return
+                        data_list = stats_data.get("data", [])
+                        if not data_list:
+                            yield event.plain_result("未找到该玩家的统计数据")
                             return
             except Exception as e:
                 logger.error(f"请求统计异常: {e}")
@@ -544,7 +580,7 @@ class TheDivision2Plugin(Star):
 
         #整理字典
         player_info_data = {
-            "playername": username,
+            "playername": player_name,
             "avatarimg": avatar_url,
             "Level": Level,
             "DZLevel": DZLevel,
