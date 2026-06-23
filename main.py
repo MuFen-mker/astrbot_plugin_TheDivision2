@@ -388,35 +388,41 @@ class TheDivision2Plugin(Star):
             logger.info(f"数据字典已生成，数据来源：tracker.gg")
 
         elif self.data_source == "ubi-go":
-            # 1. 获取玩家 UID
+            # 1. 尝试获取玩家 UID
+            uid = None
+            # 先尝试作为玩家名
             profile_url = f"{self.api_base_url}/profile?username={username}&platform=uplay"
             try:
                 async with aiohttp.ClientSession() as session:
                     async with session.get(profile_url, timeout=10) as resp:
-                        if resp.status != 200:
-                            yield event.plain_result(f"获取UID失败，状态码：{resp.status}")
-                            return
-                        profile_data = await resp.json()
-                        uid = profile_data.get("data", {}).get("UserId")  # 根据实际返回字段调整
-                        if not uid:
-                            yield event.plain_result("未找到玩家UID")
-                            return
+                        if resp.status == 200:
+                            profile_data = await resp.json()
+                            uid = profile_data.get("data", {}).get("UserId")
+                            if uid:
+                                logger.info(f"通过玩家名获取到 UID: {uid}")
             except Exception as e:
-                logger.error(f"请求UID异常：{e}")
-                yield event.plain_result("网络错误，请稍后重试")
-                return
+                logger.warning(f"请求 profile 异常（可能输入为 UID）: {e}")
 
-            # 2. 获取玩家统计数据
+            # 如果未获取到 uid，则直接将输入作为 UID 尝试
+            if not uid:
+                logger.info(f"未能通过玩家名获取 UID，尝试将输入作为 UID: {username}")
+                uid = username
+
+            # 2. 使用 UID 获取统计数据
             stats_url = f"{self.api_base_url}/stats?gameId=60859c37-949d-49e2-8fc8-6d8dc40f1a9e&platform=uplay&uids={uid}"
             try:
                 async with aiohttp.ClientSession() as session:
                     async with session.get(stats_url, timeout=10) as resp:
                         if resp.status != 200:
-                            yield event.plain_result(f"获取统计数据失败，状态码：{resp.status}")
+                            yield event.plain_result(f"获取统计数据失败（状态码：{resp.status}），请检查玩家名或UID是否正确")
                             return
                         stats_data = await resp.json()
+                        # 检查是否返回了数据（根据实际 API 结构判断）
+                        if not stats_data.get("data") or not stats_data["data"].get(uid):
+                            yield event.plain_result("未找到该玩家的数据，请确认输入的是正确的玩家名或UID")
+                            return
             except Exception as e:
-                logger.error(f"请求统计异常：{e}")
+                logger.error(f"请求统计异常: {e}")
                 yield event.plain_result("网络错误，请稍后重试")
                 return
             
@@ -594,6 +600,7 @@ class TheDivision2Plugin(Star):
             "omit_background": True
         }
         imgurl = await self.html_render(html, {}, options=options)
+        yield event.plain_result("UID:" + uid)
         yield event.image_result(imgurl)  
 
     @filter.command("周商")
