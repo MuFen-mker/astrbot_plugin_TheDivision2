@@ -167,7 +167,10 @@
         {"en": "Urban", "zh": "城镇 "},
         {"en": "SOCOM", "zh": "特战 "},
         {"en": "Marine", "zh": "海陆 "},
-        {"en": "Magnum", "zh": "麦格农"}
+        {"en": "Magnum", "zh": "麦格农"},
+        {"en": "Brain Break","zh": "脑部破坏"},
+        {"en":"Insult to Injury","zh":"雪上加霜"},
+        {"en":"Caduceus","zh":"双蛇杖"}
     ],
     "_comment":"护甲名称翻译",
     "armor":[
@@ -230,7 +233,10 @@
         {"en":"Turmoil","zh":"动荡"},
         {"en":"Emperor’s Guard","zh":"御前护卫"},
         {"en":"Grease","zh":"润滑油"},
-        {"en":"Cloak","zh":"斗篷"}
+        {"en":"Cloak","zh":"斗篷"},
+        {"en": "Momma Badger","zh": "獾妈妈"},
+        {"en": "Benefactor","zh": "赞助人"},
+        {"en": "Shocker Punch","zh": "护士护膝"}
     ],
     "_comment":"品牌名称翻译",
     "brand":[
@@ -294,7 +300,9 @@
         {"en":"True Patriot","zh":"真实爱国者"},
         {"en":"Umbra Initiative","zh":"“本影”倡议"},
         {"en":"Virtuoso","zh":"大师"},
-        {"en":"Core Strength","zh":"核心训练"}
+        {"en":"Core Strength","zh":"核心训练"},
+        {"en": "Edelweiss GPz","zh":"雪绒花 GPz"},
+        {"en":"Ortiz: Reficere","zh":"奥提兹：恢复"}
     ],
     "_comment":"部位名称翻译",
     "part":[
@@ -530,7 +538,16 @@
         {"en":"Waving the Flag","zh":"旗帜飘扬"},
         {"en":"Compiler Optimization","zh":"编译器最佳化"},
         {"en":"Overcharging","zh":"过充"},
-        {"en":"Deceit","zh":"欺瞒"}
+        {"en":"Deceit","zh":"欺瞒"},
+        {"en":"Overcharged Nanites","zh":"纳米超载"},
+        {"en":"Imperoved Dampeners","zh":"改良型缓冲器"},
+        {"en":"Ortiz Rapid Application Nanite Prototype","zh":"奥提兹迅捷应用纳米原型"},
+        {"en":"Peerfect Safeguard","zh":"完美安全护卫","id":"安全护卫"},
+        {"en":"Perfect Empathic Resolve","zh":"完美感同身受","id":"感同身受"},
+        {"en":"Impervious","zh":"密不透风"},
+        {"en":"Head Scratcher","zh":"混乱冲击"},
+        {"en":"Perfect Head Scratcher","zh":"完美混乱冲击","id":"混乱冲击"},
+        {"en":"Caduceus","zh":"双蛇杖"}
     ],
     "_comment":"模组名称翻译",
     "mods":[
