@@ -2,3 +2,4 @@ aiohttp
 jinja2
 beautifulsoup4
 curl_cffi
+aiosqlite

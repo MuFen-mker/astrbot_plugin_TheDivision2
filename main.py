@@ -13,7 +13,7 @@ import os
 from jinja2 import Template
 from pathlib import Path
 from astrbot.core.utils.astrbot_path import get_astrbot_data_path
-import sqlite3
+import aiosqlite
 
 class TheDivision2Plugin(Star):
     def __init__(self, context: Context, config: AstrBotConfig = None):
@@ -32,45 +32,44 @@ class TheDivision2Plugin(Star):
         logger.info(f"后端基础地址: {self.api_base_url}, 数据源: {self.data_source}, 默认平台: {self.default_platform}")
     
     #天赋查询方法
-    def get_talent_data(self, talent_name: str):
-        """根据天赋名称（中文或英文）从 data/data.db 中查询完整信息"""
+    async def get_talent_data(self, talent_name: str):
+        """根据天赋名称（中文或英文）从 data/data.db 中查询完整信息（异步）"""
         db_path = os.path.join(os.path.dirname(__file__), "data", "data.db")
         if not os.path.exists(db_path):
             logger.error(f"数据库文件不存在: {db_path}")
             return None
-        
-        conn = sqlite3.connect(db_path)
-        conn.row_factory = sqlite3.Row
-        cur = conn.cursor()
-        
-        cur.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='talent'")
-        if cur.fetchone():
-            table_name = "talent"
-        else:
-            cur.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='talents'")
-            if cur.fetchone():
-                table_name = "talents"
+
+        async with aiosqlite.connect(db_path) as conn:
+            conn.row_factory = aiosqlite.Row
+            # 检查表名
+            cursor = await conn.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='talent'")
+            row = await cursor.fetchone()
+            if row:
+                table_name = "talent"
             else:
-                logger.error("数据库中没有 talent 或 talents 表")
-                conn.close()
-                return None
-        
-        query = f"""
-            SELECT name_zh, name_en, `icon path`, type, description
-            FROM {table_name}
-            WHERE name_zh = ? OR name_en = ?
-        """
-        cur.execute(query, (talent_name, talent_name))
-        row = cur.fetchone()
-        conn.close()
-        
+                cursor = await conn.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='talents'")
+                row = await cursor.fetchone()
+                if row:
+                    table_name = "talents"
+                else:
+                    logger.error("数据库中没有 talent 或 talents 表")
+                    return None
+
+            query = f"""
+                SELECT name_zh, name_en, `icon path`, type, description
+                FROM {table_name}
+                WHERE name_zh = ? OR name_en = ?
+            """
+            cursor = await conn.execute(query, (talent_name, talent_name))
+            row = await cursor.fetchone()
+
         if not row:
             return None
-        
+
         return {
             "name": row["name_zh"],
             "eng_name": row["name_en"],
-            "icon_url": row["icon path"],      # 数据库已存绝对路径
+            "icon_url": row["icon path"],
             "type": row["type"] or "",
             "description": row["description"] or ""
         }
@@ -86,69 +85,66 @@ class TheDivision2Plugin(Star):
             return 0.0
 
     #武器查询方法
-    def get_weapon_by_name(self, weapon_name: str):
+    async def get_weapon_by_name(self, weapon_name: str):
         weapon_name = weapon_name.strip()
         db_path = os.path.join(os.path.dirname(__file__), "data", "data.db")
-        conn = sqlite3.connect(db_path)
-        conn.row_factory = sqlite3.Row
-        cur = conn.cursor()
 
-        # 精确匹配
-        cur.execute("""
-            SELECT name_zh, name_en, type, quality, harm, rpm, magazine_capacity,
-                reload, range, head_magnification, sight, muzzle, grip, magazine,
-                attributes
-            FROM weapon
-            WHERE name_zh = ? OR name_en = ?
-        """, (weapon_name, weapon_name))
-        row = cur.fetchone()
-        if row:
-            conn.close()
-            # 处理数字和 JSON
-            weapon = dict(row)
-            def parse(s):
-                if s is None or s == '':
-                    return 0.0
-                s = str(s).replace(',', '').strip()
-                try:
-                    return float(s)
-                except:
-                    return 0.0
-            weapon['harm'] = parse(weapon['harm'])
-            weapon['rpm'] = int(parse(weapon['rpm']))
-            weapon['magazine_capacity'] = int(parse(weapon['magazine_capacity']))
-            weapon['reload'] = parse(weapon['reload'])
-            weapon['range'] = int(parse(weapon['range']))
-            weapon['head_magnification'] = int(parse(weapon['head_magnification']))
-            if weapon.get('attributes'):
-                try:
-                    weapon['attributes'] = json.loads(weapon['attributes'])
-                except:
+        async with aiosqlite.connect(db_path) as conn:
+            conn.row_factory = aiosqlite.Row
+            # 精确匹配
+            cursor = await conn.execute("""
+                SELECT name_zh, name_en, type, quality, harm, rpm, magazine_capacity,
+                    reload, range, head_magnification, sight, muzzle, grip, magazine,
+                    attributes
+                FROM weapon
+                WHERE name_zh = ? OR name_en = ?
+            """, (weapon_name, weapon_name))
+            row = await cursor.fetchone()
+
+            if row:
+                weapon = dict(row)
+                def parse(s):
+                    if s is None or s == '':
+                        return 0.0
+                    s = str(s).replace(',', '').strip()
+                    try:
+                        return float(s)
+                    except:
+                        return 0.0
+                weapon['harm'] = parse(weapon['harm'])
+                weapon['rpm'] = int(parse(weapon['rpm']))
+                weapon['magazine_capacity'] = int(parse(weapon['magazine_capacity']))
+                weapon['reload'] = parse(weapon['reload'])
+                weapon['range'] = int(parse(weapon['range']))
+                weapon['head_magnification'] = int(parse(weapon['head_magnification']))
+                if weapon.get('attributes'):
+                    try:
+                        weapon['attributes'] = json.loads(weapon['attributes'])
+                    except:
+                        weapon['attributes'] = []
+                else:
                     weapon['attributes'] = []
-            else:
-                weapon['attributes'] = []
-            return weapon
+                return weapon
 
-        # 别名匹配
-        cur.execute("SELECT name_zh, alias FROM weapon")
-        rows = cur.fetchall()
-        conn.close()
-        for row in rows:
-            alias_str = row['alias']
-            if alias_str:
-                aliases = [a.strip() for a in alias_str.split('\n') if a.strip()]
-                if weapon_name in aliases:
-                    return self.get_weapon_by_name(row['name_zh'])  # 递归调用，走精确匹配分支
+            # 别名匹配
+            cursor = await conn.execute("SELECT name_zh, alias FROM weapon")
+            rows = await cursor.fetchall()
+            for row in rows:
+                alias_str = row['alias']
+                if alias_str:
+                    aliases = [a.strip() for a in alias_str.split('\n') if a.strip()]
+                    if weapon_name in aliases:
+                        # 递归调用，注意加 await
+                        return await self.get_weapon_by_name(row['name_zh'])
         return None
 
-    def get_weapon_attributes_map(self):
+    async def get_weapon_attributes_map(self):
         db_path = os.path.join(os.path.dirname(__file__), "data", "data.db")
-        conn = sqlite3.connect(db_path)
-        conn.row_factory = sqlite3.Row
-        cur = conn.cursor()
-        cur.execute("SELECT key, type, entry_name_zh, max_value, named FROM weapon_attributes")
-        rows = cur.fetchall()
-        conn.close()
+        async with aiosqlite.connect(db_path) as conn:
+            conn.row_factory = aiosqlite.Row
+            cursor = await conn.execute("SELECT key, type, entry_name_zh, max_value, named FROM weapon_attributes")
+            rows = await cursor.fetchall()
+
         attr_map = {}
         for row in rows:
             key = row['key']
@@ -162,14 +158,16 @@ class TheDivision2Plugin(Star):
             }
         return attr_map
 
-    def get_talent_by_weapon_name(self, weapon_name: str):
+    async def get_talent_by_weapon_name(self, weapon_name: str):
         db_path = os.path.join(os.path.dirname(__file__), "data", "data.db")
-        conn = sqlite3.connect(db_path)
-        conn.row_factory = sqlite3.Row
-        cur = conn.cursor()
-        cur.execute("SELECT name_zh, name_en, `icon path`, type, description FROM talent WHERE type LIKE ? LIMIT 1", (f'%{weapon_name}%',))
-        row = cur.fetchone()
-        conn.close()
+        async with aiosqlite.connect(db_path) as conn:
+            conn.row_factory = aiosqlite.Row
+            cursor = await conn.execute(
+                "SELECT name_zh, name_en, `icon path`, type, description FROM talent WHERE type LIKE ? LIMIT 1",
+                (f'%{weapon_name}%',)
+            )
+            row = await cursor.fetchone()
+
         if row:
             return {
                 'name_zh': row['name_zh'],
@@ -181,79 +179,70 @@ class TheDivision2Plugin(Star):
         return None
     
     #品牌查询方法
-    def get_equipment_full_data(self, name: str):
+    async def get_equipment_full_data(self, name: str):
         """根据名称或别名查询装备完整信息（包括天赋描述）"""
         db_path = os.path.join(os.path.dirname(__file__), "data", "data.db")
-        conn = sqlite3.connect(db_path)
-        conn.row_factory = sqlite3.Row
-        cur = conn.cursor()
+        async with aiosqlite.connect(db_path) as conn:
+            conn.row_factory = aiosqlite.Row
+            # 1. 精确匹配
+            cursor = await conn.execute("""
+                SELECT 
+                    id, name_zh, name_en, alias, type, effect,
+                    set_talent,
+                    `enhancetalent _ chestarmor` AS enhancetalent_chestarmor,
+                    `enhancetalent _ backpack` AS enhancetalent_backpack
+                FROM equipment_group 
+                WHERE name_zh = ? OR name_en = ?
+            """, (name, name))
+            row = await cursor.fetchone()
 
-        # 1. 精确匹配 name_zh 或 name_en
-        cur.execute("""
-            SELECT 
-                id, name_zh, name_en, alias, type, effect,
-                set_talent,
-                `enhancetalent _ chestarmor` AS enhancetalent_chestarmor,
-                `enhancetalent _ backpack` AS enhancetalent_backpack
-            FROM equipment_group 
-            WHERE name_zh = ? OR name_en = ?
-        """, (name, name))
-        row = cur.fetchone()
-        
-        # 2. 别名匹配（如果没有精确匹配）
-        if not row:
-            cur.execute("SELECT id, name_zh, alias FROM equipment_group")
-            all_rows = cur.fetchall()
-            for r in all_rows:
-                alias_str = r['alias']
-                if alias_str:
-                    aliases = [a.strip() for a in alias_str.split('\n') if a.strip()]
-                    if name in aliases:
-                        # 重新查询该行完整信息（避免重复代码）
-                        cur.execute("""
-                            SELECT 
-                                id, name_zh, name_en, alias, type, effect,
-                                set_talent,
-                                `enhancetalent _ chestarmor` AS enhancetalent_chestarmor,
-                                `enhancetalent _ backpack` AS enhancetalent_backpack
-                            FROM equipment_group 
-                            WHERE id = ?
-                        """, (r['id'],))
-                        row = cur.fetchone()
-                        break
+            # 2. 别名匹配
+            if not row:
+                cursor = await conn.execute("SELECT id, name_zh, alias FROM equipment_group")
+                all_rows = await cursor.fetchall()
+                for r in all_rows:
+                    alias_str = r['alias']
+                    if alias_str:
+                        aliases = [a.strip() for a in alias_str.split('\n') if a.strip()]
+                        if name in aliases:
+                            cursor = await conn.execute("""
+                                SELECT 
+                                    id, name_zh, name_en, alias, type, effect,
+                                    set_talent,
+                                    `enhancetalent _ chestarmor` AS enhancetalent_chestarmor,
+                                    `enhancetalent _ backpack` AS enhancetalent_backpack
+                                FROM equipment_group 
+                                WHERE id = ?
+                            """, (r['id'],))
+                            row = await cursor.fetchone()
+                            break
 
-        if not row:
-            conn.close()
-            return None
+            if not row:
+                return None
 
-        equipment = dict(row)
+            equipment = dict(row)
 
-        # 3. 如果是装备组，补充天赋描述
-        if equipment.get('type') == '装备组':
-            talent_map = {}
-            # 需要查询描述的三个天赋字段（标准化后的键名）
-            fields = ['set_talent', 'enhancetalent_chestarmor', 'enhancetalent_backpack']
-            for field in fields:
-                talent_name = equipment.get(field)
-                if talent_name and talent_name != '无':
-                    # 去除可能的空白字符
-                    talent_name_clean = talent_name.strip()
-                    # 在 talent 表中查找 name_zh
-                    cur.execute("SELECT description FROM talent WHERE name_zh = ?", (talent_name_clean,))
-                    desc_row = cur.fetchone()
-                    if desc_row:
-                        talent_map[f"{field}_desc"] = desc_row['description']
+            # 3. 如果是装备组，补充天赋描述
+            if equipment.get('type') == '装备组':
+                talent_map = {}
+                fields = ['set_talent', 'enhancetalent_chestarmor', 'enhancetalent_backpack']
+                for field in fields:
+                    talent_name = equipment.get(field)
+                    if talent_name and talent_name != '无':
+                        talent_name_clean = talent_name.strip()
+                        cursor = await conn.execute("SELECT description FROM talent WHERE name_zh = ?", (talent_name_clean,))
+                        desc_row = await cursor.fetchone()
+                        if desc_row:
+                            talent_map[f"{field}_desc"] = desc_row['description']
+                        else:
+                            cursor = await conn.execute("SELECT description FROM talent WHERE name_zh LIKE ?", (f'%{talent_name_clean}%',))
+                            desc_row = await cursor.fetchone()
+                            talent_map[f"{field}_desc"] = desc_row['description'] if desc_row else '暂无描述'
                     else:
-                        # 尝试模糊匹配（如果精确匹配失败）
-                        cur.execute("SELECT description FROM talent WHERE name_zh LIKE ?", (f'%{talent_name_clean}%',))
-                        desc_row = cur.fetchone()
-                        talent_map[f"{field}_desc"] = desc_row['description'] if desc_row else '暂无描述'
-                else:
-                    talent_map[f"{field}_desc"] = None
-            equipment.update(talent_map)
+                        talent_map[f"{field}_desc"] = None
+                equipment.update(talent_map)
 
-        conn.close()
-        return equipment
+            return equipment
 
     @filter.command("数据查询")
     async def on_query(self, event: AstrMessageEvent, username: str, platform_arg: str = None):
@@ -1027,7 +1016,7 @@ class TheDivision2Plugin(Star):
         if not talent_name:
             yield event.plain_result("请提供天赋名称，例如：/天赋 反复")
             return
-        talent = self.get_talent_data(talent_name.strip())
+        talent = await self.get_talent_data(talent_name.strip())
         if not talent:
             yield event.plain_result(f"未找到名为「{talent_name}」的天赋")
             return
@@ -1068,14 +1057,14 @@ class TheDivision2Plugin(Star):
             yield event.plain_result("请提供武器名称，例如：/武器 战术 M1911")
             return
 
-        # 查询武器（必须调用）
-        weapon = self.get_weapon_by_name(weapon_name)
+        # 查询武器
+        weapon = await self.get_weapon_by_name(weapon_name)
         if not weapon:
             yield event.plain_result(f"未找到名为「{weapon_name}」的武器")
             return
 
         # 获取属性映射表
-        attr_map = self.get_weapon_attributes_map()
+        attr_map = await self.get_weapon_attributes_map()
 
         # 构建武器属性列表（根据位置确定类型）
         attributes_list = []
@@ -1122,7 +1111,7 @@ class TheDivision2Plugin(Star):
         # 特殊爆头金色标记（根据属性中是否有名为“爆头伤害”的特殊词条）
         special_headshot = any(attr['name'] == '爆头伤害' and attr.get('special') for attr in attributes_list)
 
-        talent = self.get_talent_by_weapon_name(weapon['name_zh'])
+        talent = await self.get_talent_by_weapon_name(weapon['name_zh'])
 
         # 准备模板数据
         template_data = {
@@ -1177,7 +1166,7 @@ class TheDivision2Plugin(Star):
             yield event.plain_result("请提供装备品牌或装备组名称，例如：/套装 核心力量")
             return
 
-        equipment = self.get_equipment_full_data(name.strip())
+        equipment = await self.get_equipment_full_data(name.strip())
         if not equipment:
             yield event.plain_result(f"未找到名为「{name}」的装备")
             return
@@ -1214,84 +1203,78 @@ class TheDivision2Plugin(Star):
         gear_name = name.strip()
 
         db_path = os.path.join(os.path.dirname(__file__), "data", "data.db")
-        conn = sqlite3.connect(db_path)
-        conn.row_factory = sqlite3.Row
-        cur = conn.cursor()
+        async with aiosqlite.connect(db_path) as conn:
+            conn.row_factory = aiosqlite.Row
 
-        # ------------------- 1. 查询装备（支持别名） -------------------
-        # 精确匹配
-        cur.execute("SELECT * FROM gear WHERE name_zh = ? OR name_en = ?", (gear_name, gear_name))
-        row = cur.fetchone()
-        if not row:
-            # 别名匹配：遍历 alias 字段（换行分隔）
-            cur.execute("SELECT name_zh, alias FROM gear")
-            rows = cur.fetchall()
-            for r in rows:
-                alias_str = r['alias']
-                if alias_str:
-                    aliases = [a.strip() for a in alias_str.split('\n') if a.strip()]
-                    if gear_name in aliases:
-                        cur.execute("SELECT * FROM gear WHERE name_zh = ?", (r['name_zh'],))
-                        row = cur.fetchone()
-                        break
-        if not row:
-            conn.close()
-            yield event.plain_result(f"未找到名为「{gear_name}」的装备")
-            return
-        gear = dict(row)
+            # 1. 查询装备（支持别名）
+            cursor = await conn.execute("SELECT * FROM gear WHERE name_zh = ? OR name_en = ?", (gear_name, gear_name))
+            row = await cursor.fetchone()
+            if not row:
+                # 别名匹配
+                cursor = await conn.execute("SELECT name_zh, alias FROM gear")
+                rows = await cursor.fetchall()
+                for r in rows:
+                    alias_str = r['alias']
+                    if alias_str:
+                        aliases = [a.strip() for a in alias_str.split('\n') if a.strip()]
+                        if gear_name in aliases:
+                            cursor = await conn.execute("SELECT * FROM gear WHERE name_zh = ?", (r['name_zh'],))
+                            row = await cursor.fetchone()
+                            break
+            if not row:
+                yield event.plain_result(f"未找到名为「{gear_name}」的装备")
+                return
+            gear = dict(row)
 
-        # 解析 attributes JSON
-        if gear.get('attributes'):
-            try:
-                gear['attributes'] = json.loads(gear['attributes'])
-            except:
+            # 解析 attributes JSON
+            if gear.get('attributes'):
+                try:
+                    gear['attributes'] = json.loads(gear['attributes'])
+                except:
+                    gear['attributes'] = []
+            else:
                 gear['attributes'] = []
-        else:
-            gear['attributes'] = []
 
-        # ------------------- 2. 查询 gear_attributes 映射 -------------------
-        cur.execute("SELECT key, type, icon, entry_name_zh, max_value, named FROM gear_attributes")
-        attr_rows = cur.fetchall()
-        attr_map = {}
-        for ar in attr_rows:
-            attr_map[ar['key']] = {
-                'type': ar['type'],
-                'icon': ar['icon'],
-                'entry_name_zh': ar['entry_name_zh'],
-                'max_value': ar['max_value'],
-                'named': ar['named']   # "TRUE"/"FALSE"
-            }
-
-        # ------------------- 3. 查询天赋（如果 gear.talent 为 "TRUE"） -------------------
-        talent_data = None
-        if gear.get('talent') == 'TRUE':
-            # 模糊匹配 talent.type 字段，包含装备名称
-            cur.execute("SELECT name_zh, name_en, `icon path`, description FROM talent WHERE type LIKE ? LIMIT 1", (f'%{gear["name_zh"]}%',))
-            t_row = cur.fetchone()
-            if t_row:
-                talent_data = {
-                    'name_zh': t_row['name_zh'],
-                    'name_en': t_row['name_en'],
-                    'icon_path': t_row['icon path'],
-                    'description': t_row['description']
+            # 2. 查询 gear_attributes 映射
+            cursor = await conn.execute("SELECT key, type, icon, entry_name_zh, max_value, named FROM gear_attributes")
+            attr_rows = await cursor.fetchall()
+            attr_map = {}
+            for ar in attr_rows:
+                attr_map[ar['key']] = {
+                    'type': ar['type'],
+                    'icon': ar['icon'],
+                    'entry_name_zh': ar['entry_name_zh'],
+                    'max_value': ar['max_value'],
+                    'named': ar['named']   # "TRUE"/"FALSE"
                 }
-        conn.close()
 
-        # ------------------- 4. 构建属性列表（供模板使用） -------------------
+            # 3. 查询天赋（如果 gear.talent 为 "TRUE"）
+            talent_data = None
+            if gear.get('talent') == 'TRUE':
+                cursor = await conn.execute("SELECT name_zh, name_en, `icon path`, description FROM talent WHERE type LIKE ? LIMIT 1", (f'%{gear["name_zh"]}%',))
+                t_row = await cursor.fetchone()
+                if t_row:
+                    talent_data = {
+                        'name_zh': t_row['name_zh'],
+                        'name_en': t_row['name_en'],
+                        'icon_path': t_row['icon path'],
+                        'description': t_row['description']
+                    }
+
+        # 构建属性列表（与原代码相同）
         attributes_list = []
         for attr_key in gear['attributes']:
             info = attr_map.get(attr_key, {})
-            # 重要：保留原始的 max_value 字符串（如 "0.15"）
             max_value_raw = info.get('max_value', '0')
             attributes_list.append({
                 'key': attr_key,
                 'name': info.get('entry_name_zh', attr_key),
                 'icon': info.get('icon', '武器属性.png'),
-                'max_value': max_value_raw,   # 直接使用原始字符串
+                'max_value': max_value_raw,
                 'named': info.get('named', 'FALSE') == 'TRUE'
             })
 
-        # ------------------- 5. 品质映射到 CSS 类 -------------------
+        # 品质映射
         quality_to_class = {
             '具名': 'named',
             '奇特': 'exotic',
@@ -1299,7 +1282,7 @@ class TheDivision2Plugin(Star):
         }
         quality_class = quality_to_class.get(gear['quality'], 'named')
 
-        # ------------------- 6. 准备模板数据 -------------------
+        # 准备模板数据
         template_data = {
             'gear': {
                 'name_zh': gear['name_zh'],
@@ -1316,7 +1299,7 @@ class TheDivision2Plugin(Star):
             'attr_map': attr_map
         }
 
-        # ------------------- 7. 渲染模板 -------------------
+        # 渲染模板（与原代码相同）
         template_path = os.path.join(os.path.dirname(__file__), "templates", "gear_card.html")
         if not os.path.exists(template_path):
             yield event.plain_result("装备卡片模板文件未找到")
@@ -1326,7 +1309,6 @@ class TheDivision2Plugin(Star):
         template = Template(template_str)
         html = template.render(**template_data)
 
-        # ------------------- 8. 生成图片并发送 -------------------
         options = {"type": "png", "full_page": True, "scale": "css", "omit_background": True}
         try:
             img_url = await self.html_render(html, {}, options=options)
