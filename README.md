@@ -9,7 +9,7 @@
 /周商
 ```
 
-详细的玩家数据依赖后端
+玩家数据查询功能依赖后端，目前未考虑提供公共的后端服务器，如有需要请自行部署UBI-GO项目（Docker）
 
 [alexanderthegreat96/ubi-go: Ubisoft Connect API Wrapper](https://github.com/alexanderthegreat96/ubi-go)
 
