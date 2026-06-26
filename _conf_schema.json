@@ -2,15 +2,8 @@
     "api_base_url": {
         "description": "ubi-go服务器地址",
         "type": "string",
-        "hint": "示例：http://www.example.com:8080",
-        "default": "http://127.0.0.1:8080"
-    },
-    "data_source": {
-        "description": "数据源选择",
-        "type": "string",
-        "hint": "tracker: 使用 tracker.gg 网站数据；ubi-go: 使用自建后端 API",
-        "default": "tracker",
-        "enum": ["tracker.gg", "ubi-go"]
+        "hint": "数据查询依赖ubi-go,请根据插件github主页自部署ubi-go后端,示例: http://www.example.com:12910",
+        "default": "http://127.0.0.1:12910"
     },
     "default_platform": {
         "description": "默认查询平台（当用户未指定时使用）",
