@@ -1,7 +1,7 @@
-name: astrbot_thedivision2_dev
-display_name: TheDivision2数据查询测试版
-desc: astrbot_thedivision2测试版本 
-version: v1.0.0 
+name: astrbot_thedivision2 
+display_name: TheDivision2数据查询 
+desc: 一个用于查询全境封锁2国际服玩家数据的插件。 
+version: Y8S2Fix6
 author: MOTH56 
 repo: https://github.com/MuFen-mker/astrbot_plugin_TheDivision2
 support_platforms:
