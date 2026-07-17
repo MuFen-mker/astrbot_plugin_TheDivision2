@@ -1,30 +1,170 @@
-from astrbot.api.event import filter, AstrMessageEvent, MessageEventResult
-from astrbot.api.star import Context, Star, register
-from astrbot.api import logger, AstrBotConfig 
-from astrbot.api.message_components import Image
 import re
 import time
 import json
 import aiohttp
 import os
+import aiosqlite
+import difflib
+from astrbot.api.event import filter, AstrMessageEvent, MessageEventResult
+from astrbot.api.star import Context, Star, register
+from astrbot.api import logger, AstrBotConfig 
+from astrbot.api.message_components import Image
+from astrbot.core.utils.astrbot_path import get_astrbot_data_path
+from .ubi_api_client import UbisoftAPI, UbisoftAPIError, UbisoftAPIAuthError, UbisoftAPIRateLimitError, UbisoftAPIServerError
 from jinja2 import Template
 from pathlib import Path
-from astrbot.core.utils.astrbot_path import get_astrbot_data_path
-import aiosqlite
+
 
 class TheDivision2Plugin(Star):
     def __init__(self, context: Context, config: AstrBotConfig = None):
         super().__init__(context)
         if config is None:
-            base = "http://127.0.0.1:8080"
-            self.default_platform = "uplay"
-        else:
-            base = config.get("api_base_url", "http://127.0.0.1:8080")
-            self.default_platform = config.get("default_platform", "uplay")
-        self.api_base_url = base.rstrip('/')
-        logger.info(f"后端基础地址: {self.api_base_url}, 默认平台: {self.default_platform}")
-    
-    #天赋查询方法
+            config = AstrBotConfig({})
+        self.config = config
+
+        # 读取配置
+        self.ubisoft_email = config.get("ubisoft_email", "")
+        self.ubisoft_password = config.get("ubisoft_password", "")
+        self.default_platform = config.get("default_platform", "uplay")
+
+        # 初始化 Ubisoft API 客户端
+        self.ubi_api = UbisoftAPI(self.ubisoft_email, self.ubisoft_password)
+
+        # ---------- 性能优化：内存缓存 ----------
+        self._cache = {
+            "profile": {},   # key: "username:platform" or "id:profile_id" -> profile dict
+            "stats": {}      # key: "profile_id:space_id" -> stats dict
+        }
+        self._cache_ttl = {
+            "profile": 3600,  # 1小时
+            "stats": 600      # 10分钟
+        }
+
+        # ---------- 性能优化：预加载模板 ----------
+        self.templates = {}
+        template_files = {
+            "player_info": "templates/player_info.html",
+            "talent_card": "templates/talent_card.html",
+            "weapon_card": "templates/weapon_card.html",
+            "equipment_card": "templates/equipment_card.html",
+            "gear_card": "templates/gear_card.html",
+            "weekly_report": "templates/weekly_report.html",
+        }
+        for name, path in template_files.items():
+            full_path = os.path.join(os.path.dirname(__file__), path)
+            try:
+                with open(full_path, "r", encoding="utf-8") as f:
+                    self.templates[name] = Template(f.read())
+                logger.debug(f"模板 {name} 加载成功")
+            except FileNotFoundError:
+                logger.error(f"模板文件未找到: {full_path}")
+                self.templates[name] = None
+
+        logger.info(f"默认平台: {self.default_platform}")
+        if not self.ubisoft_email or not self.ubisoft_password:
+            logger.warning("育碧账号或密码未配置，插件将无法查询数据！")
+
+    # ==================== 缓存辅助方法 ====================
+    def _get_cache(self, cache_type: str, key: str):
+        """获取缓存数据，自动检查 TTL"""
+        cache_data = self._cache.get(cache_type, {})
+        entry = cache_data.get(key)
+        if not entry:
+            return None
+        data, timestamp = entry
+        ttl = self._cache_ttl.get(cache_type, 600)
+        if time.time() - timestamp > ttl:
+            # 过期了，删除并返回 None
+            del cache_data[key]
+            return None
+        return data
+
+    def _set_cache(self, cache_type: str, key: str, data):
+        """设置缓存数据"""
+        if cache_type not in self._cache:
+            self._cache[cache_type] = {}
+        self._cache[cache_type][key] = (data, time.time())
+
+    # ==================== 带缓存的查询方法 ====================
+    async def get_player_profile(self, username: str, platform: str):
+        """获取玩家 profile（先查缓存，再请求 API）"""
+        cache_key = f"{username}:{platform}"
+        cached = self._get_cache("profile", cache_key)
+        if cached:
+            logger.debug(f"Profile cache hit for {username}")
+            return cached
+
+        try:
+            profile = await self.ubi_api.get_profile_by_username(username, platform)
+            if profile:
+                self._set_cache("profile", cache_key, profile)
+            return profile
+        except Exception:
+            raise
+
+    async def get_player_profile_by_id(self, profile_id: str):
+        """通过 ProfileId 获取玩家 profile（带缓存）"""
+        cache_key = f"id:{profile_id}"
+        cached = self._get_cache("profile", cache_key)
+        if cached:
+            logger.debug(f"Profile cache hit for {profile_id}")
+            return cached
+
+        try:
+            profile = await self.ubi_api.get_profile_by_id(profile_id)
+            if profile:
+                self._set_cache("profile", cache_key, profile)
+            return profile
+        except Exception:
+            raise
+
+    async def get_stats(self, profile_id: str, space_id: str):
+        """获取统计数据（先查缓存，再请求 API）"""
+        cache_key = f"{profile_id}:{space_id}"
+        cached = self._get_cache("stats", cache_key)
+        if cached:
+            logger.debug(f"Stats cache hit for {profile_id}")
+            return cached
+
+        try:
+            stats = await self.ubi_api.get_stats(profile_id, space_id)
+            if stats:
+                self._set_cache("stats", cache_key, stats)
+            return stats
+        except Exception:
+            raise
+
+    # ==================== 工具方法 ====================
+    def _format_duration(self, seconds):
+        """格式化时长"""
+        try:
+            seconds = int(seconds)
+        except (ValueError, TypeError):
+            return "0秒"
+        if seconds <= 0:
+            return "0秒"
+        h = seconds // 3600
+        m = (seconds % 3600) // 60
+        s = seconds % 60
+        parts = []
+        if h:
+            parts.append(f"{h}小时")
+        if m:
+            parts.append(f"{m}分钟")
+        if s:
+            parts.append(f"{s}秒")
+        return "".join(parts) if parts else "0秒"
+
+    def _get_weapon_total(self, stats_obj, family):
+        """计算武器家族击杀总数"""
+        total = 0
+        prefix = f"weaponFactionKills.weaponFamily.{family}.npcFaction."
+        for key, value in stats_obj.items():
+            if key.startswith(prefix):
+                total += int(value.get("value", 0))
+        return total
+
+    # ==================== 原有数据库查询方法（保持不变） ====================
     async def get_talent_data(self, talent_name: str):
         """根据天赋名称（中文或英文）从 data/data.db 中查询完整信息（异步）"""
         db_path = os.path.join(os.path.dirname(__file__), "data", "data.db")
@@ -34,7 +174,6 @@ class TheDivision2Plugin(Star):
 
         async with aiosqlite.connect(db_path) as conn:
             conn.row_factory = aiosqlite.Row
-            # 检查表名
             cursor = await conn.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='talent'")
             row = await cursor.fetchone()
             if row:
@@ -76,15 +215,96 @@ class TheDivision2Plugin(Star):
             return float(s)
         except:
             return 0.0
+    
+    # ==================== 搜索建议辅助方法 ====================
+    async def _get_suggestions(self, table: str, keyword: str, limit: int = 5) -> list:
+        """
+        根据表名和关键词返回建议的名称列表（混合匹配策略）
+        策略：
+        1. difflib 模糊匹配（cutoff=0.4，提高召回）
+        2. 包含关系（keyword in name 或 name in keyword）
+        3. 共同字符数（用于处理短词/抽象词，如“催化”匹配“化学特工”）
+        """
+        db_path = os.path.join(os.path.dirname(__file__), "data", "data.db")
+        if not os.path.exists(db_path):
+            return []
 
-    #武器查询方法
+        # 确定实际表名（与之前相同）
+        actual_table = table
+        if table == "talent":
+            async with aiosqlite.connect(db_path) as conn:
+                cursor = await conn.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='talent'")
+                if await cursor.fetchone():
+                    actual_table = "talent"
+                else:
+                    cursor = await conn.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='talents'")
+                    if await cursor.fetchone():
+                        actual_table = "talents"
+                    else:
+                        return []
+        elif table not in ("weapon", "gear", "equipment_group"):
+            return []
+
+        try:
+            async with aiosqlite.connect(db_path) as conn:
+                conn.row_factory = aiosqlite.Row
+                cursor = await conn.execute(f"SELECT name_zh FROM {actual_table}")
+                rows = await cursor.fetchall()
+                all_names = [row['name_zh'] for row in rows if row['name_zh']]
+
+            if not all_names:
+                return []
+
+            suggestions = []
+            keyword_lower = keyword.lower()
+
+            # 1. difflib 模糊匹配（降低阈值至 0.4，增加召回）
+            matches = difflib.get_close_matches(keyword, all_names, n=limit, cutoff=0.4)
+            suggestions.extend(matches)
+
+            # 2. 包含关系（不区分大小写）
+            for name in all_names:
+                if keyword_lower in name.lower() or name.lower() in keyword_lower:
+                    if name not in suggestions:
+                        suggestions.append(name)
+
+            # 3. 共同字符数匹配（用于短词/抽象词）
+            keyword_chars = set(keyword_lower)
+            char_matches = []
+            for name in all_names:
+                if name in suggestions:
+                    continue
+                common = len(keyword_chars & set(name.lower()))
+                if common > 0:
+                    char_matches.append((common, name))
+            # 按共同字符数降序排序
+            char_matches.sort(key=lambda x: x[0], reverse=True)
+            # 补充到 limit 个
+            for _, name in char_matches[:limit - len(suggestions)]:
+                if name not in suggestions:
+                    suggestions.append(name)
+
+            # 去重，保留前 limit 个
+            seen = set()
+            result = []
+            for name in suggestions:
+                if name not in seen:
+                    seen.add(name)
+                    result.append(name)
+                    if len(result) >= limit:
+                        break
+            return result
+
+        except Exception as e:
+            logger.error(f"获取建议失败 (table={table}): {e}")
+            return []
+
     async def get_weapon_by_name(self, weapon_name: str):
         weapon_name = weapon_name.strip()
         db_path = os.path.join(os.path.dirname(__file__), "data", "data.db")
 
         async with aiosqlite.connect(db_path) as conn:
             conn.row_factory = aiosqlite.Row
-            # 精确匹配
             cursor = await conn.execute("""
                 SELECT name_zh, name_en, type, quality, harm, rpm, magazine_capacity,
                     reload, range, head_magnification, sight, muzzle, grip, magazine,
@@ -127,7 +347,6 @@ class TheDivision2Plugin(Star):
                 if alias_str:
                     aliases = [a.strip() for a in alias_str.split('\n') if a.strip()]
                     if weapon_name in aliases:
-                        # 递归调用，注意加 await
                         return await self.get_weapon_by_name(row['name_zh'])
         return None
 
@@ -170,14 +389,12 @@ class TheDivision2Plugin(Star):
                 'description': row['description']
             }
         return None
-    
-    #品牌查询方法
+
     async def get_equipment_full_data(self, name: str):
         """根据名称或别名查询装备完整信息（包括天赋描述）"""
         db_path = os.path.join(os.path.dirname(__file__), "data", "data.db")
         async with aiosqlite.connect(db_path) as conn:
             conn.row_factory = aiosqlite.Row
-            # 1. 精确匹配
             cursor = await conn.execute("""
                 SELECT 
                     id, name_zh, name_en, alias, type, effect,
@@ -189,7 +406,6 @@ class TheDivision2Plugin(Star):
             """, (name, name))
             row = await cursor.fetchone()
 
-            # 2. 别名匹配
             if not row:
                 cursor = await conn.execute("SELECT id, name_zh, alias FROM equipment_group")
                 all_rows = await cursor.fetchall()
@@ -215,7 +431,6 @@ class TheDivision2Plugin(Star):
 
             equipment = dict(row)
 
-            # 3. 如果是装备组，补充天赋描述
             if equipment.get('type') == '装备组':
                 talent_map = {}
                 fields = ['set_talent', 'enhancetalent_chestarmor', 'enhancetalent_backpack']
@@ -237,9 +452,9 @@ class TheDivision2Plugin(Star):
 
             return equipment
 
+    # ==================== 命令：数据查询（已优化：缓存 + 预加载模板 + 异常分类） ====================
     @filter.command("数据查询")
     async def on_query(self, event: AstrMessageEvent, username: str, platform_arg: str = None):
-        # 平台映射
         platform_map = {
             'uplay': 'uplay',
             'ubi': 'uplay',
@@ -260,279 +475,199 @@ class TheDivision2Plugin(Star):
         username = username.strip()
         logger.info(f"解析后平台: {platform}, 玩家标识: {username}")
 
-
-        # 平台配置（只需用于获取 game_id）
         platforms = {
             "uplay": "60859c37-949d-49e2-8fc8-6d8dc40f1a9e",
             "xbl":   "902e9524-f2bb-4039-8dc5-a36f7d261987",
             "psn":   "8aecdffb-6372-48b6-a684-8085a288069f"
         }
-        # 确保平台合法
         if platform not in platforms:
             platform = "uplay"
-
         game_id = platforms[platform]
 
-        found = False
-        player_name = None
-        uid = None                # ProfileId，用于后续所有查询和展示
-        user_id_for_avatar = None # UserId，仅用于头像
+        # 判断输入是用户名还是 ProfileId
+        uid_pattern = re.compile(r'^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$', re.IGNORECASE)
+        is_uid = bool(uid_pattern.match(username))
 
-        # 1. 尝试通过玩家名查询指定平台
-        profile_url = f"{self.api_base_url}/profile?username={username}&platform={platform}"
         try:
-            async with aiohttp.ClientSession() as session:
-                async with session.get(profile_url, timeout=10) as resp:
-                    if resp.status == 200:
-                        data = (await resp.json()).get("data", {})
-                        uid = data.get("ProfileId") or data.get("IdOnPlatform")
-                        if uid:
-                            player_name = data.get("NameOnPlatform")
-                            user_id_for_avatar = data.get("UserId")
-                            found = True
-                            logger.info(f"通过玩家名 '{username}' 在平台 {platform} 查询成功，ProfileId: {uid}, 玩家名: {player_name}, UserId(头像用): {user_id_for_avatar}")
+            if is_uid:
+                profile = await self.get_player_profile_by_id(username)
+                if not profile:
+                    yield event.plain_result(f"未找到 ProfileId: {username}")
+                    return
+                uid = profile.get("profileId") or profile.get("idOnPlatform")
+                player_name = profile.get("nameOnPlatform")
+                user_id_for_avatar = profile.get("userId") or profile.get("profileId")
+                logger.info(f"通过 ProfileId 查询成功: {player_name} ({uid})")
+            else:
+                profile = await self.get_player_profile(username, platform)
+                if not profile:
+                    yield event.plain_result(f"未在 {platform} 平台找到玩家: {username}")
+                    return
+                uid = profile.get("profileId") or profile.get("idOnPlatform")
+                player_name = profile.get("nameOnPlatform")
+                user_id_for_avatar = profile.get("userId") or profile.get("profileId")
+                logger.info(f"通过用户名查询成功: {player_name} ({uid})")
+        except UbisoftAPIAuthError as e:
+            logger.error(f"育碧认证失败: {e}")
+            yield event.plain_result("育碧账号认证失败，请检查插件配置中的邮箱和密码是否正确")
+            return
+        except UbisoftAPIRateLimitError as e:
+            logger.warning(f"请求限流: {e}")
+            yield event.plain_result("查询过于频繁，请稍等几分钟再试")
+            return
+        except UbisoftAPIServerError as e:
+            logger.error(f"育碧服务器错误: {e}")
+            yield event.plain_result("育碧服务器暂时无响应，请稍后再试")
+            return
+        except UbisoftAPIError as e:
+            logger.error(f"API 调用失败: {e}")
+            yield event.plain_result(f"查询失败：{e}")
+            return
         except Exception as e:
-            logger.warning(f"玩家名查询异常: {e}")
-
-        # 2. 如果未找到，尝试将输入作为 ProfileId 查询
-        if not found:
-            profile_url = f"{self.api_base_url}/profile?uid={username}&platform={platform}"
-            try:
-                async with aiohttp.ClientSession() as session:
-                    async with session.get(profile_url, timeout=10) as resp:
-                        if resp.status == 200:
-                            data = (await resp.json()).get("data", {})
-                            uid = data.get("ProfileId") or data.get("IdOnPlatform")
-                            if uid:
-                                player_name = data.get("NameOnPlatform")
-                                user_id_for_avatar = data.get("UserId")
-                                found = True
-                                logger.info(f"通过 ProfileId '{username}' 在平台 {platform} 查询成功，玩家名: {player_name}, ProfileId: {uid}, UserId(头像用): {user_id_for_avatar}")
-            except Exception as e:
-                logger.warning(f"ProfileId 查询异常: {e}")
-
-        if not found or not uid or not user_id_for_avatar:
-            yield event.plain_result(f"未在 {platform} 平台找到该玩家，请检查输入")
+            logger.error(f"未知异常: {e}", exc_info=True)
+            yield event.plain_result("发生未知错误，请反馈Bot维护者排查")
             return
 
-        # 使用 ProfileId (uid) 请求统计数据
-        stats_url = f"{self.api_base_url}/stats?gameId={game_id}&platform={platform}&uids={uid}"
+        if not uid:
+            yield event.plain_result("查询成功但未获取到 ProfileId，请检查账号权限")
+            return
+
+        # 查询统计数据（使用缓存）
         try:
-            async with aiohttp.ClientSession() as session:
-                async with session.get(stats_url, timeout=10) as resp:
-                    if resp.status != 200:
-                        yield event.plain_result(f"获取统计数据失败，状态码：{resp.status}")
-                        return
-                    stats_data = await resp.json()
-                    if not stats_data.get("success"):
-                        yield event.plain_result(f"统计数据接口返回失败: {stats_data.get('message', '未知错误')}")
-                        return
-                    data_list = stats_data.get("data", [])
-                    if not data_list:
-                        yield event.plain_result("未找到该玩家的统计数据")
-                        return
+            stats = await self.get_stats(uid, game_id)
+            if not stats:
+                yield event.plain_result("未找到该玩家的统计数据")
+                return
+        except UbisoftAPIAuthError as e:
+            yield event.plain_result("认证已过期，请重新配置账号")
+            return
+        except UbisoftAPIRateLimitError as e:
+            yield event.plain_result("请求过于频繁，请稍后重试")
+            return
+        except UbisoftAPIServerError as e:
+            yield event.plain_result("育碧服务器暂时不可用，请稍后再试")
+            return
+        except UbisoftAPIError as e:
+            yield event.plain_result(f"统计数据获取失败：{e}")
+            return
         except Exception as e:
-            logger.error(f"请求统计异常: {e}")
-            yield event.plain_result("网络错误，请稍后重试")
+            logger.error(f"未知异常: {e}", exc_info=True)
+            yield event.plain_result("获取数据时发生未知错误")
             return
 
-        # 直接取第一个元素（因为只查询了一个 UID）
-        player_data = data_list[0].get("stats")
-        if not player_data:
-            yield event.plain_result("玩家统计数据为空")
-            return
+        player_data = stats
 
-        # ========== 数据解析 ==========
-        #时间格式化函数
-        def format_duration(seconds):
-            try:
-                seconds = int(seconds)
-            except (ValueError, TypeError):
-                return "0秒"
-            if seconds <= 0:
-                return "0秒"
-            h = seconds // 3600
-            m = (seconds % 3600) // 60
-            s = seconds % 60
-            parts = []
-            if h:
-                parts.append(f"{h}小时")
-            if m:
-                parts.append(f"{m}分钟")
-            if s:
-                parts.append(f"{s}秒")
-            return "".join(parts) if parts else "0秒"
-
-        #武器击杀求和
-        def get_weapon_total(stats_obj, family):
-            total = 0
-            prefix = f"weaponFactionKills.weaponFamily.{family}.npcFaction."
-            for key, value in stats_obj.items():
-                if key.startswith(prefix):
-                    total += int(value.get("value", 0))
-            return total
-
-        #=================== 提取各项数据 ===================
-        #头像
+        # ========== 数据解析（使用类工具方法） ==========
         avatar_url = f"https://ubisoft-avatars.akamaized.net/{user_id_for_avatar}/default_146_146.png"
-        logger.info(f"avatar_url type: {type(avatar_url)}, value: {avatar_url}")
-        #等级
         Level = player_data.get("LatestLevel.rankType.NormalXP", {}).get("value", "0")
-        #暗区等级
         DZLevel = player_data.get("LatestLevel.rankType.DarkZoneXP", {}).get("value", "0")
-        #游戏时长
         playtime_seconds = int(player_data.get("Playtime", {}).get("value", "0"))
         gametime = round(playtime_seconds / 3600, 1) if playtime_seconds else 0
-        #功勋
         CurrComm = player_data.get("LatestCommendationScore", {}).get("value", "0")
-        #物品拾取数量
         ItemsLooted = player_data.get("SumItemsLooted", {}).get("value", "0")
-        #玩家击杀
         PvpKills = player_data.get("SumPvpKills", {}).get("value", "0")
-        #NPC击杀
         NpcKills = int(player_data.get("SumNpcKills", {}).get("value", "0"))
-        #技能击杀
         SkillKills = player_data.get("SumSkillKills", {}).get("value", "0")
-        #爆头数量
         Headshots = int(player_data.get("SumHeadShots", {}).get("value", "0"))
-        #E点数
         ECreditBalance = int(player_data.get("LatestWalletBalanceSplit.currencyName.E-Credits", {}).get("value", "0"))
-        #PVE经验
         PveXP = player_data.get("TotalXpOw", {}).get("value", "0")
-        #具名击杀
         NamedKills = player_data.get("specialRoleKills.npcSpecialRole.named", {}).get("value", "0")
-        #鬣狗击杀
         HyenaKills = player_data.get("factionDarkZoneKills.npcFaction.Blackbloc", {}).get("value", "0")
-        #流亡者击杀
         OutCastsKills = player_data.get("factionDarkZoneKills.npcFaction.Cultists", {}).get("value", "0")
-        #真实之子击杀
         TrueSonsKills = player_data.get("factionDarkZoneKills.npcFaction.Militia", {}).get("value", "0")
-        #黯牙击杀
         BlackTuskKills = player_data.get("factionKills.npcFaction.Endgame", {}).get("value", "0")
-        #暗区时长
         dzplaytime_seconds = int(player_data.get("TotalPlaytimeDarkzone", {}).get("value", "0"))
         dzPlaytime = round(dzplaytime_seconds / 3600, 1) if dzplaytime_seconds else 0
-        #暗区经验
         DzXp = player_data.get("TotalXpDz", {}).get("value", "0")
-        #冲突战等级
         conflict_span = player_data.get("LatestLevel.rankType.OrganizedPvpXP", {}).get("value", "0")
-        #叛变击杀
         RoguesKilled = player_data.get("numberOfRoguePlayerKills", {}).get("value", "0")
-        #叛变时长
-        RogueTimePlayed_seconds = player_data.get("TotalPlaytimeRogue", {}).get("value", "0")
-        RogueTimePlayed = format_duration(RogueTimePlayed_seconds)
-        #最长叛变时间
-        RogueLongestTimePlayed_seconds = player_data.get("MaxRogueTime", {}).get("value", "0")
-        RogueLongestTimePlayed = format_duration(RogueLongestTimePlayed_seconds)
-        #流血击杀
+        RogueTimePlayed = self._format_duration(player_data.get("TotalPlaytimeRogue", {}).get("value", "0"))
+        RogueLongestTimePlayed = self._format_duration(player_data.get("MaxRogueTime", {}).get("value", "0"))
         BleedingKills = player_data.get("bleedingKills", {}).get("value", "0")
-        #燃烧击杀
         BurningKills = player_data.get("burningKills", {}).get("value", "0")
-        #爆头击杀
         HeadshotKills = player_data.get("headshotKills", {}).get("value", "0")
-        #冲锋枪击杀
-        SMGKills = get_weapon_total(player_data, "SubMachinegun")
-        #霰弹枪击杀
-        ShotgunKills = get_weapon_total(player_data, "Shotgun")
-        #步枪击杀
+        SMGKills = self._get_weapon_total(player_data, "SubMachinegun")
+        ShotgunKills = self._get_weapon_total(player_data, "Shotgun")
         RifleKills = player_data.get("weaponFamilyKills.weaponFamily.MountedWeapon", {}).get("value", "0")
-        #手枪击杀
         PistolKills = player_data.get("weaponFamilyKills.weaponFamily.Pistol", {}).get("value", "0")
-        #总命中数
         hit = int(player_data.get("SumHits", {}).get("value", "0"))
-        #身体命中数
         bodyHit = hit - Headshots
-        #头部命中率（防除零）
         HeadHitRate = f"{Headshots/hit*100:.1f}%" if hit > 0 else "0.0%"
-        #爆头和身体命中比（防除零）
         if Headshots > 0:
             ratio = bodyHit / Headshots
             ratio_str = f"{int(ratio)}" if ratio.is_integer() else f"{ratio:.1f}"
             HeadshotToBodyshotRatio = f"{ratio_str}次身体:1次头部"
         else:
             HeadshotToBodyshotRatio = "0次身体:1次头部"
-        #每小时击杀数（防除零）
         KillRatePerHour = int(NpcKills / gametime) if gametime > 0 else 0
-        #每小时爆头命中数（防除零）
         HourlyHeadcountHits = int(Headshots / gametime) if gametime > 0 else 0
-        #每小时身体命中数（防除零）
         HourlyBodyHits = int(bodyHit / gametime) if gametime > 0 else 0
-        #当日击杀数
         DailyKills = player_data.get("npckillsperiodic", {}).get("value", "0")
-        #当日爆头数
         DailyHeadcount = player_data.get("DailySumHeadShots", {}).get("value", "0")
-        logger.info(f"数据字典已生成，数据来源：UBI-GO URL:{self.api_base_url}")
 
-        #整理字典
         player_info_data = {
             "playername": player_name,
             "avatarimg": avatar_url,
             "Level": Level,
             "DZLevel": DZLevel,
             "gametime": gametime,
-            "CurrComm":CurrComm,
-            "ItemsLooted":ItemsLooted,
-            "PvpKills":PvpKills,
-            "NpcKills":NpcKills,
-            "SkillKills":SkillKills,
-            "Headshots":Headshots,
-            "ECreditBalance":ECreditBalance,
-            "PveXP":PveXP,
-            "NamedKills":NamedKills,
-            "HyenaKills":HyenaKills,
-            "OutCastsKills":OutCastsKills,
-            "TrueSonsKills":TrueSonsKills,
-            "BlackTuskKills":BlackTuskKills,
-            "dzPlaytime":dzPlaytime,
-            "DzXp":DzXp,
-            "conflict_span":conflict_span,
-            "RoguesKilled":RoguesKilled,
-            "RogueTimePlayed":RogueTimePlayed,
-            "RogueLongestTimePlayed":RogueLongestTimePlayed,
-            "BleedingKills":BleedingKills,
-            "BurningKills":BurningKills,
-            "HeadshotKills":HeadshotKills,
-            "SMGKills":SMGKills,
-            "ShotgunKills":ShotgunKills,
-            "RifleKills":RifleKills,
-            "PistolKills":PistolKills,
-            "hit":hit,
-            "bodyHit":bodyHit,
-            "HeadHitRate":HeadHitRate,
-            "HeadshotToBodyshotRatio":HeadshotToBodyshotRatio,
-            "KillRatePerHour":KillRatePerHour,
-            "HourlyHeadcountHits":HourlyHeadcountHits,
-            "HourlyBodyHits":HourlyBodyHits,
-            "DailyKills":DailyKills,
-            "DailyHeadcount":DailyHeadcount
+            "CurrComm": CurrComm,
+            "ItemsLooted": ItemsLooted,
+            "PvpKills": PvpKills,
+            "NpcKills": NpcKills,
+            "SkillKills": SkillKills,
+            "Headshots": Headshots,
+            "ECreditBalance": ECreditBalance,
+            "PveXP": PveXP,
+            "NamedKills": NamedKills,
+            "HyenaKills": HyenaKills,
+            "OutCastsKills": OutCastsKills,
+            "TrueSonsKills": TrueSonsKills,
+            "BlackTuskKills": BlackTuskKills,
+            "dzPlaytime": dzPlaytime,
+            "DzXp": DzXp,
+            "conflict_span": conflict_span,
+            "RoguesKilled": RoguesKilled,
+            "RogueTimePlayed": RogueTimePlayed,
+            "RogueLongestTimePlayed": RogueLongestTimePlayed,
+            "BleedingKills": BleedingKills,
+            "BurningKills": BurningKills,
+            "HeadshotKills": HeadshotKills,
+            "SMGKills": SMGKills,
+            "ShotgunKills": ShotgunKills,
+            "RifleKills": RifleKills,
+            "PistolKills": PistolKills,
+            "hit": hit,
+            "bodyHit": bodyHit,
+            "HeadHitRate": HeadHitRate,
+            "HeadshotToBodyshotRatio": HeadshotToBodyshotRatio,
+            "KillRatePerHour": KillRatePerHour,
+            "HourlyHeadcountHits": HourlyHeadcountHits,
+            "HourlyBodyHits": HourlyBodyHits,
+            "DailyKills": DailyKills,
+            "DailyHeadcount": DailyHeadcount
         }
 
-        #导入渲染模板
-        template_path = os.path.join(os.path.dirname(__file__), "templates", "player_info.html")
-        with open(template_path, "r", encoding="utf-8") as f:
-            template_str = f.read()
-        template = Template(template_str)
-        html = template.render(player_info_data) 
-        
-        options = {
-            "type": "png", 
-            "full_page":True,
-            "scale":"css",
-            "omit_background": True
-        }
+        # 使用预加载的模板
+        template = self.templates.get("player_info")
+        if not template:
+            yield event.plain_result("玩家信息模板未加载，请检查模板文件是否存在")
+            return
+
+        html = template.render(player_info_data)
+        options = {"type": "png", "full_page": True, "scale": "css", "omit_background": True}
         imgurl = await self.html_render(html, {}, options=options)
         yield event.plain_result("UID:\n" + uid)
-        yield event.image_result(imgurl)  
+        yield event.image_result(imgurl)
 
+    # ==================== 命令：周商（使用缓存图片，不涉及模板预加载） ====================
     @filter.command("周商")
     async def weekly_vendor(self, event: AstrMessageEvent):
-        # 缓存文件路径
         cache_dir = Path(get_astrbot_data_path()) / "plugin_data" / self.name / "cache"
         cache_dir.mkdir(parents=True, exist_ok=True)
         cache_file = cache_dir / "weekly_vendor.jpg"
-        cache_ttl = 3600  # 1小时
+        cache_ttl = 3600
 
-        # 检查缓存是否有效
         if cache_file.exists():
             mtime = cache_file.stat().st_mtime
             if time.time() - mtime < cache_ttl:
@@ -541,7 +676,7 @@ class TheDivision2Plugin(Star):
                 return
             else:
                 logger.info("缓存已过期，重新生成")
-        # 1. 获取原始 JSON 数据
+
         url = "https://raw.githubusercontent.com/MuFen-mker/astrbot_plugin_TheDivision2_DataAPI/refs/heads/main/all_vendors.json"
         try:
             async with aiohttp.ClientSession() as session:
@@ -555,7 +690,6 @@ class TheDivision2Plugin(Star):
             yield event.plain_result("网络错误，请稍后重试")
             return
 
-        # 2. 加载翻译文件
         trans_path = os.path.join(os.path.dirname(__file__), "translations.json")
         try:
             with open(trans_path, "r", encoding="utf-8") as f:
@@ -827,32 +961,19 @@ class TheDivision2Plugin(Star):
                         mod['gradient_color'] = '#fba000'
                         mod['icon_prefix'] = '护甲模组'
 
-        # 加载模板并渲染
-        template_path = os.path.join(os.path.dirname(__file__), "templates", "weekly_report.html")
-        try:
-            with open(template_path, "r", encoding="utf-8") as f:
-                template_str = f.read()
-        except Exception as e:
-            logger.error(f"读取模板失败: {e}")
-            yield event.plain_result("模板加载失败")
+        template = self.templates.get("weekly_report")
+        if not template:
+            yield event.plain_result("周商模板未加载")
             return
-
-        template = Template(template_str)
         html = template.render(data=translated_data, vendor_name_map=merchant_map)
-
-        options = {
-            "type": "jpeg",
-            "quality": 75,
-            "device_scale_factor": 1,
-        }
+        options = {"type": "jpeg", "quality": 75, "device_scale_factor": 1}
         try:
-            img_url = await self.html_render(html, {},options=options)  # 可加 options
+            img_url = await self.html_render(html, {}, options=options)
         except Exception as e:
             logger.error(f"图片渲染失败: {e}")
             yield event.plain_result("生成图片失败，请稍后重试")
             return
 
-        # 下载图片到缓存文件
         try:
             async with aiohttp.ClientSession() as session:
                 async with session.get(img_url) as resp:
@@ -869,9 +990,9 @@ class TheDivision2Plugin(Star):
             yield event.plain_result("图片下载失败，请稍后重试")
             return
 
-        # 发送本地缓存图片
         yield event.image_result(str(cache_file))
 
+    # ==================== 命令：天赋（使用预加载模板） ====================
     @filter.command("天赋")
     async def talent_query(self, event: AstrMessageEvent, talent_name: str = None):
         if not talent_name:
@@ -879,36 +1000,27 @@ class TheDivision2Plugin(Star):
             return
         talent = await self.get_talent_data(talent_name.strip())
         if not talent:
-            yield event.plain_result(f"未找到名为「{talent_name}」的天赋")
+            suggestions = await self._get_suggestions("talent", talent_name.strip())
+            if suggestions:
+                msg = f"🤔未找到名为「{talent_name}」的天赋。\n你可能想找\n" + "\n".join([f"• {s}" for s in suggestions])
+                yield event.plain_result(msg)
+                return
+            yield event.plain_result(f"🤔未找到名为「{talent_name}」的天赋")
             return
 
-        # 手动加载模板文件（与 on_query 中的方式一致）
-        template_path = os.path.join(os.path.dirname(__file__), "templates", "talent_card.html")
-        try:
-            with open(template_path, "r", encoding="utf-8") as f:
-                template_str = f.read()
-        except FileNotFoundError:
-            yield event.plain_result("模板文件 talent_card.html 未找到")
+        template = self.templates.get("talent_card")
+        if not template:
+            yield event.plain_result("天赋卡片模板未加载")
             return
-
-        template = Template(template_str)
         html = template.render(talent=talent)
-
-        # 生成图片
-        options = {
-            "type": "png", 
-            "full_page":True,
-            "scale":"css",
-            "omit_background": True
-        }
+        options = {"type": "png", "full_page": True, "scale": "css", "omit_background": True}
         img_url = await self.html_render(html, {}, options=options)
         yield event.image_result(img_url)
 
+    # ==================== 命令：武器（使用预加载模板） ====================
     @filter.command("武器")
     async def weapon_query(self, event: AstrMessageEvent):
-        # 获取原始消息字符串（AstrBot 已自动去除 @ 提及）
         text = event.message_str.strip()
-        # 正则匹配：/武器 后面的所有内容（支持 /武器 和 武器）
         match = re.search(r'^(?:/)?武器\s+(.+)$', text)
         if not match:
             yield event.plain_result("请提供武器名称，例如：/武器 战术 M1911")
@@ -918,22 +1030,23 @@ class TheDivision2Plugin(Star):
             yield event.plain_result("请提供武器名称，例如：/武器 战术 M1911")
             return
 
-        # 查询武器
         weapon = await self.get_weapon_by_name(weapon_name)
         if not weapon:
-            yield event.plain_result(f"未找到名为「{weapon_name}」的武器")
+            suggestions = await self._get_suggestions("weapon", weapon_name)
+            if suggestions:
+                msg = f"🤔未找到名为「{weapon_name}」的武器。\n你可能想找\n" + "\n".join([f"• {s}" for s in suggestions])
+                yield event.plain_result(msg)
+                return
+            yield event.plain_result(f"🤔未找到名为「{weapon_name}」的武器")
             return
 
-        # 获取属性映射表
         attr_map = await self.get_weapon_attributes_map()
 
-        # 构建武器属性列表（根据位置确定类型）
         attributes_list = []
         total = len(weapon['attributes'])
         for idx, attr_key in enumerate(weapon['attributes']):
             is_last = (idx == total - 1)
             attr_type = 'secondary' if is_last else 'core'
-            # 获取属性信息（优先根据类型获取，若无则降级）
             attr_info = attr_map.get(attr_key, {}).get(attr_type, {})
             if not attr_info:
                 for any_info in attr_map.get(attr_key, {}).values():
@@ -969,12 +1082,9 @@ class TheDivision2Plugin(Star):
                 'type': attr_type
             })
 
-        # 特殊爆头金色标记（根据属性中是否有名为“爆头伤害”的特殊词条）
         special_headshot = any(attr['name'] == '爆头伤害' and attr.get('special') for attr in attributes_list)
-
         talent = await self.get_talent_by_weapon_name(weapon['name_zh'])
 
-        # 准备模板数据
         template_data = {
             'weapon': {
                 'name_zh': weapon['name_zh'],
@@ -998,29 +1108,16 @@ class TheDivision2Plugin(Star):
             'attr_map': attr_map
         }
 
-        # 渲染模板
-        template_path = os.path.join(os.path.dirname(__file__), "templates", "weapon_card.html")
-        if not os.path.exists(template_path):
-            yield event.plain_result("武器卡片模板文件未找到")
+        template = self.templates.get("weapon_card")
+        if not template:
+            yield event.plain_result("武器卡片模板未加载")
             return
-        with open(template_path, "r", encoding="utf-8") as f:
-            template_str = f.read()
-        template = Template(template_str)
         html = template.render(**template_data)
+        options = {"type": "png", "full_page": True, "scale": "css", "omit_background": True}
+        img_url = await self.html_render(html, {}, options=options)
+        yield event.image_result(img_url)
 
-        options = {
-            "type": "png",
-            "full_page": True,
-            "scale": "css",
-            "omit_background": True
-        }
-        try:
-            img_url = await self.html_render(html, {}, options=options)
-            yield event.image_result(img_url)
-        except Exception as e:
-            logger.error(f"武器卡片渲染失败: {e}")
-            yield event.plain_result("生成图片失败，请稍后重试")
-
+    # ==================== 命令：套装（使用预加载模板） ====================
     @filter.command("套装")
     async def equipment_query(self, event: AstrMessageEvent, name: str = None):
         if not name:
@@ -1029,33 +1126,24 @@ class TheDivision2Plugin(Star):
 
         equipment = await self.get_equipment_full_data(name.strip())
         if not equipment:
-            yield event.plain_result(f"未找到名为「{name}」的装备")
+            suggestions = await self._get_suggestions("equipment_group", name.strip())
+            if suggestions:
+                msg = f"🤔未找到名为「{name}」的装备组/品牌。\n你可能想找\n" + "\n".join([f"• {s}" for s in suggestions])
+                yield event.plain_result(msg)
+                return
+            yield event.plain_result(f"🤔未找到名为「{name}」的装备组/品牌")
             return
 
-        # 渲染模板
-        template_path = os.path.join(os.path.dirname(__file__), "templates", "equipment_card.html")
-        if not os.path.exists(template_path):
-            yield event.plain_result("装备卡片模板文件未找到")
+        template = self.templates.get("equipment_card")
+        if not template:
+            yield event.plain_result("装备卡片模板未加载")
             return
-        with open(template_path, "r", encoding="utf-8") as f:
-            template_str = f.read()
-        template = Template(template_str)
         html = template.render(group=equipment)
+        options = {"type": "png", "full_page": True, "scale": "css", "omit_background": True}
+        img_url = await self.html_render(html, {}, options=options)
+        yield event.image_result(img_url)
 
-        # 生成图片
-        options = {
-            "type": "png",
-            "full_page": True,
-            "scale": "css",
-            "omit_background": True
-        }
-        try:
-            img_url = await self.html_render(html, {}, options=options)
-            yield event.image_result(img_url)
-        except Exception as e:
-            logger.error(f"装备卡片渲染失败: {e}")
-            yield event.plain_result("生成图片失败，请稍后重试")
-    
+    # ==================== 命令：装备（使用预加载模板） ====================
     @filter.command("装备")
     async def gear_query(self, event: AstrMessageEvent, name: str = None):
         if not name:
@@ -1067,11 +1155,9 @@ class TheDivision2Plugin(Star):
         async with aiosqlite.connect(db_path) as conn:
             conn.row_factory = aiosqlite.Row
 
-            # 1. 查询装备（支持别名）
             cursor = await conn.execute("SELECT * FROM gear WHERE name_zh = ? OR name_en = ?", (gear_name, gear_name))
             row = await cursor.fetchone()
             if not row:
-                # 别名匹配
                 cursor = await conn.execute("SELECT name_zh, alias FROM gear")
                 rows = await cursor.fetchall()
                 for r in rows:
@@ -1083,11 +1169,16 @@ class TheDivision2Plugin(Star):
                             row = await cursor.fetchone()
                             break
             if not row:
-                yield event.plain_result(f"未找到名为「{gear_name}」的装备")
+                # 关闭连接后查询建议
+                suggestions = await self._get_suggestions("gear", gear_name)
+                if suggestions:
+                    msg = f"🤔未找到名为「{gear_name}」的装备。\n你可能想找\n" + "\n".join([f"• {s}" for s in suggestions])
+                    yield event.plain_result(msg)
+                    return
+                yield event.plain_result(f"🤔未找到名为「{gear_name}」的装备")
                 return
             gear = dict(row)
 
-            # 解析 attributes JSON
             if gear.get('attributes'):
                 try:
                     gear['attributes'] = json.loads(gear['attributes'])
@@ -1096,7 +1187,6 @@ class TheDivision2Plugin(Star):
             else:
                 gear['attributes'] = []
 
-            # 2. 查询 gear_attributes 映射
             cursor = await conn.execute("SELECT key, type, icon, entry_name_zh, max_value, named FROM gear_attributes")
             attr_rows = await cursor.fetchall()
             attr_map = {}
@@ -1106,10 +1196,9 @@ class TheDivision2Plugin(Star):
                     'icon': ar['icon'],
                     'entry_name_zh': ar['entry_name_zh'],
                     'max_value': ar['max_value'],
-                    'named': ar['named']   # "TRUE"/"FALSE"
+                    'named': ar['named']
                 }
 
-            # 3. 查询天赋（如果 gear.talent 为 "TRUE"）
             talent_data = None
             if gear.get('talent') == 'TRUE':
                 cursor = await conn.execute("SELECT name_zh, name_en, `icon path`, description FROM talent WHERE type LIKE ? LIMIT 1", (f'%{gear["name_zh"]}%',))
@@ -1122,7 +1211,6 @@ class TheDivision2Plugin(Star):
                         'description': t_row['description']
                     }
 
-        # 构建属性列表（与原代码相同）
         attributes_list = []
         for attr_key in gear['attributes']:
             info = attr_map.get(attr_key, {})
@@ -1135,15 +1223,9 @@ class TheDivision2Plugin(Star):
                 'named': info.get('named', 'FALSE') == 'TRUE'
             })
 
-        # 品质映射
-        quality_to_class = {
-            '具名': 'named',
-            '奇特': 'exotic',
-            '装备组': 'gearset'
-        }
+        quality_to_class = {'具名': 'named', '奇特': 'exotic', '装备组': 'gearset'}
         quality_class = quality_to_class.get(gear['quality'], 'named')
 
-        # 准备模板数据
         template_data = {
             'gear': {
                 'name_zh': gear['name_zh'],
@@ -1160,23 +1242,18 @@ class TheDivision2Plugin(Star):
             'attr_map': attr_map
         }
 
-        # 渲染模板（与原代码相同）
-        template_path = os.path.join(os.path.dirname(__file__), "templates", "gear_card.html")
-        if not os.path.exists(template_path):
-            yield event.plain_result("装备卡片模板文件未找到")
+        template = self.templates.get("gear_card")
+        if not template:
+            yield event.plain_result("装备卡片模板未加载")
             return
-        with open(template_path, "r", encoding="utf-8") as f:
-            template_str = f.read()
-        template = Template(template_str)
         html = template.render(**template_data)
-
         options = {"type": "png", "full_page": True, "scale": "css", "omit_background": True}
-        try:
-            img_url = await self.html_render(html, {}, options=options)
-            yield event.image_result(img_url)
-        except Exception as e:
-            logger.error(f"装备卡片渲染失败: {e}")
-            yield event.plain_result("生成图片失败，请稍后重试")
+        img_url = await self.html_render(html, {}, options=options)
+        yield event.image_result(img_url)
 
+    # ==================== 资源清理 ====================
     async def terminate(self):
-        pass
+        """插件卸载时清理资源"""
+        if hasattr(self, 'ubi_api') and self.ubi_api and hasattr(self.ubi_api, '_session') and self.ubi_api._session:
+            await self.ubi_api._session.close()
+            logger.info("aiohttp ClientSession closed")
