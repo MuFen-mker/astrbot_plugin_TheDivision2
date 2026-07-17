@@ -290,7 +290,7 @@
         {"en":"Measured Assembly","zh":"精密组件"},
         {"en":"Negotiator's Dilemma","zh":"谈判者困境"},
         {"en":"Ongoing Directive","zh":"政令进行时"},
-        {"en":"Ortiz: Exuro","zh":"奥提兹：燃烬"},
+        {"en":"Ortiz Exuro","zh":"奥提兹：燃烬"},
         {"en":"Refactor","zh":"再铸者"},
         {"en":"Rigger","zh":"装配工"},
         {"en":"Striker's Battlegear","zh":"突袭者战斗装备"},
@@ -302,7 +302,7 @@
         {"en":"Virtuoso","zh":"大师"},
         {"en":"Core Strength","zh":"核心力量"},
         {"en": "Edelweiss GPz","zh":"雪绒花 GPz"},
-        {"en":"Ortiz: Reficere","zh":"奥提兹：恢复"}
+        {"en":"Ortiz Reficere","zh":"奥提兹：恢复"}
     ],
     "_comment":"部位名称翻译",
     "part":[

@@ -1,7 +1,7 @@
 import re
 import time
 import json
-import aiohttp
+import httpx
 import os
 import aiosqlite
 import difflib
@@ -679,12 +679,12 @@ class TheDivision2Plugin(Star):
 
         url = "https://raw.githubusercontent.com/MuFen-mker/astrbot_plugin_TheDivision2_DataAPI/refs/heads/main/all_vendors.json"
         try:
-            async with aiohttp.ClientSession() as session:
-                async with session.get(url, timeout=10) as resp:
-                    if resp.status != 200:
-                        yield event.plain_result(f"获取数据失败，状态码：{resp.status}")
-                        return
-                    data = await resp.json(content_type=None)
+            async with httpx.AsyncClient(timeout=30.0) as client:
+                resp = await client.get(url)
+                if resp.status_code != 200:
+                    yield event.plain_result(f"获取数据失败，状态码：{resp.status_code}")
+                    return
+                data = resp.json()
         except Exception as e:
             logger.error(f"请求异常：{e}")
             yield event.plain_result("网络错误，请稍后重试")
@@ -975,14 +975,14 @@ class TheDivision2Plugin(Star):
             return
 
         try:
-            async with aiohttp.ClientSession() as session:
-                async with session.get(img_url) as resp:
-                    if resp.status == 200:
+                async with httpx.AsyncClient(timeout=30.0) as client:
+                    resp = await client.get(img_url)
+                    if resp.status_code == 200:
                         with open(cache_file, "wb") as f:
-                            f.write(await resp.read())
+                            f.write(resp.content)
                         logger.info(f"图片已缓存到 {cache_file}")
                     else:
-                        logger.error(f"下载图片失败，状态码：{resp.status}")
+                        logger.error(f"下载图片失败，状态码：{resp.status_code}")
                         yield event.plain_result("图片下载失败，请稍后重试")
                         return
         except Exception as e:
@@ -1254,6 +1254,6 @@ class TheDivision2Plugin(Star):
     # ==================== 资源清理 ====================
     async def terminate(self):
         """插件卸载时清理资源"""
-        if hasattr(self, 'ubi_api') and self.ubi_api and hasattr(self.ubi_api, '_session') and self.ubi_api._session:
-            await self.ubi_api._session.close()
-            logger.info("aiohttp ClientSession closed")
+        if hasattr(self, 'ubi_api') and self.ubi_api and hasattr(self.ubi_api, '_client') and self.ubi_api._client:
+            await self.ubi_api._client.aclose()
+            logger.info("httpx AsyncClient closed")
