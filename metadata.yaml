@@ -1,7 +1,7 @@
 name: astrbot_thedivision2 
 display_name: TheDivision2数据查询 
 desc: 查询<全境封锁2国际服>玩家数据，装备详细数据，每周商人。 
-version: Y8S2Fix6
+version: Y8S2Fix7
 author: MOTH56 
 repo: https://github.com/MuFen-mker/astrbot_plugin_TheDivision2
 support_platforms:
