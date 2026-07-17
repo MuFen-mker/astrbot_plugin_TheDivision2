@@ -1,7 +1,7 @@
 # AstrBot TheDivision2 数据查询插件
 
 ```
-/数据查询+玩家名称+平台名称（不填则默认PC端，支持ubi/uplay/ps/psn/xbox/xbl）
+/数据查询+玩家名称+平台名称（支持UID查询，不填则默认PC端，可在插件配置修改，支持ubi/uplay/ps/psn/xbox/xbl）
 /天赋+天赋名（/天赋 完美拳拳到肉）
 /武器+武器名（/武器 鸟，/武器 F2000，/武器 胶喷）支持别名查询
 /装备+装备名（/装备 陷阱，/装备 天平包，/装备 超载手）支持别名查询
@@ -9,13 +9,7 @@
 /周商
 ```
 
-玩家数据查询功能依赖后端，目前未考虑提供公共的后端服务器，如有需要请自行部署UBI-GO项目（Docker）
-
-[alexanderthegreat96/ubi-go: Ubisoft Connect API Wrapper](https://github.com/alexanderthegreat96/ubi-go)
-
-[MuFen-mker/ubi-go: Ubisoft Connect API Wrapper](https://github.com/MuFen-mker/ubi-go/tree/origin)（我自己构建的）
-
-使用docker部署后，在插件配置中配置服务后端
+玩家数据查询功能需在插件配置一个育碧账号（建议使用小号，并关闭2FA验证）
 
 建议自部署文转图服务使用[自行部署文转图服务 | AstrBot](https://docs.astrbot.app/others/self-host-t2i.html)
 
@@ -47,5 +41,6 @@ astrbot_plugin_TheDivision2/
 ├── main.py                      # 插件核心入口
 ├── metadata.yaml
 ├── requirements.txt
+├── ubi_api_client.py            # 育碧数据查询API
 └── translations.json            # 周商翻译字典
 ```
