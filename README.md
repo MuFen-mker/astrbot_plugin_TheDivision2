@@ -77,7 +77,7 @@ astrbot_plugin_TheDivision2/
 
 ## 🤖 已搭载此插件的 Bot
 
-- **Yukina Minato** (QQ: `4015249404`) —— 演示用 Bot，欢迎加好友体验！
+- **Yukina Minato** (QQ: `4015249404`) 
 
 ---
 
