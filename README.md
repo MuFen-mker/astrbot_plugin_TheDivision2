@@ -92,7 +92,7 @@ astrbot_plugin_TheDivision2/
 
 ## 🙏 致谢
 
-- 数据来源：[育碧](www.ubisoft.com)
+- 数据来源：[育碧](https://www.ubisoft.com)
 - 部分数据整理自社区玩家及 [Division 2 Gear Spreadsheet](https://docs.google.com/spreadsheets/d/1nrPBmOrtpkEW1j5fbcRT7L-AXgsGOqMqxXoVtopsiGM/edit?usp=sharing)
 - 感谢 AstrBot 提供的机器人框架支持
 
