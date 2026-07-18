@@ -29,7 +29,7 @@ class UbisoftAPI:
         self._client: Optional[httpx.AsyncClient] = None
         self._lock = asyncio.Lock()
 
-        # 登录请求头（与 curl 完全一致）
+        # 登录请求头
         self.login_headers = {
             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150.0.0.0 Safari/537.36 Edg/150.0.0.0",
             "Accept": "application/json",
@@ -55,11 +55,13 @@ class UbisoftAPI:
         return self
 
     async def __aexit__(self, exc_type, exc_val, exc_tb):
-        if self._client:
+        # 确保 _client 存在且未被清理时才关闭
+        if self._client is not None:
             await self._client.aclose()
+            self._client = None
 
     async def _ensure_ticket(self):
-        """获取或刷新 ticket（使用 httpx，行为与 requests 完全一致）"""
+        """获取或刷新 ticket"""
         if self.ticket and time.time() < self.ticket_expiry - 300:
             return
 
@@ -108,7 +110,7 @@ class UbisoftAPI:
         backoff_factor: float = 1.0,
         **kwargs
     ) -> dict:
-        """带重试的请求，401 自动刷新 ticket"""
+        """带重试的请求，401/403 自动刷新 ticket 并重置客户端"""
         last_exception = None
 
         for attempt in range(max_retries + 1):
@@ -125,12 +127,16 @@ class UbisoftAPI:
 
                 resp = await self._client.request(method, url, headers=req_headers, **kwargs)
 
-                # 401 -> 刷新 ticket 重试
-                if resp.status_code == 401:
+                # 401 或 403 → 重置客户端 + 刷新 ticket 重试
+                if resp.status_code in (401, 403):
+                    logger.warning(f"收到 {resp.status_code}，重置客户端并刷新 ticket")
                     self.ticket = None
                     self.ticket_expiry = 0
+                    if self._client:
+                        await self._client.aclose()
+                        self._client = None
                     await self._ensure_ticket()
-                    continue
+                    continue  # 重试
 
                 # 可重试状态码
                 if resp.status_code in (429, 502, 503, 504) and attempt < max_retries:
