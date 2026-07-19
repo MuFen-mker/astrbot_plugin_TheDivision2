@@ -2,15 +2,17 @@ from astrbot.api.event import filter, AstrMessageEvent, MessageEventResult
 from astrbot.api.star import Context, Star, register
 from astrbot.api import logger, AstrBotConfig 
 from astrbot.api.message_components import Image
+from jinja2 import Template
+from pathlib import Path
+from astrbot.core.utils.astrbot_path import get_astrbot_data_path
 import re
 import time
 import json
 import aiohttp
+import asyncio
 import os
-from jinja2 import Template
-from pathlib import Path
-from astrbot.core.utils.astrbot_path import get_astrbot_data_path
 import aiosqlite
+import difflib
 
 class TheDivision2Plugin(Star):
     def __init__(self, context: Context, config: AstrBotConfig = None):
@@ -23,7 +25,97 @@ class TheDivision2Plugin(Star):
             self.default_platform = config.get("default_platform", "uplay")
         self.api_base_url = base.rstrip('/')
         logger.info(f"后端基础地址: {self.api_base_url}, 默认平台: {self.default_platform}")
-    
+
+        # ---------- 性能优化：预加载模板 ----------
+        self.templates = {}
+        template_files = {
+            "player_info": "templates/player_info.html",
+            "talent_card": "templates/talent_card.html",
+            "weapon_card": "templates/weapon_card.html",
+            "equipment_card": "templates/equipment_card.html",
+            "gear_card": "templates/gear_card.html",
+            "weekly_report": "templates/weekly_report.html",
+        }
+        for name, path in template_files.items():
+            full_path = os.path.join(os.path.dirname(__file__), path)
+            try:
+                with open(full_path, "r", encoding="utf-8") as f:
+                    self.templates[name] = Template(f.read())
+                logger.debug(f"模板 {name} 加载成功")
+            except FileNotFoundError:
+                logger.error(f"模板文件未找到: {full_path}")
+                self.templates[name] = None
+
+        # ---------- 性能优化：异步预加载名称列表 ----------
+        self.name_cache = None  # 未加载状态
+        asyncio.create_task(self._load_name_cache_async())
+
+        self.session = aiohttp.ClientSession()
+
+        self.weapon_attributes_map = None  # 初始状态
+        asyncio.create_task(self._load_weapon_attributes_map_async())
+
+        self.translations = self._load_translations_sync()
+
+    async def _load_weapon_attributes_map_async(self):
+        db_path = os.path.join(os.path.dirname(__file__), "data", "data.db")
+        if not os.path.exists(db_path):
+            self.weapon_attributes_map = {}
+            return
+        try:
+            async with aiosqlite.connect(db_path) as conn:
+                conn.row_factory = aiosqlite.Row
+                cursor = await conn.execute("SELECT key, type, entry_name_zh, max_value, named FROM weapon_attributes")
+                rows = await cursor.fetchall()
+            attr_map = {}
+            for row in rows:
+                key = row['key']
+                typ = row['type']
+                if key not in attr_map:
+                    attr_map[key] = {}
+                attr_map[key][typ] = {
+                    'entry_name_zh': row['entry_name_zh'],
+                    'max_value': row['max_value'],
+                    'named': row['named'] == "TRUE" if row['named'] is not None else False
+                }
+            self.weapon_attributes_map = attr_map
+            logger.info("武器属性映射加载成功")
+        except Exception as e:
+            logger.error(f"武器属性映射加载失败: {e}")
+            self.weapon_attributes_map = {}
+
+    async def _load_name_cache_async(self):
+        """异步加载所有名称到内存缓存"""
+        db_path = os.path.join(os.path.dirname(__file__), "data", "data.db")
+        if not os.path.exists(db_path):
+            self.name_cache = {"talent": [], "weapon": [], "gear": [], "equipment_group": []}
+            return
+
+        tables = {
+            "talent": ["talent", "talents"],
+            "weapon": ["weapon"],
+            "gear": ["gear"],
+            "equipment_group": ["equipment_group"]
+        }
+        cache = {}
+        try:
+            async with aiosqlite.connect(db_path) as conn:
+                for key, table_list in tables.items():
+                    names = []
+                    for table in table_list:
+                        # 检查表是否存在
+                        cursor = await conn.execute("SELECT name FROM sqlite_master WHERE type='table' AND name=?", (table,))
+                        if await cursor.fetchone():
+                            cursor = await conn.execute(f"SELECT name_zh FROM {table}")
+                            rows = await cursor.fetchall()
+                            names.extend([row[0] for row in rows if row[0]])
+                    cache[key] = names
+            self.name_cache = cache
+            logger.info("名称缓存加载成功")
+        except Exception as e:
+            logger.error(f"名称缓存加载失败: {e}")
+            self.name_cache = {"talent": [], "weapon": [], "gear": [], "equipment_group": []}
+
     #天赋查询方法
     async def get_talent_data(self, talent_name: str):
         """根据天赋名称（中文或英文）从 data/data.db 中查询完整信息（异步）"""
@@ -76,6 +168,66 @@ class TheDivision2Plugin(Star):
             return float(s)
         except:
             return 0.0
+
+    # ==================== 搜索建议辅助方法 ====================
+    def _get_suggestions(self, table: str, keyword: str, limit: int = 5) -> list:
+        """从缓存中获取建议名称列表（同步）"""
+        # 如果缓存尚未加载，返回空列表
+        if self.name_cache is None:
+            return []
+        all_names = self.name_cache.get(table, [])
+        if not all_names:
+            return []
+
+        suggestions = []
+        keyword_lower = keyword.lower()
+
+        # 1. difflib 模糊匹配（cutoff=0.4）
+        matches = difflib.get_close_matches(keyword, all_names, n=limit, cutoff=0.4)
+        suggestions.extend(matches)
+
+        # 2. 包含关系
+        for name in all_names:
+            if keyword_lower in name.lower() or name.lower() in keyword_lower:
+                if name not in suggestions:
+                    suggestions.append(name)
+
+        # 3. 共同字符数匹配
+        keyword_chars = set(keyword_lower)
+        char_matches = []
+        for name in all_names:
+            if name in suggestions:
+                continue
+            common = len(keyword_chars & set(name.lower()))
+            if common > 0:
+                char_matches.append((common, name))
+        # 按共同字符数降序排序
+        char_matches.sort(key=lambda x: x[0], reverse=True)
+        # 补充到 limit 个
+        for _, name in char_matches[:limit - len(suggestions)]:
+            if name not in suggestions:
+                suggestions.append(name)
+
+        # 去重，保留前 limit 个
+        seen = set()
+        result = []
+        for name in suggestions:
+            if name not in seen:
+                seen.add(name)
+                result.append(name)
+                if len(result) >= limit:
+                    break
+        return result
+
+    def _load_translations_sync(self):
+        """同步加载翻译文件到内存"""
+        trans_path = os.path.join(os.path.dirname(__file__), "translations.json")
+        try:
+            with open(trans_path, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except Exception as e:
+            logger.error(f"加载翻译文件失败: {e}")
+            return {}
 
     #武器查询方法
     async def get_weapon_by_name(self, weapon_name: str):
@@ -131,25 +283,11 @@ class TheDivision2Plugin(Star):
                         return await self.get_weapon_by_name(row['name_zh'])
         return None
 
-    async def get_weapon_attributes_map(self):
-        db_path = os.path.join(os.path.dirname(__file__), "data", "data.db")
-        async with aiosqlite.connect(db_path) as conn:
-            conn.row_factory = aiosqlite.Row
-            cursor = await conn.execute("SELECT key, type, entry_name_zh, max_value, named FROM weapon_attributes")
-            rows = await cursor.fetchall()
-
-        attr_map = {}
-        for row in rows:
-            key = row['key']
-            typ = row['type']
-            if key not in attr_map:
-                attr_map[key] = {}
-            attr_map[key][typ] = {
-                'entry_name_zh': row['entry_name_zh'],
-                'max_value': row['max_value'],
-                'named': row['named'] == "TRUE" if row['named'] is not None else False
-            }
-        return attr_map
+    def get_weapon_attributes_map(self):
+        """返回缓存的武器属性映射（同步）"""
+        if self.weapon_attributes_map is None:
+            return {}
+        return self.weapon_attributes_map
 
     async def get_talent_by_weapon_name(self, weapon_name: str):
         db_path = os.path.join(os.path.dirname(__file__), "data", "data.db")
@@ -281,8 +419,7 @@ class TheDivision2Plugin(Star):
         # 1. 尝试通过玩家名查询指定平台
         profile_url = f"{self.api_base_url}/profile?username={username}&platform={platform}"
         try:
-            async with aiohttp.ClientSession() as session:
-                async with session.get(profile_url, timeout=10) as resp:
+            async with self.session.get(profile_url, timeout=10) as resp:
                     if resp.status == 200:
                         data = (await resp.json()).get("data", {})
                         uid = data.get("ProfileId") or data.get("IdOnPlatform")
@@ -298,8 +435,7 @@ class TheDivision2Plugin(Star):
         if not found:
             profile_url = f"{self.api_base_url}/profile?uid={username}&platform={platform}"
             try:
-                async with aiohttp.ClientSession() as session:
-                    async with session.get(profile_url, timeout=10) as resp:
+                async with self.session.get(profile_url, timeout=10) as resp:
                         if resp.status == 200:
                             data = (await resp.json()).get("data", {})
                             uid = data.get("ProfileId") or data.get("IdOnPlatform")
@@ -318,8 +454,7 @@ class TheDivision2Plugin(Star):
         # 使用 ProfileId (uid) 请求统计数据
         stats_url = f"{self.api_base_url}/stats?gameId={game_id}&platform={platform}&uids={uid}"
         try:
-            async with aiohttp.ClientSession() as session:
-                async with session.get(stats_url, timeout=10) as resp:
+            async with self.session.get(stats_url, timeout=10) as resp:
                     if resp.status != 200:
                         yield event.plain_result(f"获取统计数据失败，状态码：{resp.status}")
                         return
@@ -508,10 +643,10 @@ class TheDivision2Plugin(Star):
         }
 
         #导入渲染模板
-        template_path = os.path.join(os.path.dirname(__file__), "templates", "player_info.html")
-        with open(template_path, "r", encoding="utf-8") as f:
-            template_str = f.read()
-        template = Template(template_str)
+        template = self.templates.get("player_info")
+        if not template:
+            yield event.plain_result("玩家信息模板未加载")
+            return
         html = template.render(player_info_data) 
         
         options = {
@@ -544,8 +679,7 @@ class TheDivision2Plugin(Star):
         # 1. 获取原始 JSON 数据
         url = "https://raw.githubusercontent.com/MuFen-mker/astrbot_plugin_TheDivision2_DataAPI/refs/heads/main/all_vendors.json"
         try:
-            async with aiohttp.ClientSession() as session:
-                async with session.get(url, timeout=10) as resp:
+            async with self.session.get(url, timeout=10) as resp:
                     if resp.status != 200:
                         yield event.plain_result(f"获取数据失败，状态码：{resp.status}")
                         return
@@ -556,12 +690,8 @@ class TheDivision2Plugin(Star):
             return
 
         # 2. 加载翻译文件
-        trans_path = os.path.join(os.path.dirname(__file__), "translations.json")
-        try:
-            with open(trans_path, "r", encoding="utf-8") as f:
-                groups = json.load(f)
-        except Exception as e:
-            logger.error(f"加载翻译文件失败：{e}")
+        groups = self.translations
+        if not groups:
             yield event.plain_result("翻译文件加载失败")
             return
 
@@ -828,16 +958,10 @@ class TheDivision2Plugin(Star):
                         mod['icon_prefix'] = '护甲模组'
 
         # 加载模板并渲染
-        template_path = os.path.join(os.path.dirname(__file__), "templates", "weekly_report.html")
-        try:
-            with open(template_path, "r", encoding="utf-8") as f:
-                template_str = f.read()
-        except Exception as e:
-            logger.error(f"读取模板失败: {e}")
-            yield event.plain_result("模板加载失败")
+        template = self.templates.get("weekly_report")
+        if not template:
+            yield event.plain_result("周商模板未加载")
             return
-
-        template = Template(template_str)
         html = template.render(data=translated_data, vendor_name_map=merchant_map)
 
         options = {
@@ -854,8 +978,7 @@ class TheDivision2Plugin(Star):
 
         # 下载图片到缓存文件
         try:
-            async with aiohttp.ClientSession() as session:
-                async with session.get(img_url) as resp:
+            async with self.session.get(img_url) as resp:
                     if resp.status == 200:
                         with open(cache_file, "wb") as f:
                             f.write(await resp.read())
@@ -879,19 +1002,18 @@ class TheDivision2Plugin(Star):
             return
         talent = await self.get_talent_data(talent_name.strip())
         if not talent:
-            yield event.plain_result(f"未找到名为「{talent_name}」的天赋")
+            suggestions = self._get_suggestions("talent", talent_name.strip())
+            if suggestions:
+                msg = f"🤔未找到名为「{talent_name}」的天赋。\n你可能想找\n" + "\n".join([f"• {s}" for s in suggestions])
+                yield event.plain_result(msg)
+                return
+            yield event.plain_result(f"🤔未找到名为「{talent_name}」的天赋")
             return
 
-        # 手动加载模板文件（与 on_query 中的方式一致）
-        template_path = os.path.join(os.path.dirname(__file__), "templates", "talent_card.html")
-        try:
-            with open(template_path, "r", encoding="utf-8") as f:
-                template_str = f.read()
-        except FileNotFoundError:
-            yield event.plain_result("模板文件 talent_card.html 未找到")
+        template = self.templates.get("talent_card")
+        if not template:
+            yield event.plain_result("天赋卡片模板未加载")
             return
-
-        template = Template(template_str)
         html = template.render(talent=talent)
 
         # 生成图片
@@ -921,11 +1043,16 @@ class TheDivision2Plugin(Star):
         # 查询武器
         weapon = await self.get_weapon_by_name(weapon_name)
         if not weapon:
-            yield event.plain_result(f"未找到名为「{weapon_name}」的武器")
+            suggestions = self._get_suggestions("weapon", weapon_name)
+            if suggestions:
+                msg = f"🤔未找到名为「{weapon_name}」的武器。\n你可能想找\n" + "\n".join([f"• {s}" for s in suggestions])
+                yield event.plain_result(msg)
+                return
+            yield event.plain_result(f"🤔未找到名为「{weapon_name}」的武器")
             return
 
         # 获取属性映射表
-        attr_map = await self.get_weapon_attributes_map()
+        attr_map = self.get_weapon_attributes_map()
 
         # 构建武器属性列表（根据位置确定类型）
         attributes_list = []
@@ -999,13 +1126,10 @@ class TheDivision2Plugin(Star):
         }
 
         # 渲染模板
-        template_path = os.path.join(os.path.dirname(__file__), "templates", "weapon_card.html")
-        if not os.path.exists(template_path):
-            yield event.plain_result("武器卡片模板文件未找到")
+        template = self.templates.get("weapon_card")
+        if not template:
+            yield event.plain_result("武器卡片模板未加载")
             return
-        with open(template_path, "r", encoding="utf-8") as f:
-            template_str = f.read()
-        template = Template(template_str)
         html = template.render(**template_data)
 
         options = {
@@ -1029,17 +1153,19 @@ class TheDivision2Plugin(Star):
 
         equipment = await self.get_equipment_full_data(name.strip())
         if not equipment:
-            yield event.plain_result(f"未找到名为「{name}」的装备")
+            suggestions = self._get_suggestions("equipment_group", name.strip())
+            if suggestions:
+                msg = f"🤔未找到名为「{name}」的装备组/品牌。\n你可能想找\n" + "\n".join([f"• {s}" for s in suggestions])
+                yield event.plain_result(msg)
+                return
+            yield event.plain_result(f"🤔未找到名为「{name}」的装备组/品牌")
             return
 
         # 渲染模板
-        template_path = os.path.join(os.path.dirname(__file__), "templates", "equipment_card.html")
-        if not os.path.exists(template_path):
-            yield event.plain_result("装备卡片模板文件未找到")
+        template = self.templates.get("equipment_card")
+        if not template:
+            yield event.plain_result("装备卡片模板未加载")
             return
-        with open(template_path, "r", encoding="utf-8") as f:
-            template_str = f.read()
-        template = Template(template_str)
         html = template.render(group=equipment)
 
         # 生成图片
@@ -1083,7 +1209,13 @@ class TheDivision2Plugin(Star):
                             row = await cursor.fetchone()
                             break
             if not row:
-                yield event.plain_result(f"未找到名为「{gear_name}」的装备")
+                # 关闭连接后查询建议
+                suggestions = self._get_suggestions("gear", gear_name)
+                if suggestions:
+                    msg = f"🤔未找到名为「{gear_name}」的装备。\n你可能想找\n" + "\n".join([f"• {s}" for s in suggestions])
+                    yield event.plain_result(msg)
+                    return
+                yield event.plain_result(f"🤔未找到名为「{gear_name}」的装备")
                 return
             gear = dict(row)
 
@@ -1161,13 +1293,10 @@ class TheDivision2Plugin(Star):
         }
 
         # 渲染模板（与原代码相同）
-        template_path = os.path.join(os.path.dirname(__file__), "templates", "gear_card.html")
-        if not os.path.exists(template_path):
-            yield event.plain_result("装备卡片模板文件未找到")
+        template = self.templates.get("gear_card")
+        if not template:
+            yield event.plain_result("装备卡片模板未加载")
             return
-        with open(template_path, "r", encoding="utf-8") as f:
-            template_str = f.read()
-        template = Template(template_str)
         html = template.render(**template_data)
 
         options = {"type": "png", "full_page": True, "scale": "css", "omit_background": True}
@@ -1179,4 +1308,5 @@ class TheDivision2Plugin(Star):
             yield event.plain_result("生成图片失败，请稍后重试")
 
     async def terminate(self):
-        pass
+        if hasattr(self, 'session'):
+            await self.session.close()
