@@ -16,19 +16,56 @@
 - **智能搜索建议**：输入不准确或部分关键词时，系统会基于相似度推荐可能的目标。
 - **多平台支持**：QQ、OneBot 等 AstrBot 支持的平台均可使用。
 
+### 部署UBI-GO（Docker）
+
+> ⚠️ **本插件本身不直接调用育碧 API，数据查询依赖 `ubi-go` 后端服务。** 使用前请先部署 `ubi-go`。
+
+`ubi-go` 是一个 Go 语言编写的育碧 Connect API 封装服务，负责处理育碧的风控认证和数据获取。
+
+克隆 `ubi-go` 仓库：
+
+```bash
+git clone https://github.com/MuFen-mker/ubi-go.git](https://github.com/alexanderthegreat96/ubi-go.git
+cd ubi-go
+```
+
+配置环境变量（复制 `env_sample` 为 `.env`）
+
+```
+cp env_sample .env
+```
+
+编辑 `.env` 文件，填入你的育碧账号（建议使用专用小号）：
+
+```
+UBISOFT_ACCOUNTS=[{"email": "your_email@example.com", "password": "your_password"}]
+API_PORT=8080
+```
+
+启动服务
+
+```
+docker-compose up -d
+```
+
+验证服务是否正常运行
+
+```
+curl http://localhost:8080/health
+```
+
+返回 `{"success": true}` 即表示启动成功。
+
 ### 配置插件
 
 在 AstrBot 的插件配置界面，填写以下信息：
 
 | 配置项               | 说明                                                          |
 | -------------------- | ------------------------------------------------------------- |
-| `ubisoft_email`    | 用于登录育碧 API 的邮箱账号（建议使用小号）                   |
-| `ubisoft_password` | 对应密码（确保未开启两步验证）                                |
-| `default_platform` | 默认查询平台（`uplay` / `xbl` / `psn`，默认 `uplay`） |
+| `ubi-go服务器地址`    | 用于数据查询功能                   |
+| `默认查询平台（当用户未指定时使用）` | （`uplay` / `xbl` / `psn`，默认 `uplay`） |
 
-> ⚠️ **安全提示**：请勿使用主力账号，建议注册专用小号。密码仅保存在本地配置中，不会被上传。
-
-### 3. 部署文转图服务（可选）
+### 部署文转图服务（可选）
 
 插件生成图片依赖于 AstrBot 的文转图服务。推荐**自行部署**以获得更稳定、更快速的体验：
 
@@ -38,14 +75,14 @@
 
 ## 📋 命令列表
 
-| 命令格式                      | 说明                                                                   | 示例                           |
-| ----------------------------- | ---------------------------------------------------------------------- | ------------------------------ |
+| 命令格式                      | 说明                                                       | 示例                           |
+| ----------------------------- | ---------------------------------------------------------- | ------------------------------ |
 | `/数据查询 <玩家名> [平台]` | 查询玩家数据，支持 UID。平台可选 `uplay`/`xbl`/`psn` | `/数据查询 name/uid psn`     |
-| `/天赋 <天赋名>`            | 查询天赋详情（支持模糊搜索）                                           | `/天赋 完美拳拳到肉`         |
-| `/武器 <武器名>`            | 查询武器详情（支持别名、模糊搜索）                                     | `/武器 鸟` / `/武器 F2000` |
-| `/装备 <装备名>`            | 查询装备详情（支持别名）                                               | `/装备 天平包`               |
-| `/套装 <套装名>`            | 查询装备组/品牌详情（支持别名）                                        | `/套装 影子`                 |
-| `/周商`                     | 获取本周商人商品长图                                                   | `/周商`                      |
+| `/天赋 <天赋名>`            | 查询天赋详情（支持模糊搜索）                               | `/天赋 完美拳拳到肉`         |
+| `/武器 <武器名>`            | 查询武器详情（支持别名、模糊搜索）                         | `/武器 鸟` / `/武器 F2000` |
+| `/装备 <装备名>`            | 查询装备详情（支持别名）                                   | `/装备 天平包`               |
+| `/套装 <套装名>`            | 查询装备组/品牌详情（支持别名）                            | `/套装 影子`                 |
+| `/周商`                     | 获取本周商人商品长图                                       | `/周商`                      |
 
 ---
 
@@ -83,18 +120,19 @@ astrbot_plugin_TheDivision2/
 
 ## 📚 依赖
 
-- `httpx >= 0.27.0` —— 异步 HTTP 客户端
-- `jinja2 >= 3.1.0` —— 模板渲染引擎
-- `aiosqlite >= 0.19.0` —— 异步 SQLite 驱动
-- `difflib` —— 内置模糊匹配（Python 标准库）
+* `aiohttp` —— 异步 HTTP 客户端
+* `jinja2` —— 模板渲染引擎
+* `aiosqlite` —— 异步 SQLite 驱动
+* `difflib` —— 内置模糊匹配（Python 标准库）
 
 ---
 
 ## 🙏 致谢
 
-- 数据来源：[育碧](https://www.ubisoft.com)
-- 部分数据整理自社区玩家及 [Division 2 Gear Spreadsheet](https://docs.google.com/spreadsheets/d/1nrPBmOrtpkEW1j5fbcRT7L-AXgsGOqMqxXoVtopsiGM/edit?usp=sharing)
-- 感谢 AstrBot 提供的机器人框架支持
+* 数据来源：[育碧](https://www.ubisoft.com/)
+* 数据查询后端：[alexanderthegreat96/ubi-go: Ubisoft Connect API Wrapper](https://github.com/alexanderthegreat96/ubi-go)
+* 部分数据整理自社区玩家及 [Division 2 Gear Spreadsheet](https://docs.google.com/spreadsheets/d/1nrPBmOrtpkEW1j5fbcRT7L-AXgsGOqMqxXoVtopsiGM/edit?usp=sharing)
+* 感谢 AstrBot 提供的机器人框架支持
 
 ---
 
