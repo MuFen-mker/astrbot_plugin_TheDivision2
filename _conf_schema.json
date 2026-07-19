@@ -1,21 +1,15 @@
 {
-  "ubisoft_email": {
-    "description": "用于登录育碧 API 的邮箱账号",
-    "type": "string",
-    "hint": "用于获取登陆令牌的账号邮箱(建议使用独立小号，关闭2FA验证)",
-    "default": ""
-  },
-  "ubisoft_password": {
-    "description": "用于获取登陆令牌的账号密码",
-    "type": "string",
-    "hint": "对应的密码，仅用于本地 API 调用，不会上传",
-    "default": ""
-  },
-  "default_platform": {
-    "description": "默认查询平台（当用户未指定时使用）",
-    "type": "string",
-    "hint": "可选 uplay / xbl / psn",
-    "default": "uplay",
-    "enum": ["uplay", "xbl", "psn"]
-  }
+    "api_base_url": {
+        "description": "ubi-go服务器地址",
+        "type": "string",
+        "hint": "数据查询依赖ubi-go,请根据插件github主页自部署ubi-go后端,示例: http://www.example.com:12910",
+        "default": "http://127.0.0.1:12910"
+    },
+    "default_platform": {
+        "description": "默认查询平台（当用户未指定时使用）",
+        "type": "string",
+        "hint": "可选 uplay / xbl / psn",
+        "default": "uplay",
+        "enum": ["uplay", "xbl", "psn"]
+    }
 }
