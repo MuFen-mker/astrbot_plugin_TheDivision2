@@ -136,7 +136,7 @@
                 '轻机枪': '轻机枪', '冲锋枪': '冲锋枪', '霰弹枪': '霰弹枪', '手枪': '手枪'
             } %}
             {% set icon_name = type_icon_map.get(weapon.type, '步枪') %}
-            <img src="https://cdn.jsdelivr.net/gh/MuFen-mker/astrbot_plugin_TheDivision2_DataAPI@main/assets/Main%20icons/{{ icon_name }}.png" 
+            <img src="https://raw.githubusercontent.com/MuFen-mker/astrbot_plugin_TheDivision2_DataAPI/refs/heads/main/assets/Main%20icons/{{ icon_name }}.png" 
                  alt="{{ weapon.type }}" 
                  onerror="this.src='https://placehold.co/112x112/ff8500/111?text=?'">
         </div>
@@ -225,7 +225,7 @@
                 {% set prototype_value = attr.prototype if attr.prototype is defined else (attr_value * 1.5) if attr_value not in [None, '-'] else '-' %}
                 <div class="stats-row">
                     <span class="stats-label">
-                        <img src="https://cdn.jsdelivr.net/gh/MuFen-mker/astrbot_plugin_TheDivision2_DataAPI@main/assets/Main%20icons/{{ attr.type }}.png" 
+                        <img src="https://raw.githubusercontent.com/MuFen-mker/astrbot_plugin_TheDivision2_DataAPI/refs/heads/main/assets/Main%20icons/{{ attr.type }}.png" 
                             alt="{{ attr.type }}">
                         {{ attr.name }}
                     </span>
