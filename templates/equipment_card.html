@@ -240,6 +240,10 @@
             min-width: 230px;
             border: 1px solid rgba(255, 133, 0, 0.3);
         }
+        .talent-item.talent-full-width {
+            flex: 0 0 100%;     /* 强制占满 flex 容器的一整行 */
+            width: 100%;        /* 明确宽度 */
+        }
         .talent-item .talent-label {
             font-size: 1.07rem;    /* 0.65rem * 1.65 */
             text-transform: uppercase;
@@ -317,18 +321,21 @@
     </div>
 
     <!-- 天赋区域（仅装备组） -->
+    <!-- 天赋区域（仅装备组） -->
     {% if group.type == '装备组' %}
     <div class="effect-panel">
         <div class="panel-title">✨ 天赋配置</div>
         <div class="talents-grid">
+            <!-- 1. 装备组天赋：新增 talent-full-width 类，使其独占一行 -->
             {% if group.set_talent and group.set_talent != '无' %}
-            <div class="talent-item">
+            <div class="talent-item talent-full-width">
                 <div class="talent-label">装备组天赋</div>
                 <div class="talent-name">{{ group.set_talent }}</div>
                 <div class="talent-desc">{{ group.set_talent_desc or '暂无描述' }}</div>
             </div>
             {% endif %}
 
+            <!-- 2. 胸甲增强天赋：保持不变，会自动换行到下一行 -->
             {% if group.enhancetalent_chestarmor and group.enhancetalent_chestarmor != '无' %}
             <div class="talent-item">
                 <div class="talent-label">胸甲增强天赋</div>
@@ -337,6 +344,7 @@
             </div>
             {% endif %}
 
+            <!-- 3. 背包增强天赋：保持不变，会和胸甲天赋并排在一行 -->
             {% if group.enhancetalent_backpack and group.enhancetalent_backpack != '无' %}
             <div class="talent-item">
                 <div class="talent-label">背包增强天赋</div>
