@@ -278,6 +278,9 @@
             background: rgba(0, 0, 0, 0.25);
             border-radius: 20px;
         }
+        .stat-group.full-width {
+            grid-column: 1 / -1; 
+        }
 
         /* 响应式：左上角保持，仅调整内边距 */
         @media (max-width: 780px) {
@@ -388,7 +391,7 @@
             <div class="stat-row"><span class="stat-label">最长叛变时间</span><span class="stat-value">{{RogueLongestTimePlayed}}</span></div>
         </div>
 
-        <!-- 【暗区势力击杀】鬣狗/流亡者/真实之子/黯牙 完整覆盖 -->
+        <!-- 【暗区势力击杀】鬣狗/流亡者/真实之子/黯牙 -->
         <div class="stat-group">
             <div class="group-title"><span>⚠️ 势力清算</span><span>FACTIONS KILLS</span></div>
             <div class="stat-row"><span class="stat-label">鬣狗击杀</span><span class="stat-value">{{HyenaKills}}</span></div>
@@ -396,13 +399,17 @@
             <div class="stat-row"><span class="stat-label">真实之子击杀</span><span class="stat-value">{{TrueSonsKills}}</span></div>
             <div class="stat-row"><span class="stat-label">黯牙击杀</span><span class="stat-value">{{BlackTuskKills}}</span></div>
             <div class="stat-row"><span class="stat-label">具名击杀</span><span class="stat-value">{{NamedKills}}</span></div>
+        </div>
+        <!-- 【其他指标】悬赏/计划/呼叫支援 -->
+        <div class="stat-group">
+            <div class="group-title"><span>📋 其他指标</span><span>MISCELLANEOUS</span></div>
             <div class="stat-row"><span class="stat-label">悬赏</span><span class="stat-value">{{SumBountyMissionsCompleted}}</span></div>
             <div class="stat-row"><span class="stat-label">计划</span><span class="stat-value">{{CountProjectsCompleted}}</span></div>
             <div class="stat-row"><span class="stat-label">呼叫支援</span><span class="stat-value">{{MatchmakeCallForBackup}}</span></div>
         </div>
 
         <!-- 【副本次数】副本/任务完成次数 -->
-        <div class="stat-group">
+        <div class="stat-group full-width">
             <div class="group-title"><span>🏆 战役统计</span><span>WEAPONRY</span></div>
             <div class="stat-row"><span class="stat-label">华盛顿大酒店</span><span class="stat-value">{{mm01_grandhyatt}}</span></div>
             <div class="stat-row"><span class="stat-label">林肯纪念堂</span><span class="stat-value">{{mm02_lincolnmemorial}}</span></div>

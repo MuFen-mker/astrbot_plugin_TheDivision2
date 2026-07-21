@@ -519,7 +519,7 @@ class TheDivision2Plugin(Star):
         #物品拾取数量
         ItemsLooted = player_data.get("SumItemsLooted", {}).get("value", "0")
         #玩家击杀
-        PvpKills = player_data.get("SumPvpKills", {}).get("value", "0")
+        PvpKills = int(player_data.get("SumPvpKills", {}).get("value", 0)) + int(player_data.get("numberOfRoguePlayerKills", {}).get("value", 0))
         #NPC击杀
         NpcKills = int(player_data.get("SumNpcKills", {}).get("value", 0))
         #技能击杀
