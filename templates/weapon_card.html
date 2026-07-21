@@ -193,22 +193,24 @@
 
             <!-- 天赋区域：如果有天赋数据则显示完整天赋卡片，否则显示随机选取占位符 -->
             <div class="stat-panel">
-                <div class="panel-title"> 天赋</div>
-                {% if weapon.talent and weapon.talent.name_zh %}
-                <div class="talent-card-small">
-                    <div class="talent-icon-small">
-                        <img src="{{ weapon.talent.icon_path }}" alt="{{ weapon.talent.name_zh }}" onerror="this.src='https://placehold.co/48x48/ff8500/111?text=?'">
+                <div class="panel-title">天赋</div>
+                {% if weapon.talents and weapon.talents|length > 0 %}
+                    {% for talent in weapon.talents %}
+                    <div class="talent-card-small" {% if not loop.last %}style="margin-bottom: 10px;"{% endif %}>
+                        <div class="talent-icon-small">
+                            <img src="{{ talent.icon_path }}" alt="{{ talent.name_zh }}" onerror="this.src='https://placehold.co/48x48/ff8500/111?text=?'">
+                        </div>
+                        <div class="talent-info-small">
+                            <div class="talent-name-small">{{ talent.name_zh }}</div>
+                            <div class="talent-eng-small">{{ talent.name_en }}</div>
+                            <div class="talent-desc-small">{{ talent.description }}</div>
+                        </div>
                     </div>
-                    <div class="talent-info-small">
-                        <div class="talent-name-small">{{ weapon.talent.name_zh }}</div>
-                        <div class="talent-eng-small">{{ weapon.talent.name_en }}</div>
-                        <div class="talent-desc-small">{{ weapon.talent.description }}</div>
-                    </div>
-                </div>
+                    {% endfor %}
                 {% else %}
-                <div class="talent-placeholder">
-                    [ {{ weapon.type }}种类天赋随机选取 · ISAC 检索中 ]
-                </div>
+                    <div class="talent-placeholder">
+                        [ {{ weapon.type }}种类天赋随机选取 · ISAC 检索中 ]
+                    </div>
                 {% endif %}
             </div>
         </div>
