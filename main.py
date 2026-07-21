@@ -1305,18 +1305,18 @@ class TheDivision2Plugin(Star):
                     'named': ar['named']   # "TRUE"/"FALSE"
                 }
 
-            # 3. 查询天赋（如果 gear.talent 为 "TRUE"）
-            talent_data = None
+            # 3. 查询天赋（可能多个）
+            talents = []
             if gear.get('talent') == 'TRUE':
-                cursor = await conn.execute("SELECT name_zh, name_en, `icon path`, description FROM talent WHERE type LIKE ? LIMIT 1", (f'%{gear["name_zh"]}%',))
-                t_row = await cursor.fetchone()
-                if t_row:
-                    talent_data = {
+                cursor = await conn.execute("SELECT name_zh, name_en, `icon path`, description FROM talent WHERE type LIKE ?", (f'%{gear["name_zh"]}%',))
+                rows = await cursor.fetchall()
+                for t_row in rows:
+                    talents.append({
                         'name_zh': t_row['name_zh'],
                         'name_en': t_row['name_en'],
                         'icon_path': t_row['icon path'],
                         'description': t_row['description']
-                    }
+                    })
 
         # 构建属性列表（与原代码相同）
         attributes_list = []
@@ -1349,9 +1349,7 @@ class TheDivision2Plugin(Star):
                 'quality': gear['quality'],
                 'quality_class': quality_class,
                 'attributes': attributes_list,
-                'talent': talent_data is not None,
-                'talent_name': talent_data['name_zh'] if talent_data else None,
-                'talent_desc': talent_data['description'] if talent_data else None
+                'talents': talents
             },
             'attr_map': attr_map
         }

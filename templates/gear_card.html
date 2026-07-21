@@ -367,11 +367,15 @@
     </div>
 
     <!-- 天赋区域 -->
-    {% if gear.talent %}
+    {% if gear.talents and gear.talents|length > 0 %}
     <div class="talent-panel">
         <div class="panel-title">✨ 天赋</div>
-        <div class="talent-name">{{ gear.talent_name }}</div>
-        <div class="talent-desc">{{ gear.talent_desc or '暂无描述' }}</div>
+        {% for talent in gear.talents %}
+        <div style="margin-bottom: 12px;">
+            <div class="talent-name">{{ talent.name_zh }}</div>
+            <div class="talent-desc">{{ talent.description or '暂无描述' }}</div>
+        </div>
+        {% endfor %}
     </div>
     {% endif %}
 
