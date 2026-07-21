@@ -511,41 +511,37 @@ class TheDivision2Plugin(Star):
         #头像
         avatar_url = f"https://ubisoft-avatars.akamaized.net/{user_id_for_avatar}/default_146_146.png"
         logger.info(f"avatar_url type: {type(avatar_url)}, value: {avatar_url}")
-        #等级
-        Level = player_data.get("LatestLevel.rankType.NormalXP", {}).get("value", "0")
-        #暗区等级
-        DZLevel = player_data.get("LatestLevel.rankType.DarkZoneXP", {}).get("value", "0")
         #游戏时长
-        playtime_seconds = int(player_data.get("Playtime", {}).get("value", "0"))
+        playtime_seconds = int(player_data.get("Playtime", {}).get("value", 0))
         gametime = round(playtime_seconds / 3600, 1) if playtime_seconds else 0
         #功勋
         CurrComm = player_data.get("LatestCommendationScore", {}).get("value", "0")
         #物品拾取数量
         ItemsLooted = player_data.get("SumItemsLooted", {}).get("value", "0")
         #玩家击杀
-        PvpKills = player_data.get("SumPvpKills", {}).get("value", "0")
+        PvpKills = int(player_data.get("SumPvpKills", {}).get("value", 0)) + int(player_data.get("numberOfRoguePlayerKills", {}).get("value", 0))
         #NPC击杀
-        NpcKills = int(player_data.get("SumNpcKills", {}).get("value", "0"))
+        NpcKills = int(player_data.get("SumNpcKills", {}).get("value", 0))
         #技能击杀
         SkillKills = player_data.get("SumSkillKills", {}).get("value", "0")
         #爆头数量
-        Headshots = int(player_data.get("SumHeadShots", {}).get("value", "0"))
+        Headshots = int(player_data.get("SumHeadShots", {}).get("value", 0))
         #E点数
-        ECreditBalance = int(player_data.get("LatestWalletBalanceSplit.currencyName.E-Credits", {}).get("value", "0"))
+        ECreditBalance = int(player_data.get("LatestWalletBalanceSplit.currencyName.E-Credits", {}).get("value", 0))
         #PVE经验
         PveXP = player_data.get("TotalXpOw", {}).get("value", "0")
         #具名击杀
         NamedKills = player_data.get("specialRoleKills.npcSpecialRole.named", {}).get("value", "0")
         #鬣狗击杀
-        HyenaKills = player_data.get("factionDarkZoneKills.npcFaction.Blackbloc", {}).get("value", "0")
+        HyenaKills = int(player_data.get("factionDarkZoneKills.npcFaction.Blackbloc", {}).get("value", 0)) + int(player_data.get("factionKills.npcFaction.Blackbloc", {}).get("value", 0))
         #流亡者击杀
-        OutCastsKills = player_data.get("factionDarkZoneKills.npcFaction.Cultists", {}).get("value", "0")
+        OutCastsKills = int(player_data.get("factionDarkZoneKills.npcFaction.Cultists", {}).get("value", 0)) + int(player_data.get("factionKills.npcFaction.Cultists", {}).get("value", 0))
         #真实之子击杀
-        TrueSonsKills = player_data.get("factionDarkZoneKills.npcFaction.Militia", {}).get("value", "0")
+        TrueSonsKills = int(player_data.get("factionDarkZoneKills.npcFaction.Militia", {}).get("value", 0)) + int(player_data.get("factionKills.npcFaction.Militia", {}).get("value", 0))
         #黯牙击杀
-        BlackTuskKills = player_data.get("factionKills.npcFaction.Endgame", {}).get("value", "0")
+        BlackTuskKills = int(player_data.get("factionKills.npcFaction.Endgame", {}).get("value", 0))
         #暗区时长
-        dzplaytime_seconds = int(player_data.get("TotalPlaytimeDarkzone", {}).get("value", "0"))
+        dzplaytime_seconds = int(player_data.get("TotalPlaytimeDarkzone", {}).get("value", 0))
         dzPlaytime = round(dzplaytime_seconds / 3600, 1) if dzplaytime_seconds else 0
         #暗区经验
         DzXp = player_data.get("TotalXpDz", {}).get("value", "0")
@@ -554,10 +550,10 @@ class TheDivision2Plugin(Star):
         #叛变击杀
         RoguesKilled = player_data.get("numberOfRoguePlayerKills", {}).get("value", "0")
         #叛变时长
-        RogueTimePlayed_seconds = player_data.get("TotalPlaytimeRogue", {}).get("value", "0")
+        RogueTimePlayed_seconds = player_data.get("TotalPlaytimeRogue", {}).get("value", 0)
         RogueTimePlayed = format_duration(RogueTimePlayed_seconds)
         #最长叛变时间
-        RogueLongestTimePlayed_seconds = player_data.get("MaxRogueTime", {}).get("value", "0")
+        RogueLongestTimePlayed_seconds = player_data.get("MaxRogueTime", {}).get("value", 0)
         RogueLongestTimePlayed = format_duration(RogueLongestTimePlayed_seconds)
         #流血击杀
         BleedingKills = player_data.get("bleedingKills", {}).get("value", "0")
@@ -574,7 +570,7 @@ class TheDivision2Plugin(Star):
         #手枪击杀
         PistolKills = player_data.get("weaponFamilyKills.weaponFamily.Pistol", {}).get("value", "0")
         #总命中数
-        hit = int(player_data.get("SumHits", {}).get("value", "0"))
+        hit = int(player_data.get("SumHits", {}).get("value", 0))
         #身体命中数
         bodyHit = hit - Headshots
         #头部命中率（防除零）
@@ -596,14 +592,57 @@ class TheDivision2Plugin(Star):
         DailyKills = player_data.get("npckillsperiodic", {}).get("value", "0")
         #当日爆头数
         DailyHeadcount = player_data.get("DailySumHeadShots", {}).get("value", "0")
+        #华盛顿大酒店
+        mm01_grandhyatt = player_data.get("MissionCompleted.missionName.mm01_grandhyatt.missionState.Completed", {}).get("value", 0)
+        #林肯纪念堂
+        mm02_lincolnmemorial = player_data.get("MissionCompleted.missionName.mm02_lincolnmemorial.missionState.Completed", {}).get("value", 0)
+        #杰斐逊贸易中心
+        mm03_ronaldreagan = player_data.get("MissionCompleted.missionName.mm03_ronaldreagan.missionState.Completed", {}).get("value", 0)
+        #银行总部
+        mm04_worldbank = player_data.get("MissionCompleted.missionName.mm04_worldbank.missionState.Completed", {}).get("value", 0)
+        #联邦急难地下碉堡
+        mm05_coldwarbunker = player_data.get("MissionCompleted.missionName.mm05_coldwarbunker.missionState.Completed", {}).get("value", 0)
+        #疾管局总部
+        mm06_redcross = player_data.get("MissionCompleted.missionName.mm06_redcross.missionState.Completed", {}).get("value", 0)
+        #美国历史博物馆
+        mm07_americanhistory = player_data.get("MissionCompleted.missionName.mm07_americanhistory.missionState.Completed", {}).get("value", 0)
+        #杰斐逊广场
+        mm08_lenfantplaza = player_data.get("MissionCompleted.missionName.mm08_lenfantplaza.missionState.Completed", {}).get("value", 0)
+        #航空航天博物馆
+        mm09_airspace = player_data.get("MissionCompleted.missionName.mm09_airspace.missionState.Completed", {}).get("value", 0)
+        #航天局总部
+        mm10_nasahq = player_data.get("MissionCompleted.missionName.mm10_nasahq.missionState.Completed", {}).get("value", 0)
+        #观点博物馆
+        mm11_newseum = player_data.get("MissionCompleted.missionName.mm11_newseum.missionState.Completed", {}).get("value", 0)
+        #区域联盟体育馆
+        mm12_verizoncenter = player_data.get("MissionCompleted.missionName.mm12_verizoncenter.missionState.Completed", {}).get("value", 0)
+        #波托马克活动中心
+        mm13_jfkcenter = player_data.get("MissionCompleted.missionName.mm13_jfkcenter.missionState.Completed", {}).get("value", 0)
+        #罗斯福岛
+        mm14_roosevelt = player_data.get("MissionCompleted.missionName.mm14_roosevelt.missionState.Completed", {}).get("value", 0)
+        #国会大厦
+        mm15_capitol = player_data.get("MissionCompleted.missionName.mm15_capitol.missionState.Completed", {}).get("value", 0)
+        #潮汐之潭
+        mm16_tidalbasin = player_data.get("MissionCompleted.missionName.mm16_tidalbasin.missionState.Completed", {}).get("value", 0)
+        #H5炼油厂
+        mm40_unitedmetroenergy = player_data.get("MissionCompleted.missionName.mm40_unitedmetroenergy.missionState.Completed", {}).get("value", 0)
+        #艺术博物馆
+        mm41_brooklynmuseum = player_data.get("MissionCompleted.missionName.mm41_brooklynmuseum.missionState.Completed", {}).get("value", 0)
+        #陆军码头
+        mm42_armyterminal = player_data.get("MissionCompleted.missionName.mm42_armyterminal.missionState.Completed", {}).get("value", 0)
+        #悬赏
+        SumBountyMissionsCompleted = player_data.get("SumBountyMissionsCompleted.missionState.Completed", {}).get("value", 0)
+        #呼叫支援
+        MatchmakeCallForBackup = player_data.get("MatchmakeCallForBackup.matchmakingActivity.call for backup", {}).get("value", 0)
+        #计划
+        CountProjectsCompleted = player_data.get("CountProjectsCompleted.projectStatus.Completed", {}).get("value", 0)
+
         logger.info(f"数据字典已生成，数据来源：UBI-GO URL:{self.api_base_url}")
 
         #整理字典
         player_info_data = {
             "playername": player_name,
             "avatarimg": avatar_url,
-            "Level": Level,
-            "DZLevel": DZLevel,
             "gametime": gametime,
             "CurrComm":CurrComm,
             "ItemsLooted":ItemsLooted,
@@ -639,7 +678,31 @@ class TheDivision2Plugin(Star):
             "HourlyHeadcountHits":HourlyHeadcountHits,
             "HourlyBodyHits":HourlyBodyHits,
             "DailyKills":DailyKills,
-            "DailyHeadcount":DailyHeadcount
+            "DailyHeadcount":DailyHeadcount,
+            "uid":uid,
+            "platform":platform,
+            "mm01_grandhyatt":mm01_grandhyatt,
+            "mm02_lincolnmemorial":mm02_lincolnmemorial,
+            "mm03_ronaldreagan":mm03_ronaldreagan,
+            "mm04_worldbank":mm04_worldbank,
+            "mm05_coldwarbunker":mm05_coldwarbunker,
+            "mm06_redcross":mm06_redcross,
+            "mm07_americanhistory":mm07_americanhistory,
+            "mm08_lenfantplaza":mm08_lenfantplaza,
+            "mm09_airspace":mm09_airspace,
+            "mm10_nasahq":mm10_nasahq,
+            "mm11_newseum":mm11_newseum,
+            "mm12_verizoncenter":mm12_verizoncenter,
+            "mm13_jfkcenter":mm13_jfkcenter,
+            "mm14_roosevelt":mm14_roosevelt,
+            "mm15_capitol":mm15_capitol,
+            "mm16_tidalbasin":mm16_tidalbasin,
+            "mm40_unitedmetroenergy":mm40_unitedmetroenergy,
+            "mm41_brooklynmuseum":mm41_brooklynmuseum,
+            "mm42_armyterminal":mm42_armyterminal,
+            "SumBountyMissionsCompleted":SumBountyMissionsCompleted,
+            "MatchmakeCallForBackup":MatchmakeCallForBackup,
+            "CountProjectsCompleted":CountProjectsCompleted
         }
 
         #导入渲染模板

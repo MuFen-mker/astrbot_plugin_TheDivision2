@@ -115,12 +115,35 @@
             font-weight: 600;
         }
 
+        .player-title{
+            display:flex;
+            align-items:center;
+            gap:16px;
+            margin:0.2rem 0 0.8rem 0;
+        }
+
+        .platform-icon{
+            width:42px;
+            height:42px;
+            object-fit:contain;
+            flex-shrink:0;
+            image-rendering:auto;
+        }
+
+        .player-divider{
+            width:2px;
+            height:34px;
+            background:var(--isac-orange);
+            box-shadow:0 0 6px var(--isac-orange);
+            opacity:.85;
+        }
+
         .player-name {
+            margin: 0;
             font-size: 2.2rem;
             font-weight: 800;
             text-transform: uppercase;
             letter-spacing: 1.5px;
-            margin: 0.2rem 0 0.8rem 0;
             background: linear-gradient(135deg, #fff, #ffc285);
             background-clip: text;
             -webkit-background-clip: text;
@@ -224,6 +247,24 @@
             text-shadow: 0 0 2px rgba(255, 133, 0, 0.5);
         }
 
+        /* 左上角档案编号 */
+        .archive-id {
+            position: absolute;
+            top: 7px;
+            left: 13px;
+
+            font-size: 11px;
+            font-family: "Consolas", "Courier New", monospace;
+            letter-spacing: 1.5px;
+            text-transform: uppercase;
+
+            color: rgba(170, 170, 170, 0.7);
+        }
+
+        .archive-id span{
+            color: inherit;   /* 继承父元素颜色 */
+        }
+
         /* 底部说明 */
         .footer-note {
             margin-top: 28px;
@@ -236,6 +277,9 @@
             letter-spacing: 0.5px;
             background: rgba(0, 0, 0, 0.25);
             border-radius: 20px;
+        }
+        .stat-group.full-width {
+            grid-column: 1 / -1; 
         }
 
         /* 响应式：左上角保持，仅调整内边距 */
@@ -255,6 +299,11 @@
 </head>
 <body>
 <div class="agent-card">
+     <div class="archive-id">
+        档案ID:
+        <span>{{uid}}</span>
+    </div>
+
     <div class="deco-dots">
         <div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div>
     </div>
@@ -266,16 +315,19 @@
         </div>
         <div class="player-basic-info">
             <div class="agent-codename">◈ SHD WATCHDOG ◈</div>
-            <h1 class="player-name">{{playername}}</h1>
-            <div class="core-stats">
-                <div class="core-badge">
-                    <span class="badge-label">特工等级</span>
-                    <span class="badge-value">{{Level}}</span>
+            <div class="player-title">
+
+                    <img class="platform-icon"
+                         src="https://cdn.jsdelivr.net/gh/MuFen-mker/astrbot_plugin_TheDivision2_DataAPI@main/assets/platform//{{platform}}.png"
+                         alt="{{platform}}">
+
+                    <div class="player-divider"></div>
+
+                    <h1 class="player-name">{{playername}}</h1>
+
                 </div>
-                <div class="core-badge">
-                    <span class="badge-label">暗区等级</span>
-                    <span class="badge-value">{{DZLevel}}</span>
-                </div>
+
+                <div class="core-stats">
                 <div class="core-badge">
                     <span class="badge-label">功勋点数</span>
                     <span class="badge-value highlight">{{CurrComm}}</span>
@@ -301,43 +353,17 @@
             <div class="stat-row"><span class="stat-label">NPC 击杀</span><span class="stat-value">{{NpcKills}}</span></div>
         </div>
 
-        <!-- 【战斗核心】玩家击杀 / NPC击杀 / 技能击杀 / 特殊状态击杀 -->
+        <!-- 【战斗核心】玩家击杀 / NPC击杀 / 技能击杀 / 特殊状态击杀 / 武器击杀-->
         <div class="stat-group">
             <div class="group-title"><span>⚔️ 战斗裁定</span><span>COMBAT</span></div>
             <div class="stat-row"><span class="stat-label">技能击杀</span><span class="stat-value">{{SkillKills}}</span></div>
             <div class="stat-row"><span class="stat-label">爆头击杀</span><span class="stat-value highlight">{{HeadshotKills}}</span></div>
             <div class="stat-row"><span class="stat-label">流血击杀</span><span class="stat-value">{{BleedingKills}}</span></div>
             <div class="stat-row"><span class="stat-label">燃烧击杀</span><span class="stat-value">{{BurningKills}}</span></div>
-        </div>
-
-        <!-- 【武器专精】冲锋枪/步枪/霰弹枪/手枪击杀 全涵盖 -->
-        <div class="stat-group">
-            <div class="group-title"><span>🔫 武器精通</span><span>WEAPONRY</span></div>
             <div class="stat-row"><span class="stat-label">冲锋枪击杀</span><span class="stat-value">{{SMGKills}}</span></div>
             <div class="stat-row"><span class="stat-label">步枪击杀</span><span class="stat-value">{{RifleKills}}</span></div>
             <div class="stat-row"><span class="stat-label">霰弹枪击杀</span><span class="stat-value">{{ShotgunKills}}</span></div>
             <div class="stat-row"><span class="stat-label">手枪击杀</span><span class="stat-value">{{PistolKills}}</span></div>
-        </div>
-
-        <!-- 【暗区领域】暗区时长 / 暗区经验 / 冲突战等级 + 叛变核心数据 -->
-        <div class="stat-group">
-            <div class="group-title"><span>🌑 暗区·冲突</span><span>DARK ZONE</span></div>
-            <div class="stat-row"><span class="stat-label">暗区时长</span><span class="stat-value">{{dzPlaytime}}小时</span></div>
-            <div class="stat-row"><span class="stat-label">暗区经验</span><span class="stat-value">{{DzXp}}</span></div>
-            <div class="stat-row"><span class="stat-label">冲突战等级</span><span class="stat-value highlight">{{conflict_span}}</span></div>
-            <div class="stat-row"><span class="stat-label">叛变特工击杀</span><span class="stat-value highlight">{{RoguesKilled}}</span></div>
-            <div class="stat-row"><span class="stat-label">累计叛变时长</span><span class="stat-value">{{RogueTimePlayed}}</span></div>
-            <div class="stat-row"><span class="stat-label">最长叛变时间</span><span class="stat-value">{{RogueLongestTimePlayed}}</span></div>
-        </div>
-
-        <!-- 【暗区势力击杀 (仅暗区统计)】鬣狗/流亡者/真实之子/黯牙 完整覆盖 -->
-        <div class="stat-group">
-            <div class="group-title"><span>⚠️ 势力清算 (暗区)</span><span>FACTIONS KILLS</span></div>
-            <div class="stat-row"><span class="stat-label">鬣狗击杀</span><span class="stat-value">{{HyenaKills}}</span></div>
-            <div class="stat-row"><span class="stat-label">流亡者击杀</span><span class="stat-value">{{OutCastsKills}}</span></div>
-            <div class="stat-row"><span class="stat-label">真实之子击杀</span><span class="stat-value">{{TrueSonsKills}}</span></div>
-            <div class="stat-row"><span class="stat-label">黯牙击杀</span><span class="stat-value">{{BlackTuskKills}}</span></div>
-            <div class="stat-row"><span class="stat-label">具名击杀</span><span class="stat-value">{{NamedKills}}</span></div>
         </div>
 
         <!-- 精英指标补充 -->
@@ -353,9 +379,61 @@
             <div class="stat-row"><span class="stat-label">当日击杀数</span><span class="stat-value">{{DailyKills}}</span></div>
             <div class="stat-row"><span class="stat-label">当日爆头数</span><span class="stat-value">{{DailyHeadcount}}</span></div>
         </div>
+
+        <!-- 【暗区领域】暗区时长 / 暗区经验 / 冲突战等级 + 叛变核心数据 -->
+        <div class="stat-group">
+            <div class="group-title"><span>🌑 暗区·冲突</span><span>DARK ZONE</span></div>
+            <div class="stat-row"><span class="stat-label">暗区时长</span><span class="stat-value">{{dzPlaytime}}小时</span></div>
+            <div class="stat-row"><span class="stat-label">暗区经验</span><span class="stat-value">{{DzXp}}</span></div>
+            <div class="stat-row"><span class="stat-label">冲突战等级</span><span class="stat-value highlight">{{conflict_span}}</span></div>
+            <div class="stat-row"><span class="stat-label">叛变特工击杀</span><span class="stat-value highlight">{{RoguesKilled}}</span></div>
+            <div class="stat-row"><span class="stat-label">累计叛变时长</span><span class="stat-value">{{RogueTimePlayed}}</span></div>
+            <div class="stat-row"><span class="stat-label">最长叛变时间</span><span class="stat-value">{{RogueLongestTimePlayed}}</span></div>
+        </div>
+
+        <!-- 【暗区势力击杀】鬣狗/流亡者/真实之子/黯牙 -->
+        <div class="stat-group">
+            <div class="group-title"><span>⚠️ 势力清算</span><span>FACTIONS KILLS</span></div>
+            <div class="stat-row"><span class="stat-label">鬣狗击杀</span><span class="stat-value">{{HyenaKills}}</span></div>
+            <div class="stat-row"><span class="stat-label">流亡者击杀</span><span class="stat-value">{{OutCastsKills}}</span></div>
+            <div class="stat-row"><span class="stat-label">真实之子击杀</span><span class="stat-value">{{TrueSonsKills}}</span></div>
+            <div class="stat-row"><span class="stat-label">黯牙击杀</span><span class="stat-value">{{BlackTuskKills}}</span></div>
+            <div class="stat-row"><span class="stat-label">具名击杀</span><span class="stat-value">{{NamedKills}}</span></div>
+        </div>
+        <!-- 【其他指标】悬赏/计划/呼叫支援 -->
+        <div class="stat-group">
+            <div class="group-title"><span>📋 其他指标</span><span>MISCELLANEOUS</span></div>
+            <div class="stat-row"><span class="stat-label">悬赏</span><span class="stat-value">{{SumBountyMissionsCompleted}}</span></div>
+            <div class="stat-row"><span class="stat-label">计划</span><span class="stat-value">{{CountProjectsCompleted}}</span></div>
+            <div class="stat-row"><span class="stat-label">呼叫支援</span><span class="stat-value">{{MatchmakeCallForBackup}}</span></div>
+        </div>
+
+        <!-- 【副本次数】副本/任务完成次数 -->
+        <div class="stat-group full-width">
+            <div class="group-title"><span>🏆 战役统计</span><span>WEAPONRY</span></div>
+            <div class="stat-row"><span class="stat-label">华盛顿大酒店</span><span class="stat-value">{{mm01_grandhyatt}}</span></div>
+            <div class="stat-row"><span class="stat-label">林肯纪念堂</span><span class="stat-value">{{mm02_lincolnmemorial}}</span></div>
+            <div class="stat-row"><span class="stat-label">杰斐逊贸易中心</span><span class="stat-value">{{mm03_ronaldreagan}}</span></div>
+            <div class="stat-row"><span class="stat-label">银行总部</span><span class="stat-value">{{mm04_worldbank}}</span></div>
+            <div class="stat-row"><span class="stat-label">联邦急难地下碉堡</span><span class="stat-value">{{mm05_coldwarbunker}}</span></div>
+            <div class="stat-row"><span class="stat-label">疾管局总部</span><span class="stat-value">{{mm06_redcross}}</span></div>
+            <div class="stat-row"><span class="stat-label">美国历史博物馆</span><span class="stat-value">{{mm07_americanhistory}}</span></div>
+            <div class="stat-row"><span class="stat-label">杰斐逊广场</span><span class="stat-value">{{mm08_lenfantplaza}}</span></div>
+            <div class="stat-row"><span class="stat-label">航空航天博物馆</span><span class="stat-value">{{mm09_airspace}}</span></div>
+            <div class="stat-row"><span class="stat-label">航天局总部</span><span class="stat-value">{{mm10_nasahq}}</span></div>
+            <div class="stat-row"><span class="stat-label">观点博物馆</span><span class="stat-value">{{mm11_newseum}}</span></div>
+            <div class="stat-row"><span class="stat-label">区域联盟体育馆</span><span class="stat-value">{{mm12_verizoncenter}}</span></div>
+            <div class="stat-row"><span class="stat-label">波托马克活动中心</span><span class="stat-value">{{mm13_jfkcenter}}</span></div>
+            <div class="stat-row"><span class="stat-label">罗斯福岛</span><span class="stat-value">{{mm14_roosevelt}}</span></div>
+            <div class="stat-row"><span class="stat-label">国会大厦</span><span class="stat-value">{{mm15_capitol}}</span></div>
+            <div class="stat-row"><span class="stat-label">潮汐之潭</span><span class="stat-value">{{mm16_tidalbasin}}</span></div>
+            <div class="stat-row"><span class="stat-label">H5炼油厂</span><span class="stat-value">{{mm40_unitedmetroenergy}}</span></div>
+            <div class="stat-row"><span class="stat-label">艺术博物馆</span><span class="stat-value">{{mm41_brooklynmuseum}}</span></div>
+            <div class="stat-row"><span class="stat-label">陆军码头</span><span class="stat-value">{{mm42_armyterminal}}</span></div>
+        </div>
     </div>
     <div class="footer-note">
-        <span>🛡️ ISAC 实时数据流 · 数据由育碧官方进行统计，各势力击杀仅统计暗区中的击杀数 🛡️</span>
+        <span>🛡️ ISAC 实时数据流 · 数据由育碧官方进行统计 🛡️</span>
     </div>
 </div>
 </body>
