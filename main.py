@@ -289,25 +289,26 @@ class TheDivision2Plugin(Star):
             return {}
         return self.weapon_attributes_map
 
-    async def get_talent_by_weapon_name(self, weapon_name: str):
+    async def get_talents_by_weapon_name(self, weapon_name: str):
+        """根据武器名称获取所有匹配的天赋（可能多个）"""
         db_path = os.path.join(os.path.dirname(__file__), "data", "data.db")
         async with aiosqlite.connect(db_path) as conn:
             conn.row_factory = aiosqlite.Row
             cursor = await conn.execute(
-                "SELECT name_zh, name_en, `icon path`, type, description FROM talent WHERE type LIKE ? LIMIT 1",
+                "SELECT name_zh, name_en, `icon path`, type, description FROM talent WHERE type LIKE ?",
                 (f'%{weapon_name}%',)
             )
-            row = await cursor.fetchone()
-
-        if row:
-            return {
+            rows = await cursor.fetchall()
+        talents = []
+        for row in rows:
+            talents.append({
                 'name_zh': row['name_zh'],
                 'name_en': row['name_en'],
                 'icon_path': row['icon path'],
                 'type': row['type'],
                 'description': row['description']
-            }
-        return None
+            })
+        return talents
     
     #品牌查询方法
     async def get_equipment_full_data(self, name: str):
@@ -1162,7 +1163,7 @@ class TheDivision2Plugin(Star):
         # 特殊爆头金色标记（根据属性中是否有名为“爆头伤害”的特殊词条）
         special_headshot = any(attr['name'] == '爆头伤害' and attr.get('special') for attr in attributes_list)
 
-        talent = await self.get_talent_by_weapon_name(weapon['name_zh'])
+        talents = await self.get_talents_by_weapon_name(weapon['name_zh'])
 
         # 准备模板数据
         template_data = {
@@ -1183,7 +1184,7 @@ class TheDivision2Plugin(Star):
                 'grip': weapon['grip'],
                 'magazine': weapon['magazine'],
                 'attributes': attributes_list,
-                'talent': talent
+                'talents': talents
             },
             'attr_map': attr_map
         }
