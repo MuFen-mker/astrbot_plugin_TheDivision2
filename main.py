@@ -290,24 +290,41 @@ class TheDivision2Plugin(Star):
         return self.weapon_attributes_map
 
     async def get_talents_by_weapon_name(self, weapon_name: str):
-        """根据武器名称精确匹配天赋（可能多个）"""
+        """根据武器名称获取天赋，优先精确匹配，否则模糊匹配"""
         db_path = os.path.join(os.path.dirname(__file__), "data", "data.db")
+        talents = []
         async with aiosqlite.connect(db_path) as conn:
             conn.row_factory = aiosqlite.Row
+            # 先精确匹配
             cursor = await conn.execute(
                 "SELECT name_zh, name_en, `icon path`, type, description FROM talent WHERE type = ?",
                 (weapon_name,)
             )
             rows = await cursor.fetchall()
-        talents = []
-        for row in rows:
-            talents.append({
-                'name_zh': row['name_zh'],
-                'name_en': row['name_en'],
-                'icon_path': row['icon path'],
-                'type': row['type'],
-                'description': row['description']
-            })
+            if rows:
+                for row in rows:
+                    talents.append({
+                        'name_zh': row['name_zh'],
+                        'name_en': row['name_en'],
+                        'icon_path': row['icon path'],
+                        'type': row['type'],
+                        'description': row['description']
+                    })
+            else:
+                # 精确匹配无结果，使用模糊匹配
+                cursor = await conn.execute(
+                    "SELECT name_zh, name_en, `icon path`, type, description FROM talent WHERE type LIKE ?",
+                    (f'%{weapon_name}%',)
+                )
+                rows = await cursor.fetchall()
+                for row in rows:
+                    talents.append({
+                        'name_zh': row['name_zh'],
+                        'name_en': row['name_en'],
+                        'icon_path': row['icon path'],
+                        'type': row['type'],
+                        'description': row['description']
+                    })
         return talents
     
     #品牌查询方法
