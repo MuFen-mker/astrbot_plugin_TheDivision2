@@ -290,13 +290,13 @@ class TheDivision2Plugin(Star):
         return self.weapon_attributes_map
 
     async def get_talents_by_weapon_name(self, weapon_name: str):
-        """根据武器名称获取所有匹配的天赋（可能多个）"""
+        """根据武器名称精确匹配天赋（可能多个）"""
         db_path = os.path.join(os.path.dirname(__file__), "data", "data.db")
         async with aiosqlite.connect(db_path) as conn:
             conn.row_factory = aiosqlite.Row
             cursor = await conn.execute(
-                "SELECT name_zh, name_en, `icon path`, type, description FROM talent WHERE type LIKE ?",
-                (f'%{weapon_name}%',)
+                "SELECT name_zh, name_en, `icon path`, type, description FROM talent WHERE type = ?",
+                (weapon_name,)
             )
             rows = await cursor.fetchall()
         talents = []
@@ -1305,18 +1305,18 @@ class TheDivision2Plugin(Star):
                     'named': ar['named']   # "TRUE"/"FALSE"
                 }
 
-            # 3. 查询天赋（可能多个）
-            talents = []
-            if gear.get('talent') == 'TRUE':
-                cursor = await conn.execute("SELECT name_zh, name_en, `icon path`, description FROM talent WHERE type LIKE ?", (f'%{gear["name_zh"]}%',))
-                rows = await cursor.fetchall()
-                for t_row in rows:
-                    talents.append({
-                        'name_zh': t_row['name_zh'],
-                        'name_en': t_row['name_en'],
-                        'icon_path': t_row['icon path'],
-                        'description': t_row['description']
-                    })
+        # 3. 查询天赋（精确匹配）
+        talents = []
+        if gear.get('talent') == 'TRUE':
+            cursor = await conn.execute("SELECT name_zh, name_en, `icon path`, description FROM talent WHERE type = ?", (gear["name_zh"],))
+            rows = await cursor.fetchall()
+            for t_row in rows:
+                talents.append({
+                    'name_zh': t_row['name_zh'],
+                    'name_en': t_row['name_en'],
+                    'icon_path': t_row['icon path'],
+                    'description': t_row['description']
+                })
 
         # 构建属性列表（与原代码相同）
         attributes_list = []
