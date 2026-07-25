@@ -1254,13 +1254,21 @@ class TheDivision2Plugin(Star):
         gear_name = name.strip()
 
         db_path = os.path.join(os.path.dirname(__file__), "data", "data.db")
+        found = False
+        gear = None
+        attr_map = {}
+        talents = []
+
         async with aiosqlite.connect(db_path) as conn:
             conn.row_factory = aiosqlite.Row
 
             # 1. 查询装备（支持别名）
             cursor = await conn.execute("SELECT * FROM gear WHERE name_zh = ? OR name_en = ?", (gear_name, gear_name))
             row = await cursor.fetchone()
-            if not row:
+            if row:
+                gear = dict(row)
+                found = True
+            else:
                 # 别名匹配
                 cursor = await conn.execute("SELECT name_zh, alias FROM gear")
                 rows = await cursor.fetchall()
@@ -1271,17 +1279,14 @@ class TheDivision2Plugin(Star):
                         if gear_name in aliases:
                             cursor = await conn.execute("SELECT * FROM gear WHERE name_zh = ?", (r['name_zh'],))
                             row = await cursor.fetchone()
-                            break
-            if not row:
-                # 关闭连接后查询建议
-                suggestions = self._get_suggestions("gear", gear_name)
-                if suggestions:
-                    msg = f"🤔未找到名为「{gear_name}」的装备。\n你可能想找\n" + "\n".join([f"• {s}" for s in suggestions])
-                    yield event.plain_result(msg)
-                    return
-                yield event.plain_result(f"🤔未找到名为「{gear_name}」的装备")
+                            if row:
+                                gear = dict(row)
+                                found = True
+                                break
+
+            if not found:
+                # 未找到，跳出 async with 块后在外部处理建议
                 return
-            gear = dict(row)
 
             # 解析 attributes JSON
             if gear.get('attributes'):
@@ -1295,7 +1300,6 @@ class TheDivision2Plugin(Star):
             # 2. 查询 gear_attributes 映射
             cursor = await conn.execute("SELECT key, type, icon, entry_name_zh, max_value, named FROM gear_attributes")
             attr_rows = await cursor.fetchall()
-            attr_map = {}
             for ar in attr_rows:
                 attr_map[ar['key']] = {
                     'type': ar['type'],
@@ -1305,20 +1309,30 @@ class TheDivision2Plugin(Star):
                     'named': ar['named']   # "TRUE"/"FALSE"
                 }
 
-        # 3. 查询天赋（精确匹配）
-        talents = []
-        if gear.get('talent') == 'TRUE':
-            cursor = await conn.execute("SELECT name_zh, name_en, `icon path`, description FROM talent WHERE type = ?", (gear["name_zh"],))
-            rows = await cursor.fetchall()
-            for t_row in rows:
-                talents.append({
-                    'name_zh': t_row['name_zh'],
-                    'name_en': t_row['name_en'],
-                    'icon_path': t_row['icon path'],
-                    'description': t_row['description']
-                })
+            # 3. 查询天赋（精确匹配）
+            if gear.get('talent') == 'TRUE':
+                cursor = await conn.execute("SELECT name_zh, name_en, `icon path`, description FROM talent WHERE type = ?", (gear["name_zh"],))
+                rows = await cursor.fetchall()
+                for t_row in rows:
+                    talents.append({
+                        'name_zh': t_row['name_zh'],
+                        'name_en': t_row['name_en'],
+                        'icon_path': t_row['icon path'],
+                        'description': t_row['description']
+                    })
 
-        # 构建属性列表（与原代码相同）
+        # ---------- 块外处理 ----------
+        if not found:
+            # 使用缓存建议
+            suggestions = self._get_suggestions("gear", gear_name)
+            if suggestions:
+                msg = f"🤔未找到名为「{gear_name}」的装备。\n你可能想找\n" + "\n".join([f"• {s}" for s in suggestions])
+                yield event.plain_result(msg)
+            else:
+                yield event.plain_result(f"🤔未找到名为「{gear_name}」的装备")
+            return
+
+        # 构建属性列表
         attributes_list = []
         for attr_key in gear['attributes']:
             info = attr_map.get(attr_key, {})
@@ -1331,7 +1345,6 @@ class TheDivision2Plugin(Star):
                 'named': info.get('named', 'FALSE') == 'TRUE'
             })
 
-        # 品质映射
         quality_to_class = {
             '具名': 'named',
             '奇特': 'exotic',
@@ -1339,7 +1352,6 @@ class TheDivision2Plugin(Star):
         }
         quality_class = quality_to_class.get(gear['quality'], 'named')
 
-        # 准备模板数据
         template_data = {
             'gear': {
                 'name_zh': gear['name_zh'],
@@ -1354,7 +1366,6 @@ class TheDivision2Plugin(Star):
             'attr_map': attr_map
         }
 
-        # 渲染模板（与原代码相同）
         template = self.templates.get("gear_card")
         if not template:
             yield event.plain_result("装备卡片模板未加载")
