@@ -35,6 +35,7 @@ class TheDivision2Plugin(Star):
             "equipment_card": "templates/equipment_card.html",
             "gear_card": "templates/gear_card.html",
             "weekly_report": "templates/weekly_report.html",
+            "daily_rotation": "templates/daily_rotation.html",
         }
         for name, path in template_files.items():
             full_path = os.path.join(os.path.dirname(__file__), path)
@@ -55,7 +56,11 @@ class TheDivision2Plugin(Star):
         self.weapon_attributes_map = None  # 初始状态
         asyncio.create_task(self._load_weapon_attributes_map_async())
 
+        # ---------- 性能优化：加载翻译缓存 ----------
         self.translations = self._load_translations_sync()
+        self.activity_cache = self._load_activity_cache_sync()
+        self.translations_cache = self._load_translations_cache_sync()
+        self.equipment_group_cache = self._load_equipment_group_cache_sync()
 
     async def _load_weapon_attributes_map_async(self):
         db_path = os.path.join(os.path.dirname(__file__), "data", "data.db")
@@ -392,6 +397,76 @@ class TheDivision2Plugin(Star):
                 equipment.update(talent_map)
 
             return equipment
+
+    def _load_activity_cache_sync(self):
+        """同步加载 activity 表到内存字典"""
+        import sqlite3
+        db_path = os.path.join(os.path.dirname(__file__), "data", "data.db")
+        if not os.path.exists(db_path):
+            return {}
+        conn = sqlite3.connect(db_path)
+        cursor = conn.execute("SELECT name_en, name_zh FROM activity")
+        rows = cursor.fetchall()
+        conn.close()
+        return {row[0]: row[1] for row in rows}
+
+    def _load_translations_cache_sync(self):
+        """同步加载 translations 表到内存字典"""
+        import sqlite3
+        db_path = os.path.join(os.path.dirname(__file__), "data", "data.db")
+        if not os.path.exists(db_path):
+            return {}
+        conn = sqlite3.connect(db_path)
+        cursor = conn.execute("SELECT name_en, name_zh FROM translations")
+        rows = cursor.fetchall()
+        conn.close()
+        return {row[0]: row[1] for row in rows}
+
+    def _parse_vendor_cache(self, line: str):
+        """解析 Vendor Caches 行，返回 (key, value)"""
+        line = line.strip()
+        if line.startswith("- "):
+            line = line[2:]
+        if ": " in line:
+            key, val = line.split(": ", 1)
+            return key.strip(), val.strip()
+        return None, None
+
+    def _translate_mission(self, name_en: str) -> str:
+        """翻译任务名（从 activity 表）"""
+        return self.activity_cache.get(name_en, name_en)
+
+    def _translate_loot(self, name_en: str) -> str:
+        """翻译战利品名：优先 translations 表，其次 equipment_group 表"""
+        if not name_en:
+            return name_en
+        # 先查 translations 表
+        result = self.translations_cache.get(name_en)
+        if result:
+            return result
+        # 再查 equipment_group 表
+        result = self.equipment_group_cache.get(name_en)
+        if result:
+            return result
+        # 都查不到则返回原文
+        return name_en
+
+    def _load_equipment_group_cache_sync(self):
+        """同步加载 equipment_group 表到内存字典 (name_en -> name_zh)"""
+        import sqlite3
+        db_path = os.path.join(os.path.dirname(__file__), "data", "data.db")
+        if not os.path.exists(db_path):
+            return {}
+        conn = sqlite3.connect(db_path)
+        try:
+            cursor = conn.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='equipment_group'")
+            if not cursor.fetchone():
+                return {}
+            cursor = conn.execute("SELECT name_en, name_zh FROM equipment_group")
+            rows = cursor.fetchall()
+            return {row[0]: row[1] for row in rows if row[0] and row[1]}
+        finally:
+            conn.close()
 
     @filter.command("数据查询")
     async def on_query(self, event: AstrMessageEvent, username: str, platform_arg: str = None):
@@ -1396,6 +1471,135 @@ class TheDivision2Plugin(Star):
         except Exception as e:
             logger.error(f"装备卡片渲染失败: {e}")
             yield event.plain_result("生成图片失败，请稍后重试")
+
+    @filter.command("恶化")
+    async def daily_rotation(self, event: AstrMessageEvent):
+        # 缓存文件路径（30分钟）
+        cache_dir = Path(get_astrbot_data_path()) / "plugin_data" / self.name / "cache"
+        cache_dir.mkdir(parents=True, exist_ok=True)
+        cache_file = cache_dir / "daily_rotation.jpg"
+        cache_ttl = 1800  # 30分钟
+
+        # 检查缓存
+        if cache_file.exists():
+            mtime = cache_file.stat().st_mtime
+            if time.time() - mtime < cache_ttl:
+                logger.info("使用缓存的恶化任务图片")
+                yield event.image_result(str(cache_file))
+                return
+            else:
+                logger.info("缓存已过期，重新生成")
+
+        # 1. 获取远程数据
+        url = "https://prototrack.gg/target-loot/target-loot-current.txt"
+        try:
+            async with self.session.get(url, timeout=15) as resp:
+                if resp.status != 200:
+                    yield event.plain_result(f"获取数据失败，状态码：{resp.status}")
+                    return
+                text = await resp.text()
+        except Exception as e:
+            logger.error(f"请求异常：{e}")
+            yield event.plain_result("网络错误，请稍后重试")
+            return
+
+        # 2. 解析文本
+        lines = text.splitlines()
+        missions = []
+        lootboxes = []
+        current_section = None
+        last_updated = None  # 新增
+        source = None        # 新增
+
+        for line in lines:
+            line = line.strip()
+            if not line:
+                continue
+            if line.startswith("Missions:"):
+                current_section = "missions"
+                continue
+            elif line.startswith("Vendor Caches:"):
+                current_section = "vendor"
+                continue
+            elif line.startswith("Date:") or line.startswith("Rotation:"):
+                continue
+            elif line.startswith("Last updated:"):
+                last_updated = line.replace("Last updated:", "").strip()
+                continue
+            elif line.startswith("Source:"):
+                source = line.replace("Source:", "").strip()
+                continue
+
+            if current_section == "missions" and line.startswith("- "):
+                parts = line[2:].split(": ", 1)
+                if len(parts) == 2:
+                    mission_en, loot_en = parts
+                    mission_zh = self._translate_mission(mission_en.strip())
+                    loot_zh = self._translate_loot(loot_en.strip())
+                    missions.append({
+                        "name": mission_zh,
+                        "loot": loot_zh,
+                        "icon": loot_zh,
+                    })
+            elif current_section == "vendor" and line.startswith("- "):
+                key, val = self._parse_vendor_cache(line)
+                if key and val:
+                    if key == "Weapons":
+                        clean_val = val.rstrip('s')
+                    elif key == "Gear":
+                        clean_val = val.replace(" Pieces", "").strip()
+                    else:
+                        clean_val = val
+                    translated = self._translate_loot(clean_val)
+                    lootboxes.append({
+                        "type": translated,
+                        "icon": translated,
+                    })
+
+        if not missions and not lootboxes:
+            yield event.plain_result("未能解析到有效数据，请检查数据源")
+            return
+
+        # 3. 渲染图片
+        data = {
+            "date": time.strftime("%Y-%m-%d", time.localtime()),
+            "last_updated": last_updated,
+            "source": source,
+            "missions": missions,
+            "lootboxes": lootboxes
+        }
+
+        template = self.templates.get("daily_rotation")
+        if not template:
+            yield event.plain_result("轮换模板未加载")
+            return
+        html = template.render(**data)
+
+        options = {"type": "png", "full_page": True, "scale": "css", "omit_background": True}
+        try:
+            img_url = await self.html_render(html, {}, options=options)
+        except Exception as e:
+            logger.error(f"图片渲染失败: {e}")
+            yield event.plain_result("生成图片失败，请稍后重试")
+            return
+
+        # 4. 缓存图片
+        try:
+            async with self.session.get(img_url) as resp:
+                if resp.status == 200:
+                    with open(cache_file, "wb") as f:
+                        f.write(await resp.read())
+                    logger.info(f"恶化任务图片已缓存到 {cache_file}")
+                else:
+                    logger.error(f"下载图片失败，状态码：{resp.status}")
+                    yield event.plain_result("图片下载失败，请稍后重试")
+                    return
+        except Exception as e:
+            logger.error(f"下载图片异常: {e}")
+            yield event.plain_result("图片下载失败，请稍后重试")
+            return
+
+        yield event.image_result(str(cache_file))
 
     async def terminate(self):
         if hasattr(self, 'session'):
