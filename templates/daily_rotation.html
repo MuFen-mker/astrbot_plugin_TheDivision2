@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ISAC · 每日轮换</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        :root {
+            --isac-orange: #ff8500;
+            --bg-dark: rgba(12, 12, 18, 0.94);
+            --border-glow: rgba(255, 133, 0, 0.4);
+            --text-primary: #ffffff;
+            --text-dim: rgba(255, 255, 255, 0.7);
+            --panel-bg: rgba(20, 20, 28, 0.75);
+            --gold: #ffd966;
+        }
+        html {
+            background-color: #0a0a0f;
+            background-image: radial-gradient(circle at 30% 20%, rgba(255, 133, 0, 0.12) 0%, transparent 70%),
+                              linear-gradient(0deg, transparent 0px, transparent 19px, rgba(255, 133, 0, 0.1) 20px, transparent 21px),
+                              linear-gradient(90deg, transparent 0px, transparent 19px, rgba(255, 133, 0, 0.1) 20px, transparent 21px);
+            background-size: auto, 100% 40px, 40px 100%;
+            background-repeat: no-repeat, repeat, repeat;
+        }
+        body {
+            width: 900px;
+            margin: 0 auto;
+            padding: 30px;
+            background: transparent;
+            font-family: 'Segoe UI', 'Orbitron', 'Rajdhani', 'Roboto', sans-serif;
+        }
+        .scanline {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(to bottom, transparent 50%, rgba(0, 0, 0, 0.1) 51%);
+            background-size: 100% 4px;
+            pointer-events: none;
+            opacity: 0.4;
+            z-index: 10;
+        }
+        /* 大卡片 */
+        .card {
+            background: var(--bg-dark);
+            width: 100%;
+            border-left: 6px solid var(--isac-orange);
+            box-shadow: 0 20px 35px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 133, 0, 0.2) inset, 0 0 18px rgba(255, 133, 0, 0.2);
+            padding: 28px 32px 32px 32px;
+            clip-path: polygon(0 0, 98% 0, 100% 3%, 100% 100%, 2% 100%, 0 97%);
+            backdrop-filter: blur(1px);
+            position: relative;
+        }
+        .deco-dots {
+            position: absolute;
+            top: 18px;
+            right: 24px;
+            display: flex;
+            gap: 6px;
+        }
+        .dot {
+            width: 6px;
+            height: 6px;
+            background: var(--isac-orange);
+            box-shadow: 0 0 4px var(--isac-orange);
+            border-radius: 1px;
+        }
+        /* 大卡片头部 */
+        .card-header {
+            border-bottom: 2px solid var(--border-glow);
+            padding-bottom: 1rem;
+            margin-bottom: 1.5rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+        }
+        .card-title {
+            font-size: 1.8rem;
+            font-weight: 800;
+            letter-spacing: 2px;
+            color: var(--isac-orange);  /* 橙色 */
+        }
+        .card-title span:last-child {
+            color: var(--isac-orange);  /* 保持橙色 */
+            font-size: 1rem;
+            font-weight: 400;
+            margin-left: 10px;
+            font-family: 'Courier New', monospace;
+        }
+        .date {
+            color: var(--text-dim);
+            font-size: 0.9rem;
+            font-family: 'Courier New', monospace;
+        }
+        /* 小卡片区域 */
+        .section {
+            background: var(--panel-bg);
+            border-radius: 12px;
+            padding: 1.2rem 1.5rem;
+            margin-bottom: 1.2rem;
+            border: 1px solid rgba(255, 133, 0, 0.15);
+        }
+        .section:last-child {
+            margin-bottom: 0;
+        }
+        .section-title {
+            font-size: 1.1rem;
+            font-weight: bold;
+            color: var(--isac-orange);
+            border-left: 3px solid var(--isac-orange);
+            padding-left: 12px;
+            margin-bottom: 1rem;
+        }
+        .section-title span {
+            font-weight: 400;
+            font-size: 0.7rem;
+            color: var(--text-dim);
+            margin-left: 8px;
+            font-family: 'Courier New', monospace;
+            text-transform: uppercase;
+        }
+        /* 任务表格 */
+        .mission-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        .mission-table th {
+            text-align: left;
+            color: var(--isac-orange);
+            font-weight: 600;
+            font-size: 0.85rem;
+            letter-spacing: 0.5px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid rgba(255, 133, 0, 0.3);
+        }
+        .mission-table td {
+            padding: 8px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            color: var(--text-primary);
+        }
+        .mission-table tr:last-child td {
+            border-bottom: none;
+        }
+        .loot-cell {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .loot-icon {
+            width: 28px;
+            height: 28px;
+            background: #11161f;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1rem;
+            border: 1px solid rgba(255, 133, 0, 0.3);
+            flex-shrink: 0;
+        }
+        .loot-name {
+            color: var(--gold);
+            font-weight: 500;
+        }
+        /* 战利品箱列表 */
+        .lootbox-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        .lootbox-item {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            padding: 8px 12px;
+            background: rgba(0,0,0,0.3);
+            border-radius: 8px;
+            border-left: 3px solid var(--isac-orange);
+        }
+        .lootbox-icon {
+            font-size: 1.3rem;
+            width: 32px;
+            text-align: center;
+        }
+        .lootbox-name {
+            color: var(--text-primary);
+            font-weight: 500;
+            flex: 1;
+        }
+        .lootbox-type {
+            color: var(--isac-orange);
+            background: rgba(255, 133, 0, 0.15);
+            padding: 0.1rem 1rem;
+            border-radius: 30px;
+            font-size: 0.8rem;
+        }
+        .footer {
+            margin-top: 1.2rem;
+            padding-top: 0.8rem;
+            border-top: 1px solid var(--border-glow);
+            text-align: right;
+            font-size: 0.7rem;
+            color: var(--text-dim);
+        }
+        @media (max-width: 700px) {
+            body { width: auto; padding: 20px; }
+            .card { padding: 20px; }
+            .card-title { font-size: 1.4rem; }
+            .section { padding: 1rem; }
+        }
+    </style>
+</head>
+<body>
+<div class="scanline"></div>
+<div class="card">
+    <div class="deco-dots">
+        <div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div>
+    </div>
+
+    <div class="card-header">
+        <div class="card-title">
+            恶化任务
+            <span>ROTATION</span>
+        </div>
+        <div class="date">{% if last_updated %}最后更新: {{ last_updated }}{% else %}{{ date }}{% endif %}</div>
+    </div>
+
+    <!-- 小卡片：任务轮换 -->
+    <div class="section">
+        <div class="section-title">
+            每周恶化轮换
+            <span>Weekly Escalation Rotation</span>
+        </div>
+        <table class="mission-table">
+            <thead>
+                <tr>
+                    <th>任务 Mission</th>
+                    <th>目标战利品 Target Loot</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for mission in missions %}
+                <tr>
+                    <td>{{ mission.name }}</td>
+                    <td>
+                        <div class="loot-cell">
+                            <div class="loot-icon">
+                                <img src="https://cdn.jsdelivr.net/gh/MuFen-mker/astrbot_plugin_TheDivision2_DataAPI@main/assets/Main%20icons/{{ mission.icon }}.png" 
+                                    alt="{{ mission.loot }}"
+                                    style="width:100%;height:100%;object-fit:contain;"
+                                    onerror="this.style.display='none'">
+                            </div>
+                            <span class="loot-name">{{ mission.loot }}</span>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- 小卡片：商人战利品箱 -->
+    <div class="section">
+        <div class="section-title">
+            恶化商人原型箱
+            <span>Daily cache rotation</span>
+        </div>
+        <div class="lootbox-list">
+            {% for box in lootboxes %}
+            <div class="lootbox-item">
+                <div class="lootbox-icon">
+                    <img src="https://cdn.jsdelivr.net/gh/MuFen-mker/astrbot_plugin_TheDivision2_DataAPI@main/assets/Main%20icons/{{ box.icon }}.png" 
+                        alt="{{ box.type }}"
+                        style="width:100%;height:100%;object-fit:contain;"
+                        onerror="this.style.display='none'">
+                </div>
+                <span class="lootbox-type">{{ box.type }}</span>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <div class="footer">
+        <span>◈ 每日轮换 · 数据基于实时校表 · {{ source or 'ProtoTrack.gg' }} ◈</span>
+    </div>
+</div>
+</body>
+</html>
