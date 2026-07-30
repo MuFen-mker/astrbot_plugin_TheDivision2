@@ -83,6 +83,7 @@ curl http://localhost:8080/health
 | `/装备 <装备名>`            | 查询装备详情（支持别名）                                   | `/装备 天平包`               |
 | `/套装 <套装名>`            | 查询装备组/品牌详情（支持别名）                            | `/套装 影子`                 |
 | `/周商`                     | 获取本周商人商品长图                                       | `/周商`                      |
+| `/恶化`                     | 获取每周恶化轮换和掉落                                       | `/恶化`                      |
 
 ---
 
@@ -131,7 +132,7 @@ astrbot_plugin_TheDivision2/
 
 * 数据来源：[育碧](https://www.ubisoft.com/)
 * 数据查询后端：[alexanderthegreat96/ubi-go: Ubisoft Connect API Wrapper](https://github.com/alexanderthegreat96/ubi-go)
-* 部分数据整理自社区玩家及 [Division 2 Gear Spreadsheet](https://docs.google.com/spreadsheets/d/1nrPBmOrtpkEW1j5fbcRT7L-AXgsGOqMqxXoVtopsiGM/edit?usp=sharing)
+* 部分数据整理自社区玩家及 [Division 2 Gear Spreadsheet](https://docs.google.com/spreadsheets/d/1nrPBmOrtpkEW1j5fbcRT7L-AXgsGOqMqxXoVtopsiGM/edit?usp=sharing) ， [ProtoTrack · Escalation Target Loot](https://prototrack.gg/target-loot/target-loot.php)
 * 感谢 AstrBot 提供的机器人框架支持
 
 ---
