@@ -1,3 +1,4 @@
 aiosqlite
 aiohttp
 jinja2
+apscheduler

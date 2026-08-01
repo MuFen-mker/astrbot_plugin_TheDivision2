@@ -3,8 +3,10 @@ from astrbot.api.star import Context, Star, register
 from astrbot.api import logger, AstrBotConfig 
 from astrbot.api.message_components import Image
 from jinja2 import Template
-from pathlib import Path
 from astrbot.core.utils.astrbot_path import get_astrbot_data_path
+from apscheduler.schedulers.asyncio import AsyncIOScheduler
+from apscheduler.triggers.cron import CronTrigger
+from pathlib import Path
 import re
 import time
 import json
@@ -17,6 +19,7 @@ import difflib
 class TheDivision2Plugin(Star):
     def __init__(self, context: Context, config: AstrBotConfig = None):
         super().__init__(context)
+        self.name = self.__class__.__name__
         if config is None:
             base = "http://127.0.0.1:8080"
             self.default_platform = "uplay"
@@ -61,6 +64,31 @@ class TheDivision2Plugin(Star):
         self.activity_cache = self._load_activity_cache_sync()
         self.translations_cache = self._load_translations_cache_sync()
         self.equipment_group_cache = self._load_equipment_group_cache_sync()
+
+        # ---------- 新增定时清除缓存 ----------
+        self.scheduler = AsyncIOScheduler(timezone='Asia/Shanghai')  # 指定时区
+        # 每天 16:05 执行清除任务
+        self.scheduler.add_job(
+            self.clear_daily_cache,
+            trigger=CronTrigger(hour=16, minute=5, timezone='Asia/Shanghai'),
+            id="clear_daily_rotation_cache",
+            replace_existing=True
+        )
+        self.scheduler.start()
+        logger.info("定时清除任务已启动：每天 16:05 清除 /恶化 缓存")
+
+    async def clear_daily_cache(self):
+        """定时清除 daily_rotation.jpg 缓存"""
+        cache_dir = Path(get_astrbot_data_path()) / "plugin_data" / self.name / "cache"
+        cache_file = cache_dir / "daily_rotation.jpg"
+        if cache_file.exists():
+            try:
+                cache_file.unlink()
+                logger.info(f"已按计划清除缓存：{cache_file}")
+            except Exception as e:
+                logger.error(f"清除缓存失败：{e}")
+        else:
+            logger.debug("缓存文件不存在，无需清除")
 
     async def _load_weapon_attributes_map_async(self):
         db_path = os.path.join(os.path.dirname(__file__), "data", "data.db")
@@ -1602,5 +1630,9 @@ class TheDivision2Plugin(Star):
         yield event.image_result(str(cache_file))
 
     async def terminate(self):
+        if hasattr(self, 'scheduler'):
+            self.scheduler.shutdown()
+            logger.debug("调度器已关闭")
+    
         if hasattr(self, 'session'):
             await self.session.close()
