@@ -6,6 +6,7 @@ from jinja2 import Template
 from astrbot.core.utils.astrbot_path import get_astrbot_data_path
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.cron import CronTrigger
+from datetime import datetime, timedelta
 from pathlib import Path
 import re
 import time
@@ -1552,7 +1553,15 @@ class TheDivision2Plugin(Star):
             elif line.startswith("Date:") or line.startswith("Rotation:"):
                 continue
             elif line.startswith("Last updated:"):
-                last_updated = line.replace("Last updated:", "").strip()
+                raw = line.replace("Last updated:", "").strip()
+                try:
+                    # 解析原始时间
+                    dt = datetime.strptime(raw, "%Y-%m-%d %H:%M")
+                    # 转换为 UTC+8
+                    dt_utc8 = dt + timedelta(hours=6)
+                    last_updated = dt_utc8.strftime("%Y-%m-%d %H:%M")
+                except:
+                    last_updated = raw  # 如果解析失败，保留原文
                 continue
             elif line.startswith("Source:"):
                 source = line.replace("Source:", "").strip()
