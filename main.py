@@ -4,8 +4,6 @@ from astrbot.api import logger, AstrBotConfig
 from astrbot.api.message_components import Image
 from jinja2 import Template
 from astrbot.core.utils.astrbot_path import get_astrbot_data_path
-from apscheduler.schedulers.asyncio import AsyncIOScheduler
-from apscheduler.triggers.cron import CronTrigger
 from datetime import datetime, timedelta
 from pathlib import Path
 import re
@@ -65,31 +63,6 @@ class TheDivision2Plugin(Star):
         self.activity_cache = self._load_activity_cache_sync()
         self.translations_cache = self._load_translations_cache_sync()
         self.equipment_group_cache = self._load_equipment_group_cache_sync()
-
-        # ---------- 新增定时清除缓存 ----------
-        self.scheduler = AsyncIOScheduler(timezone='Asia/Shanghai')  # 指定时区
-        # 每天 16:05 执行清除任务
-        self.scheduler.add_job(
-            self.clear_daily_cache,
-            trigger=CronTrigger(hour=16, minute=5, timezone='Asia/Shanghai'),
-            id="clear_daily_rotation_cache",
-            replace_existing=True
-        )
-        self.scheduler.start()
-        logger.info("定时清除任务已启动：每天 16:05 清除 /恶化 缓存")
-
-    async def clear_daily_cache(self):
-        """定时清除 daily_rotation.jpg 缓存"""
-        cache_dir = Path(get_astrbot_data_path()) / "plugin_data" / self.name / "cache"
-        cache_file = cache_dir / "daily_rotation.jpg"
-        if cache_file.exists():
-            try:
-                cache_file.unlink()
-                logger.info(f"已按计划清除缓存：{cache_file}")
-            except Exception as e:
-                logger.error(f"清除缓存失败：{e}")
-        else:
-            logger.debug("缓存文件不存在，无需清除")
 
     async def _load_weapon_attributes_map_async(self):
         db_path = os.path.join(os.path.dirname(__file__), "data", "data.db")
@@ -432,24 +405,50 @@ class TheDivision2Plugin(Star):
         import sqlite3
         db_path = os.path.join(os.path.dirname(__file__), "data", "data.db")
         if not os.path.exists(db_path):
+            logger.warning(f"数据库文件不存在，activity 缓存为空: {db_path}")
             return {}
         conn = sqlite3.connect(db_path)
-        cursor = conn.execute("SELECT name_en, name_zh FROM activity")
-        rows = cursor.fetchall()
-        conn.close()
-        return {row[0]: row[1] for row in rows}
+        try:
+            # 检查表是否存在
+            cursor = conn.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='activity'")
+            if not cursor.fetchone():
+                logger.warning("activity 表不存在，跳过加载")
+                return {}
+            cursor = conn.execute("SELECT name_en, name_zh FROM activity")
+            rows = cursor.fetchall()
+            result = {row[0]: row[1] for row in rows if row[0] and row[1]}
+            logger.info(f"activity 缓存加载成功，共 {len(result)} 条")
+            return result
+        except Exception as e:
+            logger.error(f"加载 activity 缓存失败: {e}")
+            return {}
+        finally:
+            conn.close()
 
     def _load_translations_cache_sync(self):
         """同步加载 translations 表到内存字典"""
         import sqlite3
         db_path = os.path.join(os.path.dirname(__file__), "data", "data.db")
         if not os.path.exists(db_path):
+            logger.warning(f"数据库文件不存在，translations 缓存为空: {db_path}")
             return {}
         conn = sqlite3.connect(db_path)
-        cursor = conn.execute("SELECT name_en, name_zh FROM translations")
-        rows = cursor.fetchall()
-        conn.close()
-        return {row[0]: row[1] for row in rows}
+        try:
+            # 检查表是否存在
+            cursor = conn.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='translations'")
+            if not cursor.fetchone():
+                logger.warning("translations 表不存在，跳过加载")
+                return {}
+            cursor = conn.execute("SELECT name_en, name_zh FROM translations")
+            rows = cursor.fetchall()
+            result = {row[0]: row[1] for row in rows if row[0] and row[1]}
+            logger.info(f"translations 缓存加载成功，共 {len(result)} 条")
+            return result
+        except Exception as e:
+            logger.error(f"加载 translations 缓存失败: {e}")
+            return {}
+        finally:
+            conn.close()
 
     def _parse_vendor_cache(self, line: str):
         """解析 Vendor Caches 行，返回 (key, value)"""
@@ -626,7 +625,7 @@ class TheDivision2Plugin(Star):
             prefix = f"weaponFactionKills.weaponFamily.{family}.npcFaction."
             for key, value in stats_obj.items():
                 if key.startswith(prefix):
-                    total += int(value.get("value", 0))
+                    total += int(self.parse_number(value.get("value")))
             return total
 
         #=================== 提取各项数据 ===================
@@ -634,36 +633,36 @@ class TheDivision2Plugin(Star):
         avatar_url = f"https://ubisoft-avatars.akamaized.net/{user_id_for_avatar}/default_146_146.png"
         logger.info(f"avatar_url type: {type(avatar_url)}, value: {avatar_url}")
         #游戏时长
-        playtime_seconds = int(player_data.get("Playtime", {}).get("value", 0))
+        playtime_seconds = int(self.parse_number(player_data.get("Playtime", {}).get("value")))
         gametime = round(playtime_seconds / 3600, 1) if playtime_seconds else 0
         #功勋
         CurrComm = player_data.get("LatestCommendationScore", {}).get("value", "0")
         #物品拾取数量
         ItemsLooted = player_data.get("SumItemsLooted", {}).get("value", "0")
         #玩家击杀
-        PvpKills = int(player_data.get("SumPvpKills", {}).get("value", 0)) + int(player_data.get("numberOfRoguePlayerKills", {}).get("value", 0))
+        PvpKills = int(self.parse_number(player_data.get("SumPvpKills", {}).get("value")) + self.parse_number(player_data.get("numberOfRoguePlayerKills", {}).get("value")))
         #NPC击杀
-        NpcKills = int(player_data.get("SumNpcKills", {}).get("value", 0))
+        NpcKills = int(self.parse_number(player_data.get("SumNpcKills", {}).get("value")))
         #技能击杀
         SkillKills = player_data.get("SumSkillKills", {}).get("value", "0")
         #爆头数量
-        Headshots = int(player_data.get("SumHeadShots", {}).get("value", 0))
+        Headshots = int(self.parse_number(player_data.get("SumHeadShots", {}).get("value")))
         #E点数
-        ECreditBalance = int(player_data.get("LatestWalletBalanceSplit.currencyName.E-Credits", {}).get("value", 0))
+        ECreditBalance = int(self.parse_number(player_data.get("LatestWalletBalanceSplit.currencyName.E-Credits", {}).get("value")))
         #PVE经验
         PveXP = player_data.get("TotalXpOw", {}).get("value", "0")
         #具名击杀
         NamedKills = player_data.get("specialRoleKills.npcSpecialRole.named", {}).get("value", "0")
         #鬣狗击杀
-        HyenaKills = int(player_data.get("factionDarkZoneKills.npcFaction.Blackbloc", {}).get("value", 0)) + int(player_data.get("factionKills.npcFaction.Blackbloc", {}).get("value", 0))
+        HyenaKills = int(self.parse_number(player_data.get("factionDarkZoneKills.npcFaction.Blackbloc", {}).get("value")) + self.parse_number(player_data.get("factionKills.npcFaction.Blackbloc", {}).get("value")))
         #流亡者击杀
-        OutCastsKills = int(player_data.get("factionDarkZoneKills.npcFaction.Cultists", {}).get("value", 0)) + int(player_data.get("factionKills.npcFaction.Cultists", {}).get("value", 0))
+        OutCastsKills = int(self.parse_number(player_data.get("factionDarkZoneKills.npcFaction.Cultists", {}).get("value")) + self.parse_number(player_data.get("factionKills.npcFaction.Cultists", {}).get("value")))
         #真实之子击杀
-        TrueSonsKills = int(player_data.get("factionDarkZoneKills.npcFaction.Militia", {}).get("value", 0)) + int(player_data.get("factionKills.npcFaction.Militia", {}).get("value", 0))
+        TrueSonsKills = int(self.parse_number(player_data.get("factionDarkZoneKills.npcFaction.Militia", {}).get("value")) + self.parse_number(player_data.get("factionKills.npcFaction.Militia", {}).get("value")))
         #黯牙击杀
-        BlackTuskKills = int(player_data.get("factionKills.npcFaction.Endgame", {}).get("value", 0))
+        BlackTuskKills = int(self.parse_number(player_data.get("factionKills.npcFaction.Endgame", {}).get("value")))
         #暗区时长
-        dzplaytime_seconds = int(player_data.get("TotalPlaytimeDarkzone", {}).get("value", 0))
+        dzplaytime_seconds = int(self.parse_number(player_data.get("TotalPlaytimeDarkzone", {}).get("value")))
         dzPlaytime = round(dzplaytime_seconds / 3600, 1) if dzplaytime_seconds else 0
         #暗区经验
         DzXp = player_data.get("TotalXpDz", {}).get("value", "0")
@@ -692,7 +691,7 @@ class TheDivision2Plugin(Star):
         #手枪击杀
         PistolKills = player_data.get("weaponFamilyKills.weaponFamily.Pistol", {}).get("value", "0")
         #总命中数
-        hit = int(player_data.get("SumHits", {}).get("value", 0))
+        hit = int(self.parse_number(player_data.get("SumHits", {}).get("value")))
         #身体命中数
         bodyHit = hit - Headshots
         #头部命中率（防除零）
@@ -1503,23 +1502,31 @@ class TheDivision2Plugin(Star):
 
     @filter.command("恶化")
     async def daily_rotation(self, event: AstrMessageEvent):
-        # 缓存文件路径（30分钟）
         cache_dir = Path(get_astrbot_data_path()) / "plugin_data" / self.name / "cache"
         cache_dir.mkdir(parents=True, exist_ok=True)
         cache_file = cache_dir / "daily_rotation.jpg"
-        cache_ttl = 1800  # 30分钟
+        cache_date_file = cache_dir / "daily_rotation.date"
 
-        # 检查缓存
+        today_str = time.strftime("%Y-%m-%d", time.localtime())
+        is_after_4pm = time.localtime().tm_hour >= 16
+
+        # ---------- 1. 判断是否使用缓存 ----------
+        use_cache = False
         if cache_file.exists():
-            mtime = cache_file.stat().st_mtime
-            if time.time() - mtime < cache_ttl:
-                logger.info("使用缓存的恶化任务图片")
-                yield event.image_result(str(cache_file))
-                return
-            else:
-                logger.info("缓存已过期，重新生成")
+            cached_date = cache_date_file.read_text(encoding="utf-8").strip() if cache_date_file.exists() else ""
+            if cached_date == today_str:
+                use_cache = True
+            elif not is_after_4pm:
+                # 下午4点前，即使缓存是旧数据也先用着，避免频繁请求
+                use_cache = True
 
-        # 1. 获取远程数据
+        if use_cache:
+            logger.info("使用缓存的恶化任务图片")
+            yield event.image_result(str(cache_file))
+            return
+        logger.info("缓存未命中，重新获取数据")
+
+        # ---------- 2. 获取远程数据 ----------
         url = "https://prototrack.gg/target-loot/target-loot-current.txt"
         try:
             async with self.session.get(url, timeout=15) as resp:
@@ -1532,13 +1539,14 @@ class TheDivision2Plugin(Star):
             yield event.plain_result("网络错误，请稍后重试")
             return
 
-        # 2. 解析文本
+        # ---------- 3. 解析文本 ----------
         lines = text.splitlines()
         missions = []
         lootboxes = []
         current_section = None
-        last_updated = None  # 新增
-        source = None        # 新增
+        last_updated = None
+        source = None
+        date_from_data = None
 
         for line in lines:
             line = line.strip()
@@ -1550,18 +1558,19 @@ class TheDivision2Plugin(Star):
             elif line.startswith("Vendor Caches:"):
                 current_section = "vendor"
                 continue
-            elif line.startswith("Date:") or line.startswith("Rotation:"):
+            elif line.startswith("Date:"):
+                date_from_data = line.replace("Date:", "").strip()
+                continue
+            elif line.startswith("Rotation:"):
                 continue
             elif line.startswith("Last updated:"):
                 raw = line.replace("Last updated:", "").strip()
                 try:
-                    # 解析原始时间
                     dt = datetime.strptime(raw, "%Y-%m-%d %H:%M")
-                    # 转换为 UTC+8
                     dt_utc8 = dt + timedelta(hours=6)
                     last_updated = dt_utc8.strftime("%Y-%m-%d %H:%M")
                 except:
-                    last_updated = raw  # 如果解析失败，保留原文
+                    last_updated = raw
                 continue
             elif line.startswith("Source:"):
                 source = line.replace("Source:", "").strip()
@@ -1571,12 +1580,10 @@ class TheDivision2Plugin(Star):
                 parts = line[2:].split(": ", 1)
                 if len(parts) == 2:
                     mission_en, loot_en = parts
-                    mission_zh = self._translate_mission(mission_en.strip())
-                    loot_zh = self._translate_loot(loot_en.strip())
                     missions.append({
-                        "name": mission_zh,
-                        "loot": loot_zh,
-                        "icon": loot_zh,
+                        "name": self._translate_mission(mission_en.strip()),
+                        "loot": self._translate_loot(loot_en.strip()),
+                        "icon": self._translate_loot(loot_en.strip()),
                     })
             elif current_section == "vendor" and line.startswith("- "):
                 key, val = self._parse_vendor_cache(line)
@@ -1597,15 +1604,14 @@ class TheDivision2Plugin(Star):
             yield event.plain_result("未能解析到有效数据，请检查数据源")
             return
 
-        # 3. 渲染图片
+        # ---------- 4. 渲染图片 ----------
         data = {
-            "date": time.strftime("%Y-%m-%d", time.localtime()),
+            "date": today_str,
             "last_updated": last_updated,
             "source": source,
             "missions": missions,
             "lootboxes": lootboxes
         }
-
         template = self.templates.get("daily_rotation")
         if not template:
             yield event.plain_result("轮换模板未加载")
@@ -1620,28 +1626,32 @@ class TheDivision2Plugin(Star):
             yield event.plain_result("生成图片失败，请稍后重试")
             return
 
-        # 4. 缓存图片
-        try:
-            async with self.session.get(img_url) as resp:
-                if resp.status == 200:
-                    with open(cache_file, "wb") as f:
-                        f.write(await resp.read())
-                    logger.info(f"恶化任务图片已缓存到 {cache_file}")
-                else:
-                    logger.error(f"下载图片失败，状态码：{resp.status}")
-                    yield event.plain_result("图片下载失败，请稍后重试")
-                    return
-        except Exception as e:
-            logger.error(f"下载图片异常: {e}")
-            yield event.plain_result("图片下载失败，请稍后重试")
-            return
+        # ---------- 5. 决定是否缓存 ----------
+        if date_from_data == today_str:
+            # 数据是今天的，写入缓存
+            try:
+                async with self.session.get(img_url) as resp:
+                    if resp.status == 200:
+                        with open(cache_file, "wb") as f:
+                            f.write(await resp.read())
+                        cache_date_file.write_text(today_str, encoding="utf-8")
+                        logger.info(f"恶化任务图片已缓存 (日期: {today_str})")
+                    else:
+                        logger.error(f"下载图片失败，状态码：{resp.status}")
+                        yield event.image_result(img_url)
+                        return
+            except Exception as e:
+                logger.error(f"下载图片异常: {e}")
+                yield event.image_result(img_url)
+                return
+            yield event.image_result(str(cache_file))
+        else:
+            # 数据不是今天的，不缓存，直接返回远端图片
+            logger.info(f"数据日期 {date_from_data} 未更新 {today_str}")
+            yield event.image_result(img_url)
 
-        yield event.image_result(str(cache_file))
-
+    
     async def terminate(self):
-        if hasattr(self, 'scheduler'):
-            self.scheduler.shutdown()
-            logger.debug("调度器已关闭")
     
         if hasattr(self, 'session'):
             await self.session.close()
