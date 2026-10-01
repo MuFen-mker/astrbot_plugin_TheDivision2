@@ -223,6 +223,26 @@
             margin-bottom: 9px;
             flex-wrap: wrap;
             gap: 8px;
+            padding: 4px 8px;
+            margin-left: -8px;
+            margin-right: -8px;
+            border-radius: 3px;
+            transition: background 0.15s ease;
+        }
+
+        /* 偶数行：轻微提亮 */
+        .stat-group .stat-row:nth-child(even) {
+            background: rgba(255, 255, 255, 0.035);
+        }
+
+        /* 奇数行保持透明（暗色底） */
+        .stat-group .stat-row:nth-child(odd) {
+            background: transparent;
+        }
+
+        /* 悬浮时略微加深，增强可读性 */
+        .stat-group .stat-row:hover {
+            background: rgba(255, 133, 0, 0.12);
         }
 
         .stat-label {
