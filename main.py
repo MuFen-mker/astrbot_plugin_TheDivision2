@@ -381,21 +381,41 @@ class TheDivision2Plugin(Star):
             # 3. 如果是装备组，补充天赋描述
             if equipment.get('type') == '装备组':
                 talent_map = {}
-                fields = ['set_talent', 'enhancetalent_chestarmor', 'enhancetalent_backpack']
-                for field in fields:
+                gear_group_name = equipment.get('name_zh')
+                
+                # set_talent：需要 type 校准（防止与金装天赋同名）
+                set_talent = equipment.get('set_talent')
+                if set_talent and set_talent != '无':
+                    talent_name_clean = set_talent.strip()
+                    cursor = await conn.execute(
+                        "SELECT description FROM talent WHERE name_zh = ? AND type = ?",
+                        (talent_name_clean, gear_group_name)
+                    )
+                    desc_row = await cursor.fetchone()
+                    if desc_row:
+                        talent_map['set_talent_desc'] = desc_row['description']
+                    else:
+                        talent_map['set_talent_desc'] = '暂无描述'
+                else:
+                    talent_map['set_talent_desc'] = None
+                
+                # 增强天赋：不校准 type，直接按名字查
+                for field in ['enhancetalent_chestarmor', 'enhancetalent_backpack']:
                     talent_name = equipment.get(field)
                     if talent_name and talent_name != '无':
                         talent_name_clean = talent_name.strip()
-                        cursor = await conn.execute("SELECT description FROM talent WHERE name_zh = ?", (talent_name_clean,))
+                        cursor = await conn.execute(
+                            "SELECT description FROM talent WHERE name_zh = ?",
+                            (talent_name_clean,)
+                        )
                         desc_row = await cursor.fetchone()
                         if desc_row:
                             talent_map[f"{field}_desc"] = desc_row['description']
                         else:
-                            cursor = await conn.execute("SELECT description FROM talent WHERE name_zh LIKE ?", (f'%{talent_name_clean}%',))
-                            desc_row = await cursor.fetchone()
-                            talent_map[f"{field}_desc"] = desc_row['description'] if desc_row else '暂无描述'
+                            talent_map[f"{field}_desc"] = '暂无描述'
                     else:
                         talent_map[f"{field}_desc"] = None
+                
                 equipment.update(talent_map)
 
             return equipment
@@ -1429,15 +1449,40 @@ class TheDivision2Plugin(Star):
                         'named': ar['named']
                     }
 
-                # 3. 查询天赋（精确匹配）
+                # 3. 查询天赋（type 精确校正 → type 模糊匹配 → name_zh 直接匹配）
                 if gear.get('talent') == 'TRUE':
-                    cursor = await conn.execute("SELECT name_zh, name_en, `icon path`, description FROM talent WHERE type = ?", (gear["name_zh"],))
+                    gear_name_clean = gear["name_zh"].strip()
+                    rows = []
+
+                    # 第 1 级：type 精确校正
+                    cursor = await conn.execute(
+                        "SELECT name_zh, name_en, `icon path`, type, description FROM talent WHERE TRIM(type) = ?",
+                        (gear_name_clean,)
+                    )
                     rows = await cursor.fetchall()
+
+                    # 第 2 级：type 模糊匹配（兜底隐藏空格、变体）
+                    if not rows:
+                        cursor = await conn.execute(
+                            "SELECT name_zh, name_en, `icon path`, type, description FROM talent WHERE type LIKE ?",
+                            (f'%{gear_name_clean}%',)
+                        )
+                        rows = await cursor.fetchall()
+
+                    # 第 3 级：name_zh 直接匹配（兼容数据不规范的情况）
+                    if not rows:
+                        cursor = await conn.execute(
+                            "SELECT name_zh, name_en, `icon path`, type, description FROM talent WHERE name_zh = ?",
+                            (gear_name_clean,)
+                        )
+                        rows = await cursor.fetchall()
+
                     for t_row in rows:
                         talents.append({
                             'name_zh': t_row['name_zh'],
                             'name_en': t_row['name_en'],
                             'icon_path': t_row['icon path'],
+                            'type': t_row['type'],
                             'description': t_row['description']
                         })
 
