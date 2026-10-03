@@ -1404,43 +1404,41 @@ class TheDivision2Plugin(Star):
                                 found = True
                                 break
 
-            if not found:
-                # 未找到，跳出 async with 块后在外部处理建议
-                return
-
-            # 解析 attributes JSON
-            if gear.get('attributes'):
-                try:
-                    gear['attributes'] = json.loads(gear['attributes'])
-                except:
+            # 只有找到装备才执行后续查询
+            if found:
+                # 解析 attributes JSON
+                if gear.get('attributes'):
+                    try:
+                        gear['attributes'] = json.loads(gear['attributes'])
+                    except:
+                        gear['attributes'] = []
+                else:
                     gear['attributes'] = []
-            else:
-                gear['attributes'] = []
 
-            # 2. 查询 gear_attributes 映射
-            cursor = await conn.execute("SELECT key, type, icon, entry_name_zh, max_value, named FROM gear_attributes")
-            attr_rows = await cursor.fetchall()
-            for ar in attr_rows:
-                attr_map[ar['key']] = {
-                    'type': ar['type'],
-                    'icon': ar['icon'],
-                    'entry_name_zh': ar['entry_name_zh'],
-                    'max_value': ar['max_value'],
-                    'named': ar['named']   # "TRUE"/"FALSE"
-                }
+                # 2. 查询 gear_attributes 映射
+                cursor = await conn.execute("SELECT key, type, icon, entry_name_zh, max_value, named FROM gear_attributes")
+                attr_rows = await cursor.fetchall()
+                for ar in attr_rows:
+                    attr_map[ar['key']] = {
+                        'type': ar['type'],
+                        'icon': ar['icon'],
+                        'entry_name_zh': ar['entry_name_zh'],
+                        'max_value': ar['max_value'],
+                        'named': ar['named']
+                    }
 
-            # 3. 查询天赋（精确匹配）
-            if gear.get('talent') == 'TRUE':
-                cursor = await conn.execute("SELECT name_zh, name_en, `icon path`, description FROM talent WHERE type = ?", (gear["name_zh"],))
-                rows = await cursor.fetchall()
-                for t_row in rows:
-                    talents.append({
-                        'name_zh': t_row['name_zh'],
-                        'name_en': t_row['name_en'],
-                        'icon_path': t_row['icon path'],
-                        'description': t_row['description']
-                    })
-
+                # 3. 查询天赋（精确匹配）
+                if gear.get('talent') == 'TRUE':
+                    cursor = await conn.execute("SELECT name_zh, name_en, `icon path`, description FROM talent WHERE type = ?", (gear["name_zh"],))
+                    rows = await cursor.fetchall()
+                    for t_row in rows:
+                        talents.append({
+                            'name_zh': t_row['name_zh'],
+                            'name_en': t_row['name_en'],
+                            'icon_path': t_row['icon path'],
+                            'description': t_row['description']
+                        })
+                        
         # ---------- 块外处理 ----------
         if not found:
             # 使用缓存建议
