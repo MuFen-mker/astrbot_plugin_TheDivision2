@@ -18,7 +18,7 @@ import difflib
 class TheDivision2Plugin(Star):
     def __init__(self, context: Context, config: AstrBotConfig = None):
         super().__init__(context)
-        self.name = self.__class__.__name__
+        self.plugin_dir_name = os.path.basename(os.path.dirname(__file__))
         if config is None:
             base = "http://127.0.0.1:8080"
             self.default_platform = "uplay"
@@ -510,13 +510,13 @@ class TheDivision2Plugin(Star):
 
         platform = None
         if platform_arg:
-            p = platform_arg.lower().strip()
+            p = str(platform_arg).lower().strip()
             platform = platform_map.get(p)
 
         if not platform:
             platform = self.default_platform
 
-        username = username.strip()
+        username = str(username).strip()
         logger.info(f"解析后平台: {platform}, 玩家标识: {username}")
 
 
@@ -846,7 +846,7 @@ class TheDivision2Plugin(Star):
     @filter.command("周商")
     async def weekly_vendor(self, event: AstrMessageEvent):
         # 缓存文件路径
-        cache_dir = Path(get_astrbot_data_path()) / "plugin_data" / self.name / "cache"
+        cache_dir = Path(get_astrbot_data_path()) / "plugin_data" / self.plugin_dir_name / "cache"
         cache_dir.mkdir(parents=True, exist_ok=True)
         cache_file = cache_dir / "weekly_vendor.jpg"
         cache_ttl = 3600  # 1小时
@@ -1184,9 +1184,10 @@ class TheDivision2Plugin(Star):
         if not talent_name:
             yield event.plain_result("请提供天赋名称，例如：/天赋 反复")
             return
-        talent = await self.get_talent_data(talent_name.strip())
+        talent_name = str(talent_name).strip()
+        talent = await self.get_talent_data(talent_name)
         if not talent:
-            suggestions = self._get_suggestions("talent", talent_name.strip())
+            suggestions = self._get_suggestions("talent", talent_name)
             if suggestions:
                 msg = f"🤔未找到名为「{talent_name}」的天赋。\n你可能想找\n" + "\n".join([f"• {s}" for s in suggestions])
                 yield event.plain_result(msg)
@@ -1335,9 +1336,10 @@ class TheDivision2Plugin(Star):
             yield event.plain_result("请提供装备品牌或装备组名称，例如：/套装 核心力量")
             return
 
-        equipment = await self.get_equipment_full_data(name.strip())
+        name = str(name).strip()
+        equipment = await self.get_equipment_full_data(name)
         if not equipment:
-            suggestions = self._get_suggestions("equipment_group", name.strip())
+            suggestions = self._get_suggestions("equipment_group", name)
             if suggestions:
                 msg = f"🤔未找到名为「{name}」的装备组/品牌。\n你可能想找\n" + "\n".join([f"• {s}" for s in suggestions])
                 yield event.plain_result(msg)
@@ -1371,7 +1373,7 @@ class TheDivision2Plugin(Star):
         if not name:
             yield event.plain_result("请提供装备名称，例如：/装备 魔鬼回报")
             return
-        gear_name = name.strip()
+        gear_name = str(name).strip()
 
         db_path = os.path.join(os.path.dirname(__file__), "data", "data.db")
         found = False
@@ -1438,7 +1440,7 @@ class TheDivision2Plugin(Star):
                             'icon_path': t_row['icon path'],
                             'description': t_row['description']
                         })
-                        
+
         # ---------- 块外处理 ----------
         if not found:
             # 使用缓存建议
@@ -1500,7 +1502,7 @@ class TheDivision2Plugin(Star):
 
     @filter.command("恶化")
     async def daily_rotation(self, event: AstrMessageEvent):
-        cache_dir = Path(get_astrbot_data_path()) / "plugin_data" / self.name / "cache"
+        cache_dir = Path(get_astrbot_data_path()) / "plugin_data" / self.plugin_dir_name / "cache"
         cache_dir.mkdir(parents=True, exist_ok=True)
         cache_file = cache_dir / "daily_rotation.jpg"
         cache_date_file = cache_dir / "daily_rotation.date"
