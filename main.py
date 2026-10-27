@@ -1611,10 +1611,13 @@ class TheDivision2Plugin(Star):
             elif line.startswith("Last updated:"):
                 raw = line.replace("Last updated:", "").strip()
                 try:
-                    dt = datetime.strptime(raw, "%Y-%m-%d %H:%M")
-                    dt_utc8 = dt + timedelta(hours=6)
+                    from zoneinfo import ZoneInfo
+                    # 数据源为欧洲中部时间（自动处理夏令时/冬令时）
+                    dt = datetime.strptime(raw, "%Y-%m-%d %H:%M").replace(tzinfo=ZoneInfo("Europe/Paris"))
+                    # 转换为东八区
+                    dt_utc8 = dt.astimezone(ZoneInfo("Asia/Shanghai"))
                     last_updated = dt_utc8.strftime("%Y-%m-%d %H:%M")
-                except:
+                except Exception:
                     last_updated = raw
                 continue
             elif line.startswith("Source:"):
