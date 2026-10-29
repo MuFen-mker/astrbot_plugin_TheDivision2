@@ -247,7 +247,7 @@ class TheDivision2Plugin(Star):
             cursor = await conn.execute("""
                 SELECT name_zh, name_en, type, quality, harm, rpm, magazine_capacity,
                     reload, range, head_magnification, sight, muzzle, grip, magazine,
-                    attributes
+                    attributes, icon, source
                 FROM weapon
                 WHERE name_zh = ? OR name_en = ?
             """, (weapon_name, weapon_name))
@@ -1311,6 +1311,17 @@ class TheDivision2Plugin(Star):
 
         talents = await self.get_talents_by_weapon_name(weapon['name_zh'])
 
+        # 计算武器图标 URL
+        icon_field = (weapon.get('icon') or '').strip()
+        if icon_field:
+            icon_url = f"https://raw.githubusercontent.com/MuFen-mker/astrbot_plugin_TheDivision2_DataAPI/refs/heads/main/assets/Weapon/{icon_field}.png"
+        else:
+            icon_url = f"https://raw.githubusercontent.com/MuFen-mker/astrbot_plugin_TheDivision2_DataAPI/refs/heads/main/assets/Main%20icons/{weapon['type']}.png"
+
+        # 解析来源（换行分隔）
+        source_raw = (weapon.get('source') or '').strip()
+        sources = [s.strip() for s in source_raw.split('\n') if s.strip()]
+
         # 准备模板数据
         template_data = {
             'weapon': {
@@ -1330,7 +1341,9 @@ class TheDivision2Plugin(Star):
                 'grip': weapon['grip'],
                 'magazine': weapon['magazine'],
                 'attributes': attributes_list,
-                'talents': talents
+                'talents': talents,
+                'icon_url': icon_url,
+                'sources': sources
             },
             'attr_map': attr_map
         }
