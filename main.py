@@ -517,7 +517,12 @@ class TheDivision2Plugin(Star):
             conn.close()
 
     @filter.command("数据查询")
-    async def on_query(self, event: AstrMessageEvent, username: str, platform_arg: str = None):
+    async def on_query(self, event: AstrMessageEvent, username: str = None, platform_arg: str = None):
+        # 参数缺失提示
+        if not username:
+            yield event.plain_result("请提供玩家名称或 UID，例如：\n/数据查询 玩家名\n/数据查询 玩家UID ps")
+            return
+        
         # 平台映射
         platform_map = {
             'uplay': 'uplay',
