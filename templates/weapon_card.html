@@ -16,7 +16,7 @@
         .weapon-header {
             display: flex;
             gap: 2rem;
-            align-items: stretch;          /* 👈 从 center 改为 stretch */
+            align-items: stretch;          
             border-bottom: 2px solid var(--border-glow);
             padding-bottom: 1.6rem;
             margin-bottom: 1.8rem;
@@ -27,7 +27,7 @@
             flex: 1;
             display: flex;
             flex-direction: column;
-            /* 去掉 justify-content: center */
+            
         }
         .weapon-name {
             font-size: 2.8rem;
@@ -56,23 +56,33 @@
             color: transparent;
         }
         .weapon-eng { font-size: 1.2rem; color: var(--isac-orange); font-family: 'Courier New', monospace; text-transform: uppercase; }
-        .weapon-quality { display: inline-block; margin-top: 0.4rem; background: rgba(255, 133, 0, 0.2); border-left: 3px solid var(--isac-orange); padding: 0.2rem 0.8rem; font-size: 0.7rem; font-weight: bold; color: #ffc285;align-self: flex-start; }
+        .weapon-quality {
+            display: inline-block;
+            width: fit-content;
+            margin-top: 0.5rem;
+            background: rgba(255, 133, 0, 0.2);
+            border-left: 4px solid var(--isac-orange);
+            padding: 0.3rem 1.1rem;
+            font-size: 0.9rem;
+            font-weight: bold;
+            color: #ffc285;
+            letter-spacing: 0.5px;
+        }
         /* 来源标签容器 */
         .weapon-source {
-            margin-top: auto;              /* 👈 推到底部 */
+            margin-top: auto;
             display: flex;
             flex-wrap: wrap;
             align-items: flex-start;
             gap: 6px;
-            padding-top: 0.6rem;           /* 替代原来的 margin-top: 0.6rem */
-            /* 去掉 min-height: 2.8rem */
+            padding-top: 0.6rem;
         }
 
         /* 单个来源标签 */
         .weapon-source-tag {
             display: inline-flex;
             align-items: center;
-            flex-shrink: 0;             /* 防止被压缩变形 */
+            flex-shrink: 0;
             padding: 0.15rem 0.65rem;
             font-size: 0.7rem;
             font-weight: 500;
