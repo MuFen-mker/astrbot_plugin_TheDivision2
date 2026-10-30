@@ -135,26 +135,31 @@
             flex-wrap: wrap;
         }
         .gear-icon {
+            align-self: stretch;         /* 高度跟随文字区 */
+            aspect-ratio: 1 / 1;         /* 宽度 = 高度，保持正方形 */
+            min-width: 150px;            /* 最低尺寸兜底 */
+            min-height: 150px;
             background: #11161f;
             border-radius: 20px;
             display: flex;
             align-items: center;
             justify-content: center;
-            padding: 13px;
+            padding: 0;
             flex-shrink: 0;
+            overflow: hidden;
         }
+
         .gear-icon img {
-            max-width: 106px;
-            max-height: 106px;
-            width: auto;
-            height: auto;
-            object-fit: contain;
+            display: block;
+            width: 100%;
+            height: 100%;
+            object-fit: contain;         /* 等比缩放，居中，不裁剪 */
+            object-position: center;
         }
         .gear-title {
             flex: 1;
             display: flex;
             flex-direction: column;
-            justify-content: center;
         }
         .gear-name {
             font-size: 3.3rem;
@@ -180,6 +185,30 @@
             font-weight: bold;
             border-left: 5px solid;
             border-radius: 0 7px 7px 0;
+        }
+        /* ---------- 来源标签 ---------- */
+        .gear-source {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: flex-start;
+            gap: 6px;
+            margin-top: auto;            /* 推到底部，与图标底边对齐 */
+            padding-top: 0.6rem;
+        }
+        .gear-source-tag {
+            display: inline-flex;
+            align-items: center;
+            flex-shrink: 0;
+            padding: 0.15rem 0.7rem;
+            font-size: 0.75rem;
+            font-weight: 500;
+            line-height: 1.4;
+            color: #ffc285;
+            background: rgba(255, 133, 0, 0.12);
+            border: 1px solid rgba(255, 133, 0, 0.5);
+            border-radius: 4px;
+            letter-spacing: 0.5px;
+            white-space: nowrap;
         }
 
         .attributes-panel {
@@ -248,30 +277,89 @@
             margin-top: 0.5rem;
             border: 1px dashed rgba(255, 133, 0, 0.5);
         }
-        .gear-card.named .talent-name {
-            color: var(--named-color);
-            margin-bottom: 0.3rem;
-            font-size: 1.3rem;
-            font-weight: bold;
+
+        .talent-card-small {
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+            background: rgba(0, 0, 0, 0.35);
+            border-radius: 12px;
+            padding: 0.8rem 1rem;
+            border: 1px solid rgba(255, 133, 0, 0.3);
+            transition: border-color 0.2s;
         }
-        .gear-card.exotic .talent-name {
-            color: var(--exotic-color);
-            margin-bottom: 0.3rem;
-            font-size: 1.3rem;
-            font-weight: bold;
+        .talent-card-small + .talent-card-small {
+            margin-top: 12px;
         }
-        .gear-card.gearset .talent-name {
-            color: var(--gearset-color);
-            margin-bottom: 0.3rem;
-            font-size: 1.3rem;
-            font-weight: bold;
+        .talent-icon-small {
+            width: 52px;
+            height: 52px;
+            background: #11161f;
+            border: 1px solid var(--isac-orange);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 4px;
+            flex-shrink: 0;
         }
-        .talent-desc {
+        .talent-icon-small img {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+        }
+        .talent-info-small {
+            flex: 1;
+            min-width: 0;
+        }
+        .talent-name-small {
+            font-size: 1.05rem;
+            font-weight: bold;
+            color: var(--isac-orange);
+            line-height: 1.3;
+        }
+        .talent-eng-small {
+            font-size: 0.72rem;
+            color: var(--isac-orange);
+            font-family: 'Courier New', monospace;
+            text-transform: uppercase;
+            opacity: 0.75;
+            letter-spacing: 0.5px;
+            margin-top: 2px;
+        }
+        .talent-desc-small {
+            font-size: 0.82rem;
             color: var(--text-dim);
-            font-size: 1rem;
-            white-space: pre-wrap;
-            line-height: 1.4;
+            margin-top: 6px;
+            line-height: 1.45;
+            white-space: pre-line;
+            word-wrap: break-word;
         }
+
+        /* ---------- 天赋按品质变色 ---------- */
+        .gear-card.named .talent-card-small { border-color: rgba(255, 204, 0, 0.45); }
+        .gear-card.named .talent-icon-small {
+            border-color: var(--named-color);
+            box-shadow: 0 0 8px rgba(255, 204, 0, 0.25);
+        }
+        .gear-card.named .talent-name-small,
+        .gear-card.named .talent-eng-small { color: var(--named-color); }
+
+        .gear-card.exotic .talent-card-small { border-color: rgba(255, 85, 85, 0.45); }
+        .gear-card.exotic .talent-icon-small {
+            border-color: var(--exotic-color);
+            box-shadow: 0 0 8px rgba(255, 85, 85, 0.25);
+        }
+        .gear-card.exotic .talent-name-small,
+        .gear-card.exotic .talent-eng-small { color: var(--exotic-color); }
+
+        .gear-card.gearset .talent-card-small { border-color: rgba(160, 255, 160, 0.45); }
+        .gear-card.gearset .talent-icon-small {
+            border-color: var(--gearset-color);
+            box-shadow: 0 0 8px rgba(160, 255, 160, 0.25);
+        }
+        .gear-card.gearset .talent-name-small,
+        .gear-card.gearset .talent-eng-small { color: var(--gearset-color); }
 
         .footer-divider {
             margin-top: 2rem;
@@ -285,7 +373,7 @@
         @media (max-width: 1500px) {
             body { width: auto; padding: 40px; }
             .gear-name { font-size: 2.5rem; }
-            .gear-icon img { max-width: 80px; max-height: 80px; }
+            .gear-icon { width: 110px; height: 110px; }
         }
     </style>
 </head>
@@ -305,7 +393,18 @@
         <div class="gear-title">
             <div class="gear-name">{{ gear.name_zh }}</div>
             <div class="gear-eng">{{ gear.name_en }}</div>
-            <div class="brand-badge">🏷️ {{ gear.equipment }} · {{ gear.part }}</div>
+            <div class="brand-badge">
+                {% if gear.quality == '奇特' %}
+                {{ gear.part }}
+                {% else %}
+                {{ gear.equipment }} · {{ gear.part }}
+                {% endif %}
+            </div>
+            <div class="gear-source">
+                {% for src in gear.sources %}
+                <div class="gear-source-tag">{{ src }}</div>
+                {% endfor %}
+            </div>
         </div>
     </div>
 
@@ -369,11 +468,19 @@
     <!-- 天赋区域 -->
     {% if gear.talents and gear.talents|length > 0 %}
     <div class="talent-panel">
-        <div class="panel-title">✨ 天赋</div>
+        <div class="panel-title">天赋</div>
         {% for talent in gear.talents %}
-        <div style="margin-bottom: 12px;">
-            <div class="talent-name">{{ talent.name_zh }}</div>
-            <div class="talent-desc">{{ talent.description or '暂无描述' }}</div>
+        <div class="talent-card-small">
+            <div class="talent-icon-small">
+                <img src="{{ talent.icon_path }}" 
+                     alt="{{ talent.name_zh }}" 
+                     onerror="this.src='https://placehold.co/52x52/ff8500/111?text=?'">
+            </div>
+            <div class="talent-info-small">
+                <div class="talent-name-small">{{ talent.name_zh }}</div>
+                <div class="talent-eng-small">{{ talent.name_en or '' }}</div>
+                <div class="talent-desc-small">{{ talent.description or '暂无描述' }}</div>
+            </div>
         </div>
         {% endfor %}
     </div>

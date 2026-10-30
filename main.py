@@ -1535,6 +1535,10 @@ class TheDivision2Plugin(Star):
         }
         quality_class = quality_to_class.get(gear['quality'], 'named')
 
+        # 解析来源（换行分隔）
+        source_raw = (gear.get('source') or '').strip()
+        sources = [s.strip() for s in source_raw.split('\n') if s.strip()]
+        
         template_data = {
             'gear': {
                 'name_zh': gear['name_zh'],
@@ -1544,7 +1548,8 @@ class TheDivision2Plugin(Star):
                 'quality': gear['quality'],
                 'quality_class': quality_class,
                 'attributes': attributes_list,
-                'talents': talents
+                'talents': talents,
+                'sources': sources
             },
             'attr_map': attr_map
         }
