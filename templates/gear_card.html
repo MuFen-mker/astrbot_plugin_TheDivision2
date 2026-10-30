@@ -135,22 +135,26 @@
             flex-wrap: wrap;
         }
         .gear-icon {
-            width: 136px;
-            height: 136px;
+            align-self: stretch;         /* 高度跟随文字区 */
+            aspect-ratio: 1 / 1;         /* 宽度 = 高度，保持正方形 */
+            min-width: 150px;            /* 最低尺寸兜底 */
+            min-height: 150px;
             background: #11161f;
             border-radius: 20px;
             display: flex;
             align-items: center;
             justify-content: center;
-            padding: 0;                  /* 图片已预留空白，去掉内边距 */
+            padding: 0;
             flex-shrink: 0;
             overflow: hidden;
-            align-self: flex-start;      /* 防止被 stretch 拉伸 */
         }
+
         .gear-icon img {
+            display: block;
             width: 100%;
             height: 100%;
-            object-fit: contain;         /* 等比缩放，居中 */
+            object-fit: contain;         /* 等比缩放，居中，不裁剪 */
+            object-position: center;
         }
         .gear-title {
             flex: 1;
@@ -202,7 +206,7 @@
             color: #ffc285;
             background: rgba(255, 133, 0, 0.12);
             border: 1px solid rgba(255, 133, 0, 0.5);
-            border-radius: 20px;
+            border-radius: 4px;
             letter-spacing: 0.5px;
             white-space: nowrap;
         }
@@ -389,7 +393,13 @@
         <div class="gear-title">
             <div class="gear-name">{{ gear.name_zh }}</div>
             <div class="gear-eng">{{ gear.name_en }}</div>
-            <div class="brand-badge">🏷️ {{ gear.equipment }} · {{ gear.part }}</div>
+            <div class="brand-badge">
+                {% if gear.quality == '奇特' %}
+                {{ gear.part }}
+                {% else %}
+                {{ gear.equipment }} · {{ gear.part }}
+                {% endif %}
+            </div>
             <div class="gear-source">
                 {% for src in gear.sources %}
                 <div class="gear-source-tag">{{ src }}</div>
