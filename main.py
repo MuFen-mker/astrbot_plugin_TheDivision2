@@ -336,7 +336,7 @@ class TheDivision2Plugin(Star):
     
     #品牌查询方法
     async def get_equipment_full_data(self, name: str):
-        """根据名称或别名查询装备完整信息（包括天赋描述）"""
+        """根据名称或别名查询装备完整信息（包括天赋列表）"""
         db_path = os.path.join(os.path.dirname(__file__), "data", "data.db")
         async with aiosqlite.connect(db_path) as conn:
             conn.row_factory = aiosqlite.Row
@@ -378,45 +378,67 @@ class TheDivision2Plugin(Star):
 
             equipment = dict(row)
 
-            # 3. 如果是装备组，补充天赋描述
+            # 3. 如果是装备组，构建天赋列表（含英文名、图标、描述）
             if equipment.get('type') == '装备组':
-                talent_map = {}
-                gear_group_name = equipment.get('name_zh')
-                
-                # set_talent：需要 type 校准（防止与金装天赋同名）
-                set_talent = equipment.get('set_talent')
-                if set_talent and set_talent != '无':
-                    talent_name_clean = set_talent.strip()
-                    cursor = await conn.execute(
-                        "SELECT description FROM talent WHERE name_zh = ? AND type = ?",
-                        (talent_name_clean, gear_group_name)
-                    )
-                    desc_row = await cursor.fetchone()
-                    if desc_row:
-                        talent_map['set_talent_desc'] = desc_row['description']
-                    else:
-                        talent_map['set_talent_desc'] = '暂无描述'
-                else:
-                    talent_map['set_talent_desc'] = None
-                
-                # 增强天赋：不校准 type，直接按名字查
-                for field in ['enhancetalent_chestarmor', 'enhancetalent_backpack']:
+                talents = []
+                gear_group_name = (equipment.get('name_zh') or '').strip()
+                field_labels = {
+                    'set_talent': '装备组四件套天赋',
+                    'enhancetalent_chestarmor': '胸甲增强天赋',
+                    'enhancetalent_backpack': '背包增强天赋'
+                }
+
+                for field, label in field_labels.items():
                     talent_name = equipment.get(field)
-                    if talent_name and talent_name != '无':
-                        talent_name_clean = talent_name.strip()
+                    if not talent_name or talent_name == '无':
+                        continue
+                    talent_name_clean = talent_name.strip()
+                    t_row = None
+
+                    if field == 'set_talent':
+                        # 先用 type 精确校准（TRIM 兜底隐藏空格）
                         cursor = await conn.execute(
-                            "SELECT description FROM talent WHERE name_zh = ?",
+                            "SELECT name_zh, name_en, `icon path`, description "
+                            "FROM talent WHERE TRIM(name_zh) = ? AND TRIM(type) = ?",
+                            (talent_name_clean, gear_group_name)
+                        )
+                        t_row = await cursor.fetchone()
+                        # 校准失败则回退到只按名字查
+                        if not t_row:
+                            cursor = await conn.execute(
+                                "SELECT name_zh, name_en, `icon path`, description "
+                                "FROM talent WHERE TRIM(name_zh) = ?",
+                                (talent_name_clean,)
+                            )
+                            t_row = await cursor.fetchone()
+                    else:
+                        # 增强天赋直接按名字查
+                        cursor = await conn.execute(
+                            "SELECT name_zh, name_en, `icon path`, description "
+                            "FROM talent WHERE TRIM(name_zh) = ?",
                             (talent_name_clean,)
                         )
-                        desc_row = await cursor.fetchone()
-                        if desc_row:
-                            talent_map[f"{field}_desc"] = desc_row['description']
-                        else:
-                            talent_map[f"{field}_desc"] = '暂无描述'
+                        t_row = await cursor.fetchone()
+
+                    if t_row:
+                        talents.append({
+                            'label': label,
+                            'name_zh': t_row['name_zh'] or talent_name_clean,
+                            'name_en': t_row['name_en'] or '',
+                            'icon_path': (t_row['icon path'] or '').strip(),
+                            'description': t_row['description'] or '暂无描述'
+                        })
                     else:
-                        talent_map[f"{field}_desc"] = None
-                
-                equipment.update(talent_map)
+                        # 天赋表里没查到，也用装备字段兜底展示
+                        talents.append({
+                            'label': label,
+                            'name_zh': talent_name_clean,
+                            'name_en': '',
+                            'icon_path': '',
+                            'description': '暂无描述'
+                        })
+
+                equipment['talents'] = talents
 
             return equipment
 

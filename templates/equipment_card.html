@@ -265,6 +265,108 @@
             overflow-wrap: break-word;
         }
 
+        .talents-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            margin-top: 0.5rem;
+        }
+        .talent-card-small {
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+            background: rgba(0, 0, 0, 0.35);
+            border-radius: 12px;
+            padding: 0.8rem 1rem;
+            border: 1px solid rgba(255, 133, 0, 0.3);
+            transition: border-color 0.2s;
+        }
+        .talent-icon-small {
+            width: 52px;
+            height: 52px;
+            background: #11161f;
+            border: 1px solid var(--isac-orange);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 4px;
+            flex-shrink: 0;
+            overflow: hidden;
+        }
+        .talent-icon-small img {
+            width: 100%;
+            height: 100%;
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+            display: block;
+        }
+        .talent-info-small {
+            flex: 1;
+            min-width: 0;
+        }
+        .talent-label-small {
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 1.2px;
+            color: var(--text-dim);
+            margin-bottom: 4px;
+            text-align: center;
+            width: 100%;
+        }
+        .talent-name-small {
+            font-size: 1.05rem;
+            font-weight: bold;
+            line-height: 1.3;
+            color: var(--text-primary);
+        }
+        .talent-eng-small {
+            font-size: 0.72rem;
+            font-family: 'Courier New', monospace;
+            text-transform: uppercase;
+            opacity: 0.75;
+            letter-spacing: 0.5px;
+            margin-top: 2px;
+            color: var(--text-dim);
+        }
+        .talent-desc-small {
+            font-size: 0.82rem;
+            color: var(--text-dim);
+            margin-top: 6px;
+            line-height: 1.45;
+            white-space: pre-line;
+            word-wrap: break-word;
+        }
+
+        /* 品牌：金色主题 */
+        .equipment-card.brand .talent-card-small {
+            border-color: rgba(255, 204, 0, 0.45);
+        }
+        .equipment-card.brand .talent-icon-small {
+            border-color: var(--gold);
+            box-shadow: 0 0 8px rgba(255, 204, 0, 0.25);
+        }
+        .equipment-card.brand .talent-label-small,
+        .equipment-card.brand .talent-name-small,
+        .equipment-card.brand .talent-eng-small {
+            color: var(--gold);
+        }
+
+        /* 装备组：绿色主题 */
+        .equipment-card.gearset .talent-card-small {
+            border-color: rgba(160, 255, 160, 0.45);
+        }
+        .equipment-card.gearset .talent-icon-small {
+            border-color: var(--green);
+            box-shadow: 0 0 8px rgba(160, 255, 160, 0.25);
+        }
+        .equipment-card.gearset .talent-label-small,
+        .equipment-card.gearset .talent-name-small,
+        .equipment-card.gearset .talent-eng-small {
+            color: var(--green);
+        }
+
         .footer-divider {
             font-size: 1.07rem;
             color: var(--text-dim);
@@ -324,36 +426,26 @@
     <!-- 天赋区域（仅装备组） -->
     {% if group.type == '装备组' %}
     <div class="effect-panel">
-        <div class="panel-title">✨ 天赋配置</div>
-        <div class="talents-grid">
-            <!-- 1. 装备组天赋：新增 talent-full-width 类，使其独占一行 -->
-            {% if group.set_talent and group.set_talent != '无' %}
-            <div class="talent-item talent-full-width">
-                <div class="talent-label">装备组天赋</div>
-                <div class="talent-name">{{ group.set_talent }}</div>
-                <div class="talent-desc">{{ group.set_talent_desc or '暂无描述' }}</div>
+        <div class="panel-title">天赋配置</div>
+        {% if group.talents and group.talents|length > 0 %}
+        <div class="talents-list">
+            {% for talent in group.talents %}
+            <div class="talent-card-small">
+                <div class="talent-icon-small">
+                    <img src="{{ talent.icon_path }}" 
+                        alt="{{ talent.name_zh }}" 
+                        onerror="this.src='https://placehold.co/52x52/ff8500/111?text=?'">
+                </div>
+                <div class="talent-info-small">
+                    <div class="talent-label-small">{{ talent.label }}</div>
+                    <div class="talent-name-small">{{ talent.name_zh }}</div>
+                    <div class="talent-eng-small">{{ talent.name_en or '' }}</div>
+                    <div class="talent-desc-small">{{ talent.description or '暂无描述' }}</div>
+                </div>
             </div>
-            {% endif %}
-
-            <!-- 2. 胸甲增强天赋：保持不变，会自动换行到下一行 -->
-            {% if group.enhancetalent_chestarmor and group.enhancetalent_chestarmor != '无' %}
-            <div class="talent-item">
-                <div class="talent-label">胸甲增强天赋</div>
-                <div class="talent-name">{{ group.enhancetalent_chestarmor }}</div>
-                <div class="talent-desc">{{ group.enhancetalent_chestarmor_desc or '暂无描述' }}</div>
-            </div>
-            {% endif %}
-
-            <!-- 3. 背包增强天赋：保持不变，会和胸甲天赋并排在一行 -->
-            {% if group.enhancetalent_backpack and group.enhancetalent_backpack != '无' %}
-            <div class="talent-item">
-                <div class="talent-label">背包增强天赋</div>
-                <div class="talent-name">{{ group.enhancetalent_backpack }}</div>
-                <div class="talent-desc">{{ group.enhancetalent_backpack_desc or '暂无描述' }}</div>
-            </div>
-            {% endif %}
+            {% endfor %}
         </div>
-        {% if not group.set_talent and not group.enhancetalent_chestarmor and not group.enhancetalent_backpack %}
+        {% else %}
         <div style="color: var(--text-dim); font-size: 1rem; text-align: center;">该装备组暂无专属天赋加成</div>
         {% endif %}
     </div>
