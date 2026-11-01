@@ -135,25 +135,26 @@
             flex-wrap: wrap;
         }
         .gear-icon {
-            align-self: stretch;         /* 高度跟随文字区 */
-            aspect-ratio: 1 / 1;         /* 宽度 = 高度，保持正方形 */
-            min-width: 150px;            /* 最低尺寸兜底 */
+            align-self: stretch;
+            aspect-ratio: 1 / 1;
+            min-width: 150px;
             min-height: 150px;
             background: #11161f;
             border-radius: 20px;
             display: flex;
             align-items: center;
             justify-content: center;
-            padding: 0;
+            padding: 10px;               
             flex-shrink: 0;
             overflow: hidden;
+            box-sizing: border-box;
         }
 
         .gear-icon img {
             display: block;
             width: 100%;
             height: 100%;
-            object-fit: contain;         /* 等比缩放，居中，不裁剪 */
+            object-fit: contain;
             object-position: center;
         }
         .gear-title {
