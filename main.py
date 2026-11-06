@@ -150,7 +150,7 @@ class TheDivision2Plugin(Star):
             query = f"""
                 SELECT name_zh, name_en, `icon path`, type, description
                 FROM {table_name}
-                WHERE name_zh = ? OR name_en = ?
+                WHERE name_zh = ? OR LOWER(name_en) = LOWER(?)
             """
             cursor = await conn.execute(query, (talent_name, talent_name))
             row = await cursor.fetchone()
@@ -249,7 +249,7 @@ class TheDivision2Plugin(Star):
                     reload, range, head_magnification, sight, muzzle, grip, magazine,
                     attributes, icon, source
                 FROM weapon
-                WHERE name_zh = ? OR name_en = ?
+                WHERE name_zh = ? OR LOWER(name_en) = LOWER(?)
             """, (weapon_name, weapon_name))
             row = await cursor.fetchone()
 
@@ -278,15 +278,15 @@ class TheDivision2Plugin(Star):
                     weapon['attributes'] = []
                 return weapon
 
-            # 别名匹配
+            # 别名匹配（大小写不敏感）
             cursor = await conn.execute("SELECT name_zh, alias FROM weapon")
             rows = await cursor.fetchall()
+            weapon_lower = weapon_name.lower()
             for row in rows:
                 alias_str = row['alias']
                 if alias_str:
                     aliases = [a.strip() for a in alias_str.split('\n') if a.strip()]
-                    if weapon_name in aliases:
-                        # 递归调用，注意加 await
+                    if any(a.lower() == weapon_lower for a in aliases):
                         return await self.get_weapon_by_name(row['name_zh'])
         return None
 
@@ -348,7 +348,7 @@ class TheDivision2Plugin(Star):
                     `enhancetalent _ chestarmor` AS enhancetalent_chestarmor,
                     `enhancetalent _ backpack` AS enhancetalent_backpack
                 FROM equipment_group 
-                WHERE name_zh = ? OR name_en = ?
+                WHERE name_zh = ? OR LOWER(name_en) = LOWER(?)
             """, (name, name))
             row = await cursor.fetchone()
 
@@ -356,11 +356,12 @@ class TheDivision2Plugin(Star):
             if not row:
                 cursor = await conn.execute("SELECT id, name_zh, alias FROM equipment_group")
                 all_rows = await cursor.fetchall()
+                name_lower = name.lower()
                 for r in all_rows:
                     alias_str = r['alias']
                     if alias_str:
                         aliases = [a.strip() for a in alias_str.split('\n') if a.strip()]
-                        if name in aliases:
+                        if any(a.lower() == name_lower for a in aliases):
                             cursor = await conn.execute("""
                                 SELECT 
                                     id, name_zh, name_en, alias, type, effect,
@@ -1445,7 +1446,10 @@ class TheDivision2Plugin(Star):
             conn.row_factory = aiosqlite.Row
 
             # 1. 查询装备（支持别名）
-            cursor = await conn.execute("SELECT * FROM gear WHERE name_zh = ? OR name_en = ?", (gear_name, gear_name))
+            cursor = await conn.execute(
+                "SELECT * FROM gear WHERE name_zh = ? OR LOWER(name_en) = LOWER(?)",
+                (gear_name, gear_name)
+            )
             row = await cursor.fetchone()
             if row:
                 gear = dict(row)
@@ -1454,11 +1458,12 @@ class TheDivision2Plugin(Star):
                 # 别名匹配
                 cursor = await conn.execute("SELECT name_zh, alias FROM gear")
                 rows = await cursor.fetchall()
+                gear_lower = gear_name.lower()
                 for r in rows:
                     alias_str = r['alias']
                     if alias_str:
                         aliases = [a.strip() for a in alias_str.split('\n') if a.strip()]
-                        if gear_name in aliases:
+                        if any(a.lower() == gear_lower for a in aliases):
                             cursor = await conn.execute("SELECT * FROM gear WHERE name_zh = ?", (r['name_zh'],))
                             row = await cursor.fetchone()
                             if row:
