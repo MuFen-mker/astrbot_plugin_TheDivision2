@@ -150,7 +150,7 @@ class TheDivision2Plugin(Star):
             query = f"""
                 SELECT name_zh, name_en, `icon path`, type, description
                 FROM {table_name}
-                WHERE name_zh = ? OR LOWER(name_en) = LOWER(?)
+                WHERE LOWER(name_zh) = LOWER(?) OR LOWER(name_en) = LOWER(?)
             """
             cursor = await conn.execute(query, (talent_name, talent_name))
             row = await cursor.fetchone()
@@ -249,7 +249,7 @@ class TheDivision2Plugin(Star):
                     reload, range, head_magnification, sight, muzzle, grip, magazine,
                     attributes, icon, source
                 FROM weapon
-                WHERE name_zh = ? OR LOWER(name_en) = LOWER(?)
+                WHERE LOWER(name_zh) = LOWER(?) OR LOWER(name_en) = LOWER(?)
             """, (weapon_name, weapon_name))
             row = await cursor.fetchone()
 
@@ -348,7 +348,7 @@ class TheDivision2Plugin(Star):
                     `enhancetalent _ chestarmor` AS enhancetalent_chestarmor,
                     `enhancetalent _ backpack` AS enhancetalent_backpack
                 FROM equipment_group 
-                WHERE name_zh = ? OR LOWER(name_en) = LOWER(?)
+                WHERE LOWER(name_zh) = LOWER(?) OR LOWER(name_en) = LOWER(?)
             """, (name, name))
             row = await cursor.fetchone()
 
@@ -1447,7 +1447,7 @@ class TheDivision2Plugin(Star):
 
             # 1. 查询装备（支持别名）
             cursor = await conn.execute(
-                "SELECT * FROM gear WHERE name_zh = ? OR LOWER(name_en) = LOWER(?)",
+                "SELECT * FROM gear WHERE LOWER(name_zh) = LOWER(?) OR LOWER(name_en) = LOWER(?)",
                 (gear_name, gear_name)
             )
             row = await cursor.fetchone()
