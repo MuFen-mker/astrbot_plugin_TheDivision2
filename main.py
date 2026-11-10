@@ -14,6 +14,7 @@ import asyncio
 import os
 import aiosqlite
 import difflib
+from urllib.parse import quote
 
 class TheDivision2Plugin(Star):
     def __init__(self, context: Context, config: AstrBotConfig = None):
@@ -1337,9 +1338,9 @@ class TheDivision2Plugin(Star):
         # 计算武器图标 URL
         icon_field = (weapon.get('icon') or '').strip()
         if icon_field:
-            icon_url = f"https://raw.githubusercontent.com/MuFen-mker/astrbot_plugin_TheDivision2_DataAPI/refs/heads/main/assets/Weapon/{icon_field}.png"
+            icon_url = f"https://cdn.jsdelivr.net/gh/MuFen-mker/astrbot_plugin_TheDivision2_DataAPI@main/assets/Weapon/{quote(icon_field)}.png"
         else:
-            icon_url = f"https://raw.githubusercontent.com/MuFen-mker/astrbot_plugin_TheDivision2_DataAPI/refs/heads/main/assets/Main%20icons/{weapon['type']}.png"
+            icon_url = f"https://cdn.jsdelivr.net/gh/MuFen-mker/astrbot_plugin_TheDivision2_DataAPI@main/assets/Main%20icons/{quote(str(weapon['type']))}.png"
 
         # 解析来源（换行分隔）
         source_raw = (weapon.get('source') or '').strip()
