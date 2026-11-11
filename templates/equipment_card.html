@@ -414,13 +414,13 @@
     <!-- 套装加成 -->
     <div class="effect-panel">
         <div class="panel-title">套装加成</div>
-        {% set effect_lines = group.effect.strip().split('\n') if group.effect else [] %}
+        {% set effect_lines = group.effect_lines if group.effect_lines is defined and group.effect_lines else (group.effect.strip().split('\n') if group.effect else []) %}
         {% set start_num = 1 if group.type == '品牌' else 2 %}
         {% for line in effect_lines %}
             {% if line.strip() %}
             <div class="effect-line">
                 <span class="effect-piece">{{ start_num + loop.index0 }}件：</span>
-                <span class="effect-text">{{ line.strip() }}</span>
+                <span class="effect-text">{{ line }}</span>
             </div>
             {% endif %}
         {% endfor %}

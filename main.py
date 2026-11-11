@@ -210,6 +210,21 @@ class TheDivision2Plugin(Star):
         out = self._DESC_SPAN_RE.sub(self._pad_span, out)
         return re.sub(r'[ \t]{2,}', ' ', out)
 
+    _EFFECT_SEG_RE = re.compile(r'\s+(?=[+\-]\s*\d)')
+
+    def format_effect(self, effect):
+        """套装加成：一行里多个加成时拆成多行（<br>），并给数值加高亮"""
+        lines = []
+        for raw in (effect or '').split('\n'):
+            raw = raw.strip()
+            if not raw:
+                continue
+            segs = [s.strip() for s in self._EFFECT_SEG_RE.split(raw) if s.strip()]
+            if not segs:
+                continue
+            lines.append('<br>'.join(self.format_description(s) for s in segs))
+        return lines
+
     def parse_number(self, s):
         """安全地将字符串转为数字（支持逗号分隔符）"""
         if s is None or s == '':
@@ -422,6 +437,8 @@ class TheDivision2Plugin(Star):
                 return None
 
             equipment = dict(row)
+            # 套装加成：数值高亮 + 多加成换行
+            equipment['effect_lines'] = self.format_effect(equipment.get('effect'))
 
             # 3. 如果是装备组，构建天赋列表（含英文名、图标、描述）
             if equipment.get('type') == '装备组':
@@ -1586,7 +1603,7 @@ class TheDivision2Plugin(Star):
                     )
                     eg_row = await cursor.fetchone()
                     if eg_row and (eg_row['effect'] or '').strip():
-                        effect_lines = [ln.strip() for ln in eg_row['effect'].split('\n') if ln.strip()]
+                        effect_lines = self.format_effect(eg_row['effect'])
                         if effect_lines:
                             set_bonus = {
                                 'name_zh': eg_row['name_zh'],
