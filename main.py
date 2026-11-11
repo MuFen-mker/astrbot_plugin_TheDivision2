@@ -1,10 +1,9 @@
-from astrbot.api.event import filter, AstrMessageEvent, MessageEventResult
-from astrbot.api.star import Context, Star, register
+from astrbot.api.event import filter, AstrMessageEvent
+from astrbot.api.star import Context, Star
 from astrbot.api import logger, AstrBotConfig 
-from astrbot.api.message_components import Image
 from jinja2 import Template
 from astrbot.core.utils.astrbot_path import get_astrbot_data_path
-from datetime import datetime, timedelta
+from datetime import datetime
 from pathlib import Path
 import re
 import time
@@ -151,7 +150,7 @@ class TheDivision2Plugin(Star):
             query = f"""
                 SELECT name_zh, name_en, `icon path`, type, description
                 FROM {table_name}
-                WHERE LOWER(name_zh) = LOWER(?) OR LOWER(name_en) = LOWER(?)
+                WHERE LOWER(TRIM(name_zh)) = LOWER(?) OR LOWER(TRIM(name_en)) = LOWER(?)
             """
             cursor = await conn.execute(query, (talent_name, talent_name))
             row = await cursor.fetchone()
@@ -250,7 +249,7 @@ class TheDivision2Plugin(Star):
                     reload, range, head_magnification, sight, muzzle, grip, magazine,
                     attributes, icon, source
                 FROM weapon
-                WHERE LOWER(name_zh) = LOWER(?) OR LOWER(name_en) = LOWER(?)
+                WHERE LOWER(TRIM(name_zh)) = LOWER(?) OR LOWER(TRIM(name_en)) = LOWER(?)
             """, (weapon_name, weapon_name))
             row = await cursor.fetchone()
 
@@ -349,7 +348,7 @@ class TheDivision2Plugin(Star):
                     `enhancetalent _ chestarmor` AS enhancetalent_chestarmor,
                     `enhancetalent _ backpack` AS enhancetalent_backpack
                 FROM equipment_group 
-                WHERE LOWER(name_zh) = LOWER(?) OR LOWER(name_en) = LOWER(?)
+                WHERE LOWER(TRIM(name_zh)) = LOWER(?) OR LOWER(TRIM(name_en)) = LOWER(?)
             """, (name, name))
             row = await cursor.fetchone()
 
@@ -1188,7 +1187,8 @@ class TheDivision2Plugin(Star):
                         mod['icon_prefix'] = '性能协定'
                     else:
                         mod['gradient_color'] = '#fba000'
-                        mod['icon_prefix'] = '护甲模组'
+                        # 仓库暂无「护甲模组」图标，退回已存在的通用改造模块图标
+                        mod['icon_prefix'] = '装备系统改造模块'
 
         # 加载模板并渲染
         template = self.templates.get("weekly_report")
@@ -1338,9 +1338,9 @@ class TheDivision2Plugin(Star):
         # 计算武器图标 URL
         icon_field = (weapon.get('icon') or '').strip()
         if icon_field:
-            icon_url = f"https://cdn.jsdelivr.net/gh/MuFen-mker/astrbot_plugin_TheDivision2_DataAPI@main/assets/Weapon/{quote(icon_field)}.png"
+            icon_url = f"https://fastly.jsdelivr.net/gh/MuFen-mker/astrbot_plugin_TheDivision2_DataAPI@main/assets/Weapon/{quote(icon_field)}.png"
         else:
-            icon_url = f"https://cdn.jsdelivr.net/gh/MuFen-mker/astrbot_plugin_TheDivision2_DataAPI@main/assets/Main%20icons/{quote(str(weapon['type']))}.png"
+            icon_url = f"https://fastly.jsdelivr.net/gh/MuFen-mker/astrbot_plugin_TheDivision2_DataAPI@main/assets/Main%20icons/{quote(str(weapon['type']))}.png"
 
         # 解析来源（换行分隔）
         source_raw = (weapon.get('source') or '').strip()
@@ -1442,13 +1442,14 @@ class TheDivision2Plugin(Star):
         gear = None
         attr_map = {}
         talents = []
+        set_bonus = None
 
         async with aiosqlite.connect(db_path) as conn:
             conn.row_factory = aiosqlite.Row
 
             # 1. 查询装备（支持别名）
             cursor = await conn.execute(
-                "SELECT * FROM gear WHERE LOWER(name_zh) = LOWER(?) OR LOWER(name_en) = LOWER(?)",
+                "SELECT * FROM gear WHERE LOWER(TRIM(name_zh)) = LOWER(?) OR LOWER(TRIM(name_en)) = LOWER(?)",
                 (gear_name, gear_name)
             )
             row = await cursor.fetchone()
@@ -1532,6 +1533,25 @@ class TheDivision2Plugin(Star):
                             'description': t_row['description']
                         })
 
+                # 4. 查询所属品牌/装备组的套装加成（奇特装备无套装加成，不显示）
+                if gear.get('quality') != '奇特':
+                    cursor = await conn.execute(
+                        "SELECT name_zh, name_en, type, effect FROM equipment_group "
+                        "WHERE LOWER(TRIM(name_zh)) = LOWER(?) OR LOWER(TRIM(name_en)) = LOWER(?)",
+                        (gear.get('equipment') or '', gear.get('equipment') or '')
+                    )
+                    eg_row = await cursor.fetchone()
+                    if eg_row and (eg_row['effect'] or '').strip():
+                        effect_lines = [ln.strip() for ln in eg_row['effect'].split('\n') if ln.strip()]
+                        if effect_lines:
+                            set_bonus = {
+                                'name_zh': eg_row['name_zh'],
+                                'name_en': eg_row['name_en'],
+                                'type': eg_row['type'],
+                                'start_num': 1 if eg_row['type'] == '品牌' else 2,
+                                'lines': effect_lines
+                            }
+
         # ---------- 块外处理 ----------
         if not found:
             # 使用缓存建议
@@ -1579,7 +1599,8 @@ class TheDivision2Plugin(Star):
                 'talents': talents,
                 'sources': sources
             },
-            'attr_map': attr_map
+            'attr_map': attr_map,
+            'set_bonus': set_bonus
         }
 
         template = self.templates.get("gear_card")
@@ -1687,13 +1708,23 @@ class TheDivision2Plugin(Star):
             elif current_section == "vendor" and line.startswith("- "):
                 key, val = self._parse_vendor_cache(line)
                 if key and val:
+                    # 数据源用复数（MMRs / Rifles / Gloves），逐个候选尝试翻译，命中即用
                     if key == "Weapons":
-                        clean_val = val.rstrip('s')
+                        candidates = [val, val.rstrip('s')]
                     elif key == "Gear":
-                        clean_val = val.replace(" Pieces", "").strip()
+                        base = val.replace(" Pieces", "").strip()
+                        candidates = [base, base.rstrip('s')]
                     else:
-                        clean_val = val
-                    translated = self._translate_loot(clean_val)
+                        candidates = [val]
+
+                    translated = candidates[0]
+                    for cand in candidates:
+                        if not cand:
+                            continue
+                        hit = self._translate_loot(cand)
+                        if hit != cand:        # 命中翻译表
+                            translated = hit
+                            break
                     lootboxes.append({
                         "type": translated,
                         "icon": translated,

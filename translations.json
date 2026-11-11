@@ -279,7 +279,7 @@
         {"en":"Aegis","zh":"庇护"},
         {"en":"Breaking Point","zh":"破碎点"},
         {"en":"Cavalier","zh":"骑士"},
-        {"en":"Concentrated Company","zh":"专注联队"},
+        {"en":"Concentrated Company","zh":"专注连队"},
         {"en":"Eclipse Protocol","zh":"日蚀协定"},
         {"en":"Foundry Bulwark","zh":"铸造厂堡垒"},
         {"en":"Future Initiative","zh":"未来主动权"},
@@ -302,7 +302,9 @@
         {"en":"Virtuoso","zh":"大师"},
         {"en":"Core Strength","zh":"核心力量"},
         {"en": "Edelweiss GPz","zh":"雪绒花 GPz"},
-        {"en":"Ortiz Reficere","zh":"奥提兹：恢复"}
+        {"en":"Ortiz Reficere","zh":"奥提兹：恢复"},
+        {"en":"Ember Engine","zh":"余烬引擎"},
+        {"en":"5.11 Tactical","zh":"5.11 Tactical"}
     ],
     "_comment":"部位名称翻译",
     "part":[
