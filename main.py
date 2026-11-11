@@ -1187,7 +1187,8 @@ class TheDivision2Plugin(Star):
                         mod['icon_prefix'] = '性能协定'
                     else:
                         mod['gradient_color'] = '#fba000'
-                        mod['icon_prefix'] = '护甲模组'
+                        # 仓库暂无「护甲模组」图标，退回已存在的通用改造模块图标
+                        mod['icon_prefix'] = '装备系统改造模块'
 
         # 加载模板并渲染
         template = self.templates.get("weekly_report")
