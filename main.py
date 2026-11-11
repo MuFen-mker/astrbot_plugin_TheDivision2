@@ -163,8 +163,52 @@ class TheDivision2Plugin(Star):
             "eng_name": row["name_en"],
             "icon_url": row["icon path"],
             "type": row["type"] or "",
-            "description": row["description"] or ""
+            "description": self.format_description(row["description"] or "")
         }
+
+    # ==================== 描述数值高亮 ====================
+    # 普通数值（数字+单位）橙色，PVP 数值红色；数值前后各留一个空格
+    _DESC_UNIT_RE = r'(?:%|％|层|秒|米|次|名|发|颗|阶|点|个|人|倍|码|件|段|枚|级)'
+    _DESC_PVP_RE = re.compile(r'[（(]\s*PVP\s*[:：]\s*([^）)]*?)\s*[）)]')
+    _DESC_VAL_RE = re.compile(
+        r'[+\-]?\d+(?:\.\d+)?(?:\s*[-–—~～至到]\s*\d+(?:\.\d+)?)?\s*' + _DESC_UNIT_RE
+    )
+    _DESC_SPAN_RE = re.compile(r'<span class="td2-(?:val|pvp)">.*?</span>')
+
+    @classmethod
+    def _pad_span(cls, m):
+        """高亮片段左右各补一个空格（标点前同样留空，与示例一致）"""
+        s = m.string
+        left = s[m.start() - 1] if m.start() > 0 else ''
+        right = s[m.end()] if m.end() < len(s) else ''
+        pre = '' if (not left or left.isspace()) else ' '
+        post = '' if (not right or right.isspace()) else ' '
+        return f'{pre}{m.group(0)}{post}'
+
+    def format_description(self, text):
+        """把天赋描述里的数值渲染成带颜色的 span（普通橙色 / PVP 红色）"""
+        if not text:
+            return text
+        if 'td2-val' in text or 'td2-pvp' in text:      # 已处理过，避免重复包裹
+            return text
+
+        slots = []
+
+        def _pvp(m):
+            slots.append(f'<span class="td2-pvp">(PVP: {m.group(1).strip()} )</span>')
+            return f'\x00{len(slots) - 1}\x00'
+
+        # 1) PVP 段先挖空，避免里面的数字被当成普通数值再包一层
+        out = self._DESC_PVP_RE.sub(_pvp, text)
+        # 2) 普通数值 + 单位
+        out = self._DESC_VAL_RE.sub(
+            lambda m: f'<span class="td2-val">{m.group(0).strip()}</span>', out
+        )
+        # 3) 还原 PVP 段
+        out = re.sub(r'\x00(\d+)\x00', lambda m: slots[int(m.group(1))], out)
+        # 4) 数值前后补空格
+        out = self._DESC_SPAN_RE.sub(self._pad_span, out)
+        return re.sub(r'[ \t]{2,}', ' ', out)
 
     def parse_number(self, s):
         """安全地将字符串转为数字（支持逗号分隔符）"""
@@ -315,7 +359,7 @@ class TheDivision2Plugin(Star):
                         'name_en': row['name_en'],
                         'icon_path': row['icon path'],
                         'type': row['type'],
-                        'description': row['description']
+                        'description': self.format_description(row['description'])
                     })
             else:
                 # 精确匹配无结果，使用模糊匹配
@@ -330,7 +374,7 @@ class TheDivision2Plugin(Star):
                         'name_en': row['name_en'],
                         'icon_path': row['icon path'],
                         'type': row['type'],
-                        'description': row['description']
+                        'description': self.format_description(row['description'])
                     })
         return talents
     
@@ -427,7 +471,7 @@ class TheDivision2Plugin(Star):
                             'name_zh': t_row['name_zh'] or talent_name_clean,
                             'name_en': t_row['name_en'] or '',
                             'icon_path': (t_row['icon path'] or '').strip(),
-                            'description': t_row['description'] or '暂无描述'
+                            'description': self.format_description(t_row['description']) or '暂无描述'
                         })
                     else:
                         # 天赋表里没查到，也用装备字段兜底展示
@@ -1530,7 +1574,7 @@ class TheDivision2Plugin(Star):
                             'name_en': t_row['name_en'],
                             'icon_path': t_row['icon path'],
                             'type': t_row['type'],
-                            'description': t_row['description']
+                            'description': self.format_description(t_row['description'])
                         })
 
                 # 4. 查询所属品牌/装备组的套装加成（奇特装备无套装加成，不显示）
