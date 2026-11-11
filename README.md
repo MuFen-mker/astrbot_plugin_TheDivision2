@@ -25,7 +25,7 @@
 克隆 `ubi-go` 仓库：
 
 ```bash
-git clone https://github.com/MuFen-mker/ubi-go.git](https://github.com/alexanderthegreat96/ubi-go.git
+git clone https://github.com/MuFen-mker/ubi-go.git
 cd ubi-go
 ```
 
