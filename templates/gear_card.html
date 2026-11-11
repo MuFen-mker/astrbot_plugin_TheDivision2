@@ -271,6 +271,46 @@
             color: var(--named-color);
         }
 
+        /* ---------- 套装加成面板 ---------- */
+        .set-panel {
+            background: var(--panel-bg);
+            border-radius: 23px;
+            padding: 1.65rem 2.1rem;
+            margin-bottom: 2rem;
+            border: 1px solid rgba(255, 133, 0, 0.2);
+        }
+        .set-panel .panel-title {
+            margin-bottom: 1.3rem;
+        }
+        .set-line {
+            display: flex;
+            align-items: baseline;
+            margin-bottom: 1rem;
+            flex-wrap: wrap;
+        }
+        .set-line:last-child {
+            margin-bottom: 0;
+        }
+        .set-piece {
+            font-weight: bold;
+            width: 107px;
+            flex-shrink: 0;
+            font-size: 1rem;
+            color: var(--isac-orange);
+        }
+        .set-text {
+            color: var(--text-primary);
+            font-size: 1rem;
+            line-height: 1.5;
+            flex: 1;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+        }
+        .gear-card.named .set-piece { color: var(--named-color); }
+        .gear-card.exotic .set-piece { color: var(--exotic-color); }
+        .gear-card.gearset .set-piece { color: var(--gearset-color); }
+
         .talent-panel {
             background: var(--panel-bg);
             border-radius: 23px;
@@ -465,6 +505,19 @@
         </div>
         {% endfor %}
     </div>
+
+    <!-- 套装加成（奇特装备无套装加成，不显示） -->
+    {% if set_bonus and set_bonus.lines %}
+    <div class="set-panel">
+        <div class="panel-title">套装加成</div>
+        {% for line in set_bonus.lines %}
+        <div class="set-line">
+            <span class="set-piece">{{ set_bonus.start_num + loop.index0 }}件：</span>
+            <span class="set-text">{{ line }}</span>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
 
     <!-- 天赋区域 -->
     {% if gear.talents and gear.talents|length > 0 %}

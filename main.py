@@ -1442,6 +1442,7 @@ class TheDivision2Plugin(Star):
         gear = None
         attr_map = {}
         talents = []
+        set_bonus = None
 
         async with aiosqlite.connect(db_path) as conn:
             conn.row_factory = aiosqlite.Row
@@ -1532,6 +1533,25 @@ class TheDivision2Plugin(Star):
                             'description': t_row['description']
                         })
 
+                # 4. 查询所属品牌/装备组的套装加成（奇特装备无套装加成，不显示）
+                if gear.get('quality') != '奇特':
+                    cursor = await conn.execute(
+                        "SELECT name_zh, name_en, type, effect FROM equipment_group "
+                        "WHERE LOWER(name_zh) = LOWER(?) OR LOWER(name_en) = LOWER(?)",
+                        (gear.get('equipment') or '', gear.get('equipment') or '')
+                    )
+                    eg_row = await cursor.fetchone()
+                    if eg_row and (eg_row['effect'] or '').strip():
+                        effect_lines = [ln.strip() for ln in eg_row['effect'].split('\n') if ln.strip()]
+                        if effect_lines:
+                            set_bonus = {
+                                'name_zh': eg_row['name_zh'],
+                                'name_en': eg_row['name_en'],
+                                'type': eg_row['type'],
+                                'start_num': 1 if eg_row['type'] == '品牌' else 2,
+                                'lines': effect_lines
+                            }
+
         # ---------- 块外处理 ----------
         if not found:
             # 使用缓存建议
@@ -1579,7 +1599,8 @@ class TheDivision2Plugin(Star):
                 'talents': talents,
                 'sources': sources
             },
-            'attr_map': attr_map
+            'attr_map': attr_map,
+            'set_bonus': set_bonus
         }
 
         template = self.templates.get("gear_card")
