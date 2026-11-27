@@ -25,27 +25,25 @@
 克隆 `ubi-go` 仓库：
 
 ```bash
-git clone https://github.com/MuFen-mker/ubi-go.git
-cd ubi-go
+mkdir ubi-go && cd ubi-go
+
+curl -O https://raw.githubusercontent.com/MuFen-mker/ubi-go/origin/docker-compose.yml
+curl -O https://raw.githubusercontent.com/MuFen-mker/ubi-go/origin/env_sample
 ```
 
-配置环境变量（复制 `env_sample` 为 `.env`）
-
-```
-cp env_sample .env
-```
-
-编辑 `.env` 文件，填入你的育碧账号（建议使用专用小号）：
+编辑 `env_sample` 文件，填入你的育碧账号（建议使用专用小号）：
 
 ```
 UBISOFT_ACCOUNTS=[{"email": "your_email@example.com", "password": "your_password"}]
-API_PORT=8080
+# 用于查询数据用的育碧账号，推荐使用专门的小号
+API_PORT=8080 
+# 容器监听端口，正常无需修改
 ```
 
 启动服务
 
 ```
-docker-compose up -d
+docker compose --env-file env_sample up -d
 ```
 
 验证服务是否正常运行
@@ -77,15 +75,15 @@ curl http://localhost:8080/health
 ## 📋 命令列表
 
 
-| 命令格式                    | 说明                                                | 示例                       |
-| --------------------------- | --------------------------------------------------- | -------------------------- |
-| `/数据查询 <玩家名> [平台]` | 查询玩家数据，支持 UID。平台可选`uplay`/`xbl`/`psn` | `/数据查询 name/uid psn`   |
-| `/天赋 <天赋名>`            | 查询天赋详情（支持模糊搜索）                        | `/天赋 完美拳拳到肉`       |
-| `/武器 <武器名>`            | 查询武器详情（支持别名、模糊搜索）                  | `/武器 鸟` / `/武器 F2000` |
-| `/装备 <装备名>`            | 查询装备详情（支持别名）                            | `/装备 天平包`             |
-| `/套装 <套装名>`            | 查询装备组/品牌详情（支持别名）                     | `/套装 影子`               |
-| `/周商`                     | 获取本周商人商品长图                                | `/周商`                    |
-| `/恶化`                     | 获取每周恶化轮换和掉落                              | `/恶化`                    |
+| 命令格式                    | 说明                                                | 示例                            |
+| --------------------------- | --------------------------------------------------- | ------------------------------- |
+| `/数据查询 <玩家名> [平台]` | 查询玩家数据，支持 UID。平台可选`uplay`/`xbl`/`psn` | `/数据查询 name/uid psn`        |
+| `/天赋 <天赋名>`            | 查询天赋详情（支持模糊搜索）                        | `/天赋 完美拳拳到肉`            |
+| `/武器 <武器名>`            | 查询武器详情（支持别名、模糊搜索）                  | `/武器 鸟` <br />/`/武器 F2000` |
+| `/装备 <装备名>`            | 查询装备详情（支持别名）                            | `/装备 天平包`                  |
+| `/套装 <套装名>`            | 查询装备组/品牌详情（支持别名）                     | `/套装 影子`                    |
+| `/周商`                     | 获取本周商人商品长图                                | `/周商`                         |
+| `/恶化`                     | 获取每周恶化轮换和掉落                              | `/恶化`                         |
 
 ---
 
@@ -137,7 +135,6 @@ astrbot_plugin_TheDivision2/
 * 部分数据整理自社区玩家及 [Division 2 Gear Spreadsheet](https://docs.google.com/spreadsheets/d/1nrPBmOrtpkEW1j5fbcRT7L-AXgsGOqMqxXoVtopsiGM/edit?usp=sharing) ， [ProtoTrack · Escalation Target Loot](https://prototrack.gg/target-loot/target-loot.php)
 * 感谢 AstrBot 提供的机器人框架支持
 * 全体致力于《全境封锁2》CN社区发展的特工，参与使用Bot的特工
-* 开发协助：QGE.
 
 ---
 
